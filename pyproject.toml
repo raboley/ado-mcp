@@ -3,4 +3,13 @@ name = "ado-mcp"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "fastapi>=0.115.14",
+    "requests>=2.32.4",
+    "uvicorn>=0.35.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.4.1",
+]

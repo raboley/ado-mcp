@@ -1,0 +1,19 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install project dependencies
+    cmds:
+      - uv sync
+
+  test:
+    desc: Run project tests
+    cmds:
+      - uv run pytest
+
+  serve:
+    desc: Run the FastAPI application
+    cmds:
+      - uv run uvicorn main:app --reload
+    env:
+      PYTHONPATH: .
