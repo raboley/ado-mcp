@@ -70,8 +70,9 @@ When working with task lists, the AI must:
    - Mark the **parent task** `[x]` once **all** its subtasks are `[x]`.
 3. Add newly discovered tasks.
 4. Keep "Relevant Files" accurate and up to date.
-5. Before starting work, check which sub‑task is next.
-6. After implementing a sub‑task, update the file and then pause for user approval.
+5. Clean up any `TODO` comments once the associated task is complete.
+6. Before starting work, check which sub‑task is next.
+7. After implementing a sub‑task, update the file and then pause for user approval.
 
 ## Detailed Guidelines
 
