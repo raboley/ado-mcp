@@ -14,7 +14,7 @@ tasks:
   coverage:
     desc: Generate code coverage report
     cmds:
-      - AZURE_DEVOPS_EXT_PAT=$(security find-generic-password -w -a ado-token) ADO_ORGANIZATION_URL="https://dev.azure.com/RussellBoley" uv run pytest --cov=ado_client --cov-report=term-missing
+      - AZURE_DEVOPS_EXT_PAT=$(security find-generic-password -w -a ado-token) ADO_ORGANIZATION_URL="https://dev.azure.com/RussellBoley" uv run pytest -v --cov=ado_client --cov-report=term-missing
 
   serve:
     desc: Run the FastAPI application
