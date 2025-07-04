@@ -9,7 +9,7 @@ This document provides a set of guidelines for the Gemini AI assistant to follow
 For any given task to be considered "done," the following criteria must be met:
 
 1.  **Working and Executed Code:** The code must be functional and have been successfully executed.
-2.  **End-to-End Tests:** Comprehensive end-to-end tests must be written for the new code, without the use of mocks.
+2.  **End-to-End Tests:** Comprehensive end-to-end tests must be written for the new code, without the use of mocks, aiming for 100% code coverage.
 3.  **Built-in Observability:** The code and tests must include observability features to handle both "happy path" and "sad path" scenarios.
 4.  **AI-Consumable Documentation:** The code must be documented in a way that allows another AI to understand its purpose and usage.
 5.  **Successful Test Execution:** All tests must be executed and pass, confirming that they accurately test the intended scenarios.
