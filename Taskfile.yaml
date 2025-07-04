@@ -9,7 +9,7 @@ tasks:
   test:
     desc: Run project tests
     cmds:
-      - uv run pytest
+      - ./run_tests.sh
 
   serve:
     desc: Run the FastAPI application

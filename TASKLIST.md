@@ -9,9 +9,10 @@ This task list outlines the steps to get the initial version of the Azure DevOps
     *   [x] Add necessary dependencies to `pyproject.toml` (e.g., `fastapi`, `uvicorn`, `requests`).
     *   [x] Set up the basic project structure (e.g., `main.py`, `ado_client.py`).
 
-*   **Task 2: ADO Client - Authentication**
-    *   [ ] Implement a class to handle authentication with the Azure DevOps REST API using a Personal Access Token (PAT).
-    *   [ ] The PAT should be configurable via an environment variable.
+*   [x] ADO Client - Authentication
+    *   [x] Implement a class to handle authentication with the Azure DevOps REST API using a Personal Access Token (PAT).
+    *   [x] The PAT should be configurable via an environment variable.
+    *   [x] Add an authentication test to verify PAT functionality.
 
 *   **Task 3: ADO Client - List Pipelines**
     *   [ ] Implement a function to list all pipelines in a given organization and project.
