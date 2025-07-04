@@ -14,9 +14,9 @@ This task list outlines the steps to get the initial version of the Azure DevOps
     *   [x] The PAT should be configurable via an environment variable.
     *   [x] Add an authentication test to verify PAT functionality.
 
-*   **Task 3: ADO Client - List Pipelines**
-    *   [ ] Implement a function to list all pipelines in a given organization and project.
-    *   [ ] Create a data model for the pipeline information.
+*   [x] ADO Client - List Pipelines**
+    *   [x] Implement a function to list all pipelines in a given organization and project.
+    *   [x] Create a data model for the pipeline information.
 
 *   **Task 4: API - List Pipelines**
     *   [ ] Create a FastAPI endpoint that exposes the "list pipelines" functionality.

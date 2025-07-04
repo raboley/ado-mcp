@@ -1,5 +1,11 @@
 import os
 import requests
+from pydantic import BaseModel, Field
+
+class Pipeline(BaseModel):
+    id: int
+    name: str
+    folder: str | None = None
 
 class AdoClient:
     def __init__(self, organization_url: str):
@@ -20,4 +26,9 @@ class AdoClient:
     def check_authentication(self):
         """Verifies authentication by making a simple API call."""
         url = f"{self.organization_url}/_apis/ConnectionData"
+        return self._send_request("GET", url)
+
+    def list_pipelines(self, project_name: str):
+        """Lists all pipelines in a given Azure DevOps project."""
+        url = f"{self.organization_url}/{project_name}/_apis/pipelines?api-version=7.1"
         return self._send_request("GET", url)
