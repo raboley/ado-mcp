@@ -40,16 +40,37 @@ This document outlines the requirements for an Azure DevOps (ADO) Model Context 
 
 ## 6. Design Considerations
 
-*   The server will be designed as a conversational MCP server, following the best practices of other modern MCP servers.
+### 6.1. Model Context Protocol (MCP) Architecture
+
+This server will function as an MCP Server, enabling seamless communication between LLM applications (Hosts/Clients) and Azure DevOps. It will adhere to the MCP client-server architecture, providing context and tools to MCP Clients.
+
+*   **Transport Layer:** The server will primarily use **Stdio transport** for communication, leveraging standard input/output. This is ideal for local processes and efficient for same-machine communication.
+*   **Protocol Layer:** Communication will follow the **JSON-RPC 2.0** specification for message exchange, including:
+    *   **Requests:** Expect a response from the client (e.g., `pipelines/list`).
+    *   **Results:** Successful responses to requests.
+    *   **Errors:** Indicate that a request failed, with defined error codes.
+    *   **Notifications:** One-way messages that do not expect a response.
+*   **Connection Lifecycle:** The server will manage the standard MCP connection lifecycle: Initialization (client sends `initialize`, server responds, client sends `initialized`), Message Exchange (Request-Response, Notifications), and Termination (clean shutdown or error conditions).
+
+### 6.2. General Design Principles
+
+*   The server will be designed as a conversational MCP server, following the best practices of modern MCP servers.
 *   The interaction between the AI and the server will be through a well-defined API that is easy for the AI to understand and use.
 
 ## 7. Technical Considerations
 
-*   The server will be built using Python.
+*   The server will be built using Python and leverage the `mcp` Python SDK.
 *   The server will use the Azure DevOps REST API to interact with ADO.
-*   The server will need to securely store and manage the ADO Personal Access Token.
+*   The server will need to securely store and manage the Azure DevOps Personal Access Token (`AZURE_DEVOPS_EXT_PAT`).
 
-## 8. Success Metrics
+## 8. Best Practices and Security Considerations (MCP Specific)
+
+*   **Transport Security:** For `stdio` transport, security is inherently managed by the local process environment. If remote communication is considered in the future, TLS and authentication will be critical.
+*   **Message Validation:** All incoming MCP messages will be thoroughly validated, and inputs will be sanitized to prevent injection risks.
+*   **Error Handling:** Errors will be handled gracefully, using appropriate MCP error codes, providing helpful messages, and ensuring sensitive information is not leaked.
+*   **Resource Protection:** Access controls will be implemented for Azure DevOps resources, and requests will be rate-limited if necessary.
+
+## 9. Success Metrics
 
 *   The AI can successfully run a pipeline and report on its status.
 *   The AI can successfully retrieve logs from a failed pipeline and provide a helpful summary of the error.

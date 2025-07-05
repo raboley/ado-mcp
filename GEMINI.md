@@ -4,6 +4,11 @@
 
 This document provides a set of guidelines for the Gemini AI assistant to follow when working on this project. The purpose of these guidelines is to ensure that all development tasks are completed to a consistent and high standard, resulting in a robust, well-tested, and maintainable codebase.
 
+This project is to build an MCP server to interact with Azure DevOps. You can read the 
+[prd-ado-mcp-server.md](tasks/prd-ado-mcp-server.md) to see the overall project goal, 
+and [TASKLIST.md](tasks/TASKLIST.md) to see the current tasks. When working on a task go from top to bottom for tasks that have not been checked off.
+When working on a given task the AI must always follow the guidelines below.
+
 ## Task Completion Checklist
 
 For any given task to be considered "done," the following criteria must be met:
@@ -31,7 +36,7 @@ For any given task to be considered "done," the following criteria must be met:
 
 ## Task List Management
 
-Guidelines for managing task lists in markdown files to track progress on completing a PRD
+Guidelines for managing task lists in markdown files to track progress on completing a PRD. The primary task list is located at `tasks/TASKLIST.md`.
 
 ### Task Implementation
 - **One sub-task at a time:** Do **NOT** start the next sub‑task until you ask the user for permission and they say "yes" or "y"

@@ -1,11 +1,7 @@
 import os
 import requests
-from pydantic import BaseModel, Field
-
-class Pipeline(BaseModel):
-    id: int
-    name: str
-    folder: str | None = None
+from .types.pipeline import Pipeline, PipelineDefinition
+from .types.build_definition import BuildDefinition
 
 class AdoClient:
     def __init__(self, organization_url: str):
@@ -33,3 +29,15 @@ class AdoClient:
         url = f"{self.organization_url}/{project_name}/_apis/pipelines?api-version=7.2-preview.1"
         response_data = self._send_request("GET", url)
         return [Pipeline(**item) for item in response_data.get("value", [])]
+
+    def get_pipeline(self, project_name: str, pipeline_id: int) -> PipelineDefinition:
+        """Gets the detailed definition of a single pipeline, including its parameters."""
+        url = f"{self.organization_url}/{project_name}/_apis/pipelines/{pipeline_id}?api-version=7.2-preview.1"
+        response_data = self._send_request("GET", url)
+        return PipelineDefinition(**response_data)
+
+    def get_build_definition(self, project_name: str, definition_id: int) -> BuildDefinition:
+        """Gets the detailed definition of a single build definition, including its parameters."""
+        url = f"{self.organization_url}/{project_name}/_apis/build/definitions/{definition_id}?api-version=7.1"
+        response_data = self._send_request("GET", url)
+        return BuildDefinition(**response_data)
