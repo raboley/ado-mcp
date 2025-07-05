@@ -10,7 +10,10 @@ async def test_add_tool():
 async def test_get_config_resource():
     async with Client(mcp) as client:
         result = await client.read_resource("resource://config")
-        assert result[0].text == '{"version": "1.0", "author": "MyTeam"}'
+        assert result[0].text == '''{
+  "version": "1.0",
+  "author": "MyTeam"
+}'''
 
 async def test_personalized_greeting_resource_template():
     async with Client(mcp) as client:
