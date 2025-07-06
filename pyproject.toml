@@ -1,12 +1,24 @@
 [project]
 name = "ado-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "An MCP server for Azure DevOps"
 readme = "README.md"
 requires-python = ">=3.12"
+# Add dependencies used by your application code
 dependencies = [
-    "fastmcp>=2.10.1",
+    "fastmcp>=2.10.0",
+    "requests>=2.30.0"
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[tool.setuptools]
+py-modules = ["server"]
+packages = ["ado"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -14,5 +26,12 @@ asyncio_mode = "auto"
 [tool.uv]
 dev-dependencies = [
     "pytest-asyncio>=1.0.0",
-    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "pytest-mock>=3.14.1",
 ]
+
+[tool.coverage.run]
+source = ["ado", "server"]
+
+[tool.coverage.report]
+show_missing = true

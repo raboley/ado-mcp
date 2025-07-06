@@ -1,111 +1,74 @@
-# Gemini AI Coding Assistant Guidelines
+### 🔄 Project Awareness & Context
+- **Always read `PLANNING.md`** at the start of a new conversation to understand the project's architecture, goals, style, and constraints.
+- **Check `TASK.md`** before starting a new task. If the task isn’t listed, add it with a brief description and today's date.
+- **Use consistent naming conventions, file structure, and architecture patterns** as described in `PLANNING.md`.
+- **Use venv_linux** (the virtual environment) whenever executing Python commands, including for unit tests.
 
-## Introduction
+### 🧱 Code Structure & Modularity
+- **Never create a file longer than 500 lines of code.** If a file approaches this limit, refactor by splitting it into modules or helper files.
+- **Organize code into clearly separated modules**, grouped by feature or responsibility.
+  For agents this looks like:
+    - `agent.py` - Main agent definition and execution logic 
+    - `tools.py` - Tool functions used by the agent 
+    - `prompts.py` - System prompts
+- **Use clear, consistent imports** (prefer relative imports within packages).
+- **Use clear, consistent imports** (prefer relative imports within packages).
+- **Use python_dotenv and load_env()** for environment variables.
+- **Use logging module to add observability** Any errors must include all relevant execution context so an llm can fix it.
 
-This document provides a set of guidelines for the Gemini AI assistant to follow when working on this project. The purpose of these guidelines is to ensure that all development tasks are completed to a consistent and high standard, resulting in a robust, well-tested, and maintainable codebase.
+### 🧪 Testing & Reliability
+- **Always create Pytest unit tests for new features** that a user can experience.
+- **Only create end to end tests using actual data and real connections** - black box test how a user would test.
+- **After updating any logic**, check whether existing unit tests need to be updated. If so, do it. use `task test` to ensure everything still works
+- **Tests should live in a `/tests` folder** mirroring the main app structure.
+- **coverage should be 100%** use `task coverage` to check for test coverage
+- **Only failure scenarios** can be mocked, when it is impossible or very difficult to reproduce the errors without mocks. 
+  - Include at least:
+    - 1 test for expected use
+    - 1 edge case
+    - 1 failure case
 
-This project is to build an MCP server to interact with Azure DevOps. You can read the 
-[prd-ado-mcp-server.md](tasks/prd-ado-mcp-server.md) to see the overall project goal, 
-and [TASKLIST.md](tasks/TASKLIST.md) to see the current tasks. When working on a task go from top to bottom for tasks that have not been checked off.
-When working on a given task the AI must always follow the guidelines below.
+### ✅ Task Completion
+- **Always Run tests** ensuring they all pass before marking something complete
+- **Mark completed tasks in `TASK.md`** immediately after finishing them.
+- Add new sub-tasks or TODOs discovered during development to `TASK.md` under a “Discovered During Work” section.
 
-## Task Completion Checklist
+### 📎 Style & Conventions
+- **Use Python** as the primary language.
+- **Use uv** as the package manager [uv](https://github.com/astral-sh/uv)
+- **Use Taskfile** for all build and test commands.
+- **Follow PEP8**, use type hints, and format with `black`.
+- **Use `pydantic` for data validation**.
+- Use `FastAPI` for APIs and `SQLAlchemy` or `SQLModel` for ORM if applicable.
+- Write **docstrings for every function** using the Google style:
+  ```python
+  def example():
+      """
+      Brief summary.
 
-For any given task to be considered "done," the following criteria must be met:
+      Args:
+          param1 (type): Description.
 
-1.  **Working and Executed Code:** The code must be functional and have been successfully executed.
-2.  **End-to-End Tests:** Comprehensive end-to-end tests must be written for the new code, without the use of mocks, aiming for 100% code coverage.
-3.  **Built-in Observability:** The code and tests must include observability features to handle both "happy path" and "sad path" scenarios.
-4.  **AI-Consumable Documentation:** The code must be documented in a way that allows another AI to understand its purpose and usage.
-5.  **Successful Test Execution:** All tests must be executed and pass, confirming that they accurately test the intended scenarios.
-6.  **Code Commit:** All changes must be committed with a clear and concise commit message.
+      Returns:
+          type: Description.
+      """
+  ```
 
----
+### 📚 Documentation & Explainability
+- **Update `README.md`** when new features are added, dependencies change, or setup steps are modified.
+- **Comment non-obvious code** and ensure everything is understandable to a mid-level developer.
+- When writing complex logic, **add an inline `# Reason:` comment** explaining the why, not just the what.
 
-## Project-Specific Tools and Conventions
+### 🧠 AI Behavior Rules
+- **Never assume missing context. Ask questions if uncertain.**
+- **Never hallucinate libraries or functions** – only use known, verified Python packages.
+- **Always confirm file paths and module names** exist before referencing them in code or tests.
+- **Never delete or overwrite existing code** unless explicitly instructed to or if part of a task from `TASK.md`.
 
-### Python Package Management
-
-*   **`uv`:** For Python package management, `uv` (https://github.com/astral-sh/uv) should be used. This includes dependency installation, environment management, and package building.
-
-### Task Automation
-
-*   **`Taskfile`:** All major build, test, and development commands should be defined in a `Taskfile` (https://taskfile.dev). This ensures consistency and ease of use across different environments.
-
-## Detailed Guidelines
-
-## Task List Management
-
-Guidelines for managing task lists in markdown files to track progress on completing a PRD. The primary task list is located at `tasks/TASKLIST.md`.
-
-### Task Implementation
-- **One sub-task at a time:** Do **NOT** start the next sub‑task until you ask the user for permission and they say "yes" or "y"
-- **Completion protocol:**  
-  1. When you finish a **sub‑task**, immediately mark it as completed by changing `[ ]` to `[x]`.
-  2. If **all** subtasks underneath a parent task are now `[x]`, follow this sequence:
-    - **First**: Run the full test suite (`pytest`, `npm test`, `bin/rails test`, etc.)
-    - **Only if all tests pass**: Stage changes (`git add .`)
-    - **Clean up**: Remove any temporary files and temporary code before committing
-    - **Commit**: Use a descriptive commit message that:
-      - Uses conventional commit format (`feat:`, `fix:`, `refactor:`, etc.)
-      - Summarizes what was accomplished in the parent task
-      - Lists key changes and additions
-      - References the task number and PRD context
-      - **Formats the message as a single-line command using `-m` flags**
-  3. Once all the subtasks are marked completed and changes have been committed, mark the **parent task** as completed.
-- Stop after each sub‑task and wait for the user's go‑ahead.
-
-### Task List Maintenance
-
-1. **Update the task list as you work:**
-   - Mark tasks and subtasks as completed (`[x]`) per the protocol above.
-   - Add new tasks as they emerge.
-
-2. **Maintain the "Relevant Files" section:**
-   - List every file created or modified.
-   - Give each file a one‑line description of its purpose.
-
-### AI Instructions
-
-When working with task lists, the AI must:
-
-1. Regularly update the task list file after finishing any significant work.
-2. Follow the completion protocol:
-   - Mark each finished **sub‑task** `[x]`.
-   - Mark the **parent task** `[x]` once **all** its subtasks are `[x]`.
-3. Add newly discovered tasks.
-4. Keep "Relevant Files" accurate and up to date.
-5. Clean up any `TODO` comments once the associated task is complete.
-6. Before starting work, check which sub‑task is next.
-7. After implementing a sub‑task, update the file and then pause for user approval.
-
-## Detailed Guidelines
-
-### 1. Writing Working Code
-
-Before submitting any code, ensure that it is not only well-written but also fully functional. You should attempt to run the code to validate its correctness.
-
-### 2. End-to-End Testing
-
--   **No Mocks:** All tests should be end-to-end and test the full functionality of the code. Avoid using mocks or stubs.
--   **Comprehensive Scenarios:** Tests should cover all aspects of the new feature, including edge cases and potential failure points.
-
-### 3. Observability
-
--   **Logging:** Implement structured logging to provide clear insights into the application's behavior.
--   **Happy and Sad Paths:** Ensure that your tests and observability measures cover both successful execution (the "happy path") and potential errors or failures (the "sad path"). This will help in debugging and understanding the application's behavior in various scenarios.
-
-### 4. AI-Consumable Documentation
-
--   **Docstrings:** All functions, classes, and modules should have clear and concise docstrings that explain their purpose, arguments, and return values.
--   **Focus on "Why" and "When":** The documentation should not just describe *what* the code does, but *why* it is needed and *when* it should be used. This will help other AI assistants understand the context and make better decisions.
-
-### 5. Test Execution and Validation
-
--   **Run All Tests:** Before committing any changes, execute all relevant tests and ensure that they pass.
--   **Verify Test Scenarios:** Double-check that the tests are actually testing the intended scenarios and are not just passing due to a flaw in the test itself.
-
-### 6. Committing Changes
-
--   **Concise and Helpful Messages:** Write a commit message that is both concise and informative. The title should summarize the change, and the body (if needed) should provide additional context.
--   **Atomic Commits:** Each commit should represent a single logical change. Avoid bundling unrelated changes into a single commit.
+### 📝 AI Planning
+- **Always Plan Features Vertically** A new feature should include:
+  - Code
+  - End to End tests
+  - Observability
+  - Code Doc comments
+- 

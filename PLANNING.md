@@ -70,6 +70,44 @@ This server will function as an MCP Server, enabling seamless communication betw
 *   **Error Handling:** Errors will be handled gracefully, using appropriate MCP error codes, providing helpful messages, and ensuring sensitive information is not leaked.
 *   **Resource Protection:** Access controls will be implemented for Azure DevOps resources, and requests will be rate-limited if necessary.
 
+## 8.1 User Journeys
+
+Human asks to execute a pipeline by name
+1. AI lists pipelines using the list pipelines tool
+2. The list pipelines tool gives the ID of the pipeline as part of the output
+3. The AI uses the run pipelines tool to execute the pipeline by id
+4. The run pipelines tool outputs a URL to the running pipeline the AI provides to the user
+
+Human asks to execute a pipeline but gives a name that doesn't exist 
+1. AI lists pipelines using the list pipelines tool
+2. No pipeline shows up in the list matching the name, or anywhere close to it.
+3. The AI gets some pipeline names that are the closest to what they ask, and asks if it is one of those or in a different project.
+
+Human asks the AI to investigate a pipeline URL that they say has failed
+1. AI uses the URL to extract the appropriate info to use the List Pipeline Run Logs tool
+2. The tools gives log information that can be used to find the error message logs using the Get Pipeline Run Logs tool
+2. The Run Logs tool gives the error message from the pipeline which the AI analyzes the error message and summarizes and gives potential solution
+
+Human asks the AI to trigger a pipeline and asks them to let them know when it is finished
+1. AI lists pipelines using the list pipelines tool
+2. The list pipelines tool gives the ID of the pipeline as part of the output
+3. The AI uses the run pipelines tool to execute the pipeline by id
+4. The AI waits a minute and then checks the pipeline using the pipeline runs get
+5. The run state is in progress, so the AI waits again 1 minute
+6. The AI uses pipeline runs get tool to check the status of the running pipeline
+7. The running pipeline is completed, but failed
+8. The AI gives the human the error message for the pipeline and then offers a potential fix after inspecting the pipeline yaml.
+
+## 8.2 Azure DevOps APIs we will need to implement
+
+1. [pipelines list](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/pipelines/list?view=azure-devops-rest-7.2)
+2. [pipelines get](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/pipelines/get?view=azure-devops-rest-7.2)
+3. [pipelines runs list](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/runs/list?view=azure-devops-rest-7.2)
+4. [pipelines runs get](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/runs/get?view=azure-devops-rest-7.2)
+5. [pipelines runs run pipeline](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/runs/run-pipeline?view=azure-devops-rest-7.2)
+6. [pipelines logs list](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/logs/list?view=azure-devops-rest-7.2)
+7. [pipelines logs get](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/logs/get?view=azure-devops-rest-7.2)
+
 ## 9. Success Metrics
 
 *   The AI can successfully run a pipeline and report on its status.

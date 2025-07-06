@@ -1,6 +1,6 @@
 import asyncio
 from fastmcp import Client
-from my_mcp_server import mcp
+from server import mcp
 
 async def test_add_tool():
     async with Client(mcp) as client:

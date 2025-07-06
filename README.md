@@ -1,0 +1,1 @@
+This uses [FastMCP 2.0](https://gofastmcp.com/getting-started/installation) python sdk. 

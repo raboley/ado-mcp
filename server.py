@@ -17,6 +17,6 @@ def personalized_greeting(name: str) -> str:
     """Generates a personalized greeting for the given name."""
     return f"Hello, {name}! Welcome to the MCP server."
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     mcp.run()
 

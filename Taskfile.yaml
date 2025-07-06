@@ -1,20 +1,31 @@
 version: '3'
 
+env:
+  AZURE_DEVOPS_EXT_PAT: $(security find-generic-password -w -a ado-token)
+  ADO_ORGANIZATION_URL: 'https://dev.azure.com/RussellBoley'
+  ADO_PROJECT_NAME: "Learning"
+  PYTHONPATH: "."
+
 tasks:
   install:
     desc: Install project dependencies
     cmds:
       - uv sync
+    sources:
+      - pyproject.toml
+    generates:
+      - uv.lock
+      - .venv/pyvenv.cfg
 
   test:
     desc: Run project tests
     cmds:
-      - ./run_tests.sh
+      - uv run pytest -v
 
   coverage:
     desc: Generate code coverage report
     cmds:
-      - AZURE_DEVOPS_EXT_PAT=$(security find-generic-password -w -a ado-token) ADO_ORGANIZATION_URL="https://dev.azure.com/RussellBoley" uv run pytest -v --cov=ado_client --cov-report=term-missing
+      -  uv run pytest -v --cov
 
   run:
     desc: Run the FastAPI application
@@ -23,5 +34,7 @@ tasks:
 
   inspect:
     desc: Run the MCP Inspector on the server
+    deps:
+      - task: install
     cmds:
-      - uv run mcp dev server.py
+      - fastmcp dev server.py
