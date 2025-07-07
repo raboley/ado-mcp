@@ -7,11 +7,12 @@ from .errors import AdoAuthenticationError
 logger = logging.getLogger(__name__)
 
 class AdoClient:
-    def __init__(self, organization_url: str):
+    def __init__(self, organization_url: str, pat: str = None):
         self.organization_url = organization_url
-        pat = os.environ.get("AZURE_DEVOPS_EXT_PAT")
         if not pat:
-            raise ValueError("AZURE_DEVOPS_EXT_PAT environment variable not set.")
+            pat = os.environ.get("AZURE_DEVOPS_EXT_PAT")
+        if not pat:
+            raise ValueError("Personal Access Token (PAT) not provided or found in environment variables.")
 
         encoded_pat = b64encode(f":{pat}".encode("ascii")).decode("ascii")
         self.headers = {
