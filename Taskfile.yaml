@@ -7,6 +7,9 @@ env:
   PYTHONPATH: "."
 
 tasks:
+  init:
+    cmds:
+      - echo "AZURE_DEVOPS_EXT_PAT=$AZURE_DEVOPS_EXT_PAT\r\nADO_ORGANIZATION_URL=$ADO_ORGANIZATION_URL" >> .env
   install:
     desc: Install project dependencies
     cmds:
@@ -38,3 +41,8 @@ tasks:
       - task: install
     cmds:
       - fastmcp dev server.py
+
+  auth-test:
+    desc: test your ado token
+    cmds:
+      - curl -s -u ":$AZURE_DEVOPS_EXT_PAT" "$ADO_ORGANIZATION_URL/_apis/ConnectionData?api-version=7.1-preview" | jq .
