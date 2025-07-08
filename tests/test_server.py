@@ -1,21 +1,16 @@
-import asyncio
-from fastmcp import Client
-from server import mcp
+from fastmcp.client import Client
+from server import mcp, ado_client
+import pytest
 
-async def test_add_tool():
-    async with Client(mcp) as client:
-        result = await client.call_tool("add", {"a": 5, "b": 3})
-        assert result.data == 8
+# Mark all tests in this module as asyncio
+pytestmark = pytest.mark.asyncio
 
-async def test_get_config_resource():
-    async with Client(mcp) as client:
-        result = await client.read_resource("resource://config")
-        assert result[0].text == '''{
-  "version": "1.0",
-  "author": "MyTeam"
-}'''
+async def test_check_ado_authentication_tool():
+    """Tests the check_ado_authentication tool."""
+    # This test will only run if the ado_client was successfully initialized.
+    if not ado_client:
+        pytest.skip("ADO client not initialized, skipping authentication tool test.")
 
-async def test_personalized_greeting_resource_template():
     async with Client(mcp) as client:
-        result = await client.read_resource("greetings://TestUser")
-        assert result[0].text == 'Hello, TestUser! Welcome to the MCP server.'
+        result = await client.call_tool("check_ado_authentication")
+        assert result.content[0].text == "true"

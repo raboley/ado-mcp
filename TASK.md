@@ -1,6 +1,6 @@
 ### Task List
 
-*   [ ] **Feature: Foundational Server & ADO Client Setup**
+*   [x] **Feature: Foundational Server & ADO Client Setup**
     *   **Functionality:** Initialize the main MCP server in `server.py` and the `AdoClient` in `ado/client.py`.
     *   **Functionality:** Implement a `check_authentication` method in `AdoClient` to verify the PAT is valid.
     *   **Testing:** In `tests/ado/test_client.py`, write tests for `AdoClient` initialization (with and without PAT) and for `check_authentication` (success and failure cases).

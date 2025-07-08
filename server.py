@@ -1,52 +1,61 @@
 import os
+import logging
 from fastmcp import FastMCP
 from ado.client import AdoClient
+from ado.errors import AdoAuthenticationError
 
-mcp = FastMCP(name="ado-mcp")
-ado_client = None
+# Configure basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-print("Attempting to initialize Azure DevOps client...")
-try:
-    org_url = os.environ.get("ADO_ORGANIZATION_URL")
-    if not org_url:
-        raise ValueError("ADO_ORGANIZATION_URL environment variable is not set.")
+mcp = FastMCP(
+    name="ado-mcp",
+    version="0.1.0"
+)
 
-    temp_client = AdoClient(organization_url=org_url)
-    temp_client.check_authentication()
+# Initialize the ADO client within a dedicated function for clarity and error handling.
+def initialize_ado_client():
+    """
+    Initializes and authenticates the Azure DevOps client.
 
-    ado_client = temp_client
-    print("✅ Azure DevOps client initialized and authenticated successfully.")
+    Returns:
+        AdoClient: An initialized and authenticated client instance.
+        None: If initialization fails due to missing configuration or authentication errors.
+    """
+    try:
+        org_url = os.environ.get("ADO_ORGANIZATION_URL")
+        if not org_url:
+            raise ValueError("ADO_ORGANIZATION_URL environment variable is not set.")
 
-except Exception as e:
-    # Catch any error during initialization (missing PAT, bad credentials, network issues)
-    print(f"⚠️  WARNING: Could not initialize Azure DevOps client. ADO features will be disabled.")
-    print(f"   Reason: {e}")
+        client = AdoClient(organization_url=org_url)
+        client.check_authentication()
+        logger.info("✅ Azure DevOps client initialized and authenticated successfully.")
+        return client
+    except (ValueError, AdoAuthenticationError) as e:
+        logger.warning(f"⚠️ Could not initialize Azure DevOps client. ADO features will be disabled. Reason: {e}")
+        return None
 
+# Initialize the client on server startup.
+ado_client = initialize_ado_client()
 
-# --- Tools and Resources ---
+# --- Tools ---
 
 @mcp.tool
-def check_authentication():
-    """Verifies authentication by making a simple API call."""
-    return ado_client.check_authentication()
+def check_ado_authentication() -> bool:
+    """
+    Verifies that the connection and authentication to Azure DevOps are successful.
 
-@mcp.tool
-def add(a: int, b: int) -> int:
-    """Adds two integer numbers together."""
-    return a + b
-
-
-@mcp.resource("resource://config")
-def get_config() -> dict:
-    """Provides the application's configuration."""
-    return {"version": "1.0", "author": "MyTeam"}
-
-
-@mcp.resource("greetings://{name}")
-def personalized_greeting(name: str) -> str:
-    """Generates a personalized greeting for the given name."""
-    return f"Hello, {name}! Welcome to the MCP server."
-
+    Returns:
+        bool: True if authentication is successful, False otherwise.
+    """
+    if not ado_client:
+        logger.error("ADO client is not available.")
+        return False
+    try:
+        return ado_client.check_authentication()
+    except AdoAuthenticationError as e:
+        logger.error(f"ADO authentication check failed: {e}")
+        return False
 
 if __name__ == "__main__":  # pragma: no cover
     mcp.run()

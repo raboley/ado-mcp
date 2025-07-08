@@ -6,7 +6,24 @@ from .errors import AdoAuthenticationError
 
 logger = logging.getLogger(__name__)
 
+
 class AdoClient:
+    """
+    A client for interacting with the Azure DevOps REST API.
+
+    Handles authentication and provides methods for making API requests.
+
+    Args:
+        organization_url (str): The URL of the Azure DevOps organization.
+        pat (str, optional): A Personal Access Token for authentication.
+            If not provided, it will be read from the `AZURE_DEVOPS_EXT_PAT`
+            environment variable.
+
+    Raises:
+        ValueError: If the Personal Access Token is not provided or found
+            in the environment variables.
+    """
+
     def __init__(self, organization_url: str, pat: str = None):
         self.organization_url = organization_url
         if not pat:
@@ -22,7 +39,18 @@ class AdoClient:
         logger.info("AdoClient initialized.")
 
     def _validate_response(self, response: requests.Response):
-        """Checks if the response is the sign-in page."""
+        """
+        Checks if the response indicates an authentication failure.
+
+        A common failure mode is receiving the Azure DevOps sign-in page
+        in the response body, which indicates an invalid or expired PAT.
+
+        Args:
+            response (requests.Response): The HTTP response object.
+
+        Raises:
+            AdoAuthenticationError: If the response contains the sign-in page.
+        """
         if "Sign In" in response.text:
             logger.error(
                 "Authentication failed: Response contains sign-in page. "
@@ -35,7 +63,24 @@ class AdoClient:
 
     def _send_request(self, method: str, url: str, **kwargs):
         """
-        Sends an authenticated request and returns the parsed JSON response.
+        Sends an authenticated request to the Azure DevOps API.
+
+        This method handles common request logic, including adding authentication
+        headers, validating the response, and raising appropriate exceptions
+        for HTTP or network errors.
+
+        Args:
+            method (str): The HTTP method (e.g., 'GET', 'POST').
+            url (str): The full URL for the API endpoint.
+            **kwargs: Additional keyword arguments to pass to `requests.request`.
+
+        Returns:
+            dict or None: The parsed JSON response from the API, or None if the
+            response has no content.
+
+        Raises:
+            requests.exceptions.HTTPError: For HTTP-related errors (e.g., 404, 500).
+            requests.exceptions.RequestException: For other network-related errors.
         """
         try:
             response = requests.request(method, url, headers=self.headers, **kwargs)
@@ -53,9 +98,19 @@ class AdoClient:
 
     def check_authentication(self) -> bool:
         """
-        Verifies authentication. Returns True if successful.
-        Raises AdoAuthenticationError on failure.
+        Verifies that the provided credentials are valid.
+
+        This is done by making a lightweight request to a known API endpoint.
+
+        Returns:
+            bool: True if the authentication is successful.
+
+        Raises:
+            AdoAuthenticationError: If the authentication check fails due to
+                an invalid token or other request-related issues.
         """
+        # Use a simple, lightweight endpoint to verify the connection.
+        # Listing top 1 project is a good candidate.
         url = f"{self.organization_url}/_apis/projects?api-version=7.2-preview.4&$top=1"
         try:
             response = requests.get(url, headers=self.headers, timeout=10)
@@ -64,5 +119,4 @@ class AdoClient:
             return True
         except requests.exceptions.RequestException as e:
             logger.error(f"Authentication check failed with an exception: {e}")
-            # Re-raise as our custom exception for consistency
             raise AdoAuthenticationError(f"Authentication check failed: {e}") from e
