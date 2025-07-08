@@ -28,6 +28,7 @@
     - 1 test for expected use
     - 1 edge case
     - 1 failure case
+    - 1 test to ensure tools and resources are added to the mcp server.
 
 ### ✅ Task Completion
 - **Always Run tests** ensuring they all pass before marking something complete

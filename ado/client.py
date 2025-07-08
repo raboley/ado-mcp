@@ -120,3 +120,18 @@ class AdoClient:
         except requests.exceptions.RequestException as e:
             logger.error(f"Authentication check failed with an exception: {e}")
             raise AdoAuthenticationError(f"Authentication check failed: {e}") from e
+
+    def list_projects(self) -> list[dict]:
+        """
+        Retrieves a list of projects in the organization.
+
+        Returns:
+            list[dict]: A list of dictionaries, where each dictionary
+                        represents a project.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        url = f"{self.organization_url}/_apis/projects?api-version=7.2-preview.4"
+        response = self._send_request("GET", url)
+        return response.get("value", [])

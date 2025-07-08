@@ -6,7 +6,7 @@
     *   **Testing:** In `tests/ado/test_client.py`, write tests for `AdoClient` initialization (with and without PAT) and for `check_authentication` (success and failure cases).
     *   **Documentation:** Add docstrings for the initial server, `AdoClient`, and `check_authentication` method.
 
-*   [ ] **Feature: List ADO Projects**
+*   [x] **Feature: List ADO Projects**
     *   **Functionality:** Implement a `list_projects` method in `ado/client.py` to call the [projects list](https://learn.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-7.2) API.
     *   **Tooling:** Create a `projects/list` tool in `ado/tools.py` that uses the `list_projects` client method.
     *   **Testing:** Write a unit test in `tests/ado/test_client.py` for `list_projects`. Write an integration test in `tests/test_server.py` for the `projects/list` tool.

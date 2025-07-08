@@ -38,24 +38,11 @@ def initialize_ado_client():
 # Initialize the client on server startup.
 ado_client = initialize_ado_client()
 
-# --- Tools ---
+# Import tools to register them with the MCP server
+from ado import tools
 
-@mcp.tool
-def check_ado_authentication() -> bool:
-    """
-    Verifies that the connection and authentication to Azure DevOps are successful.
-
-    Returns:
-        bool: True if authentication is successful, False otherwise.
-    """
-    if not ado_client:
-        logger.error("ADO client is not available.")
-        return False
-    try:
-        return ado_client.check_authentication()
-    except AdoAuthenticationError as e:
-        logger.error(f"ADO authentication check failed: {e}")
-        return False
+# Register tools with the MCP server
+tools.register_ado_tools(mcp, ado_client)
 
 if __name__ == "__main__":  # pragma: no cover
     mcp.run()
