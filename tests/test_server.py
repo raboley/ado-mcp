@@ -1,6 +1,8 @@
 import pytest
 from fastmcp.client import Client
 from server import mcp
+from ado.errors import AdoAuthenticationError
+from fastmcp.exceptions import ToolError
 
 # Mark all tests in this module as asyncio
 pytestmark = pytest.mark.asyncio
@@ -60,7 +62,7 @@ async def test_set_ado_organization_success(mcp_client: Client):
     # in the environment for the test to pass.
     new_org_url = "https://dev.azure.com/RussellBoley" # Use a known good organization
     result = await mcp_client.call_tool("set_ado_organization", {"organization_url": new_org_url})
-    assert result.data is True, f"Expected organization switch to {new_org_url} to succeed."
+    assert result.data["result"] is True, f"Expected organization switch to {new_org_url} to succeed."
 
     # Verify that the authentication check now passes with the new org
     auth_result = await mcp_client.call_tool("check_ado_authentication")
@@ -68,10 +70,10 @@ async def test_set_ado_organization_success(mcp_client: Client):
 
 
 async def test_set_ado_organization_failure(mcp_client: Client):
-    """Tests that switching to a nonexistent organization fails gracefully."""
+    """Tests that switching to a nonexistent organization fails gracefully and raises an AdoAuthenticationError."""
     invalid_org_url = "https://dev.azure.com/doesntexist" # Use a known bad organization
-    result = await mcp_client.call_tool("set_ado_organization", {"organization_url": invalid_org_url})
-    assert result.data is False, f"Expected organization switch to {invalid_org_url} to fail."
+    with pytest.raises(ToolError, match="Authentication check failed"):
+        await mcp_client.call_tool("set_ado_organization", {"organization_url": invalid_org_url})
 
     # Verify that the authentication check now fails
     auth_result = await mcp_client.call_tool("check_ado_authentication")
@@ -82,4 +84,19 @@ async def test_customer_change_organization(mcp_client: Client):
     """Tests the change_organization tool as a customer would use it."""
     target_url = "https://dev.azure.com/RussellBoley"
     result = await mcp_client.call_tool("set_ado_organization", {"organization_url": target_url})
-    assert result.data is True, f"Expected organization to change to {target_url}"
+    assert result.data["result"] is True, f"Expected organization to change to {target_url}"
+
+
+async def test_list_projects_after_invalid_org_switch(mcp_client: Client):
+    """Tests that list_projects fails or returns empty after an invalid organization switch."""
+    invalid_org_url = "https://dev.azure.com/definitely-not-a-real-org"
+    # Attempt to switch to an invalid organization, expecting an error
+    with pytest.raises(ToolError, match="Authentication check failed"):
+        await mcp_client.call_tool("set_ado_organization", {"organization_url": invalid_org_url})
+
+    # Now try to list projects
+    list_projects_result = await mcp_client.call_tool("list_projects")
+    assert list_projects_result.data == [], "Expected list_projects to return an empty list or indicate failure."
+    # Optionally, you might assert that check_ado_authentication is False here as well
+    auth_result = await mcp_client.call_tool("check_ado_authentication")
+    assert auth_result.data is False, "Expected authentication to be false after invalid switch."

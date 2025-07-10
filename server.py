@@ -43,18 +43,19 @@ def initialize_ado_client(org_url=None):
         if not org_url:
             org_url = os.environ.get("ADO_ORGANIZATION_URL")
         if not org_url:
-            raise ValueError("ADO_ORGANIZATION_URL environment variable is not set.")
+            return None, "ADO_ORGANIZATION_URL environment variable is not set."
 
         client = AdoClient(organization_url=org_url)
         client.check_authentication()
         logger.info(f"✅ Azure DevOps client initialized and authenticated successfully for {org_url}.")
-        return client
+        return client, None
     except (ValueError, AdoAuthenticationError) as e:
-        logger.warning(f"⚠️ Could not initialize Azure DevOps client for {org_url}. ADO features will be disabled. Reason: {e}")
-        return None
+        error_message = f"Authentication check failed: {e}"
+        logger.warning(f"⚠️ Could not initialize Azure DevOps client for {org_url}. ADO features will be disabled. Reason: {error_message}")
+        return None, error_message
 
 @mcp.tool
-def set_ado_organization(organization_url: str) -> bool:
+def set_ado_organization(organization_url: str) -> dict:
     """
     Switches the active Azure DevOps organization for the MCP server.
 
@@ -63,19 +64,19 @@ def set_ado_organization(organization_url: str) -> bool:
             Example: 'https://dev.azure.com/your-org'
 
     Returns:
-        bool: True if the switch was successful, False otherwise.
+        dict: A dictionary with 'result' (bool) and optionally 'error' (str) keys.
     """
     logger.info(f"Attempting to switch to ADO organization: {organization_url}")
-    new_client = initialize_ado_client(org_url=organization_url)
+    new_client, error_message = initialize_ado_client(org_url=organization_url)
     if new_client:
         client_container['client'] = new_client
-        return True
+        return {"result": True}
     else:
-        logger.error(f"Failed to switch to organization: {organization_url}")
+        logger.error(f"Failed to switch to organization: {organization_url}. Reason: {error_message}")
         client_container['client'] = None # Explicitly set to None on failure
-        return False
+        raise AdoAuthenticationError(error_message)
 
-client_container['client'] = initialize_ado_client()
+client_container['client'], _ = initialize_ado_client()
 
 from ado import tools
 tools.register_ado_tools(mcp, client_container)
