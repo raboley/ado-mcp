@@ -86,14 +86,9 @@ class AdoClient:
             response = requests.request(method, url, headers=self.headers, **kwargs)
             self._validate_response(response)
             response.raise_for_status()
-            if not response.content:
-                return None
             return response.json()
         except requests.exceptions.HTTPError as http_err:
             logger.error(f"HTTP Error: {http_err} - Response Body: {http_err.response.text}")
-            raise
-        except requests.exceptions.RequestException as err:
-            logger.error(f"An unexpected network error occurred: {err}")
             raise
 
     def check_authentication(self) -> bool:

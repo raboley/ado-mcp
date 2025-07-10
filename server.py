@@ -13,28 +13,6 @@ mcp = FastMCP(
     version="0.1.0"
 )
 
-# Initialize the ADO client within a dedicated function for clarity and error handling.
-def initialize_ado_client():
-    """
-    Initializes and authenticates the Azure DevOps client.
-
-    Returns:
-        AdoClient: An initialized and authenticated client instance.
-        None: If initialization fails due to missing configuration or authentication errors.
-    """
-    try:
-        org_url = os.environ.get("ADO_ORGANIZATION_URL")
-        if not org_url:
-            raise ValueError("ADO_ORGANIZATION_URL environment variable is not set.")
-
-        client = AdoClient(organization_url=org_url)
-        client.check_authentication()
-        logger.info("✅ Azure DevOps client initialized and authenticated successfully.")
-        return client
-    except (ValueError, AdoAuthenticationError) as e:
-        logger.warning(f"⚠️ Could not initialize Azure DevOps client. ADO features will be disabled. Reason: {e}")
-        return None
-
 # Initialize the client on server startup.
 client_container = {'client': None}
 

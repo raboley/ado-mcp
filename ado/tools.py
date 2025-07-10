@@ -26,11 +26,7 @@ def register_ado_tools(mcp_instance, client_container):
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return False
-        try:
-            return ado_client_instance.check_authentication()
-        except AdoAuthenticationError as e:
-            logger.error(f"ADO authentication check failed: {e}")
-            return False
+        return ado_client_instance.check_authentication()
 
     @mcp_instance.tool
     def list_projects() -> list[Project]:
