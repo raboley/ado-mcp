@@ -36,13 +36,49 @@ def initialize_ado_client():
         return None
 
 # Initialize the client on server startup.
-ado_client = initialize_ado_client()
+client_container = {'client': None}
 
-# Import tools to register them with the MCP server
+def initialize_ado_client(org_url=None):
+    try:
+        if not org_url:
+            org_url = os.environ.get("ADO_ORGANIZATION_URL")
+        if not org_url:
+            raise ValueError("ADO_ORGANIZATION_URL environment variable is not set.")
+
+        client = AdoClient(organization_url=org_url)
+        client.check_authentication()
+        logger.info(f"✅ Azure DevOps client initialized and authenticated successfully for {org_url}.")
+        return client
+    except (ValueError, AdoAuthenticationError) as e:
+        logger.warning(f"⚠️ Could not initialize Azure DevOps client for {org_url}. ADO features will be disabled. Reason: {e}")
+        return None
+
+@mcp.tool
+def set_ado_organization(organization_url: str) -> bool:
+    """
+    Switches the active Azure DevOps organization for the MCP server.
+
+    Args:
+        organization_url (str): The URL of the new Azure DevOps organization.
+            Example: 'https://dev.azure.com/your-org'
+
+    Returns:
+        bool: True if the switch was successful, False otherwise.
+    """
+    logger.info(f"Attempting to switch to ADO organization: {organization_url}")
+    new_client = initialize_ado_client(org_url=organization_url)
+    if new_client:
+        client_container['client'] = new_client
+        return True
+    else:
+        logger.error(f"Failed to switch to organization: {organization_url}")
+        client_container['client'] = None # Explicitly set to None on failure
+        return False
+
+client_container['client'] = initialize_ado_client()
+
 from ado import tools
-
-# Register tools with the MCP server
-tools.register_ado_tools(mcp, ado_client)
+tools.register_ado_tools(mcp, client_container)
 
 if __name__ == "__main__":  # pragma: no cover
     mcp.run()

@@ -4,13 +4,14 @@ from ado.models import Project
 
 logger = logging.getLogger(__name__)
 
-def register_ado_tools(mcp_instance, ado_client_instance):
+def register_ado_tools(mcp_instance, client_container):
     """
     Registers Azure DevOps related tools with the FastMCP instance.
 
     Args:
         mcp_instance: The FastMCP instance to register tools with.
-        ado_client_instance: The AdoClient instance to use for API calls.
+        client_container (dict): A dictionary holding the AdoClient instance,
+            allowing the client to be updated dynamically.
     """
 
     @mcp_instance.tool
@@ -21,6 +22,7 @@ def register_ado_tools(mcp_instance, ado_client_instance):
         Returns:
             bool: True if authentication is successful, False otherwise.
         """
+        ado_client_instance = client_container.get('client')
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return False
@@ -38,6 +40,7 @@ def register_ado_tools(mcp_instance, ado_client_instance):
         Returns:
             list[Project]: A list of Project objects.
         """
+        ado_client_instance = client_container.get('client')
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return []
