@@ -100,3 +100,40 @@ async def test_list_projects_after_invalid_org_switch(mcp_client: Client):
     # Optionally, you might assert that check_ado_authentication is False here as well
     auth_result = await mcp_client.call_tool("check_ado_authentication")
     assert auth_result.data is False, "Expected authentication to be false after invalid switch."
+
+
+@pytest.fixture
+async def mcp_client_with_unset_ado_env(monkeypatch):
+    """
+    Provides a connected MCP client for tests where ADO_ORGANIZATION_URL
+    and AZURE_DEVOPS_EXT_PAT environment variables are unset,
+    simulating a server startup without these variables.
+    """
+    monkeypatch.delenv("ADO_ORGANIZATION_URL", raising=False)
+    monkeypatch.delenv("AZURE_DEVOPS_EXT_PAT", raising=False)
+
+    # Re-import server to ensure initialize_ado_client runs with unset env
+    import importlib
+    import server
+    importlib.reload(server)
+
+    async with Client(server.mcp) as client:
+        yield client
+
+
+async def test_initial_client_no_ado_org_url(mcp_client_with_unset_ado_env: Client):
+    """
+    Tests the initial state of the MCP client when ADO_ORGANIZATION_URL
+    and AZURE_DEVOPS_EXT_PAT are not set during server startup.
+    """
+    # Verify that check_ado_authentication returns False
+    auth_result = await mcp_client_with_unset_ado_env.call_tool("check_ado_authentication")
+    assert auth_result.data is False, "Expected authentication to be false when ADO_ORGANIZATION_URL is unset."
+
+    # Verify that list_projects returns an empty list
+    list_projects_result = await mcp_client_with_unset_ado_env.call_tool("list_projects")
+    assert list_projects_result.data == [], "Expected list_projects to return an empty list when ADO_ORGANIZATION_URL is unset."
+
+    # Verify that set_ado_organization raises an AdoAuthenticationError
+    with pytest.raises(ToolError, match="Authentication check failed"):
+        await mcp_client_with_unset_ado_env.call_tool("set_ado_organization", {"organization_url": "https://dev.azure.com/someorg"})
