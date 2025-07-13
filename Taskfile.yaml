@@ -49,6 +49,11 @@ tasks:
       - uv run ruff format --check .
       - uv run ruff check .
 
+  typecheck:
+    desc: Run type checking with mypy
+    cmds:
+      - uv run mypy .
+
   run:
     desc: Run the FastAPI application
     cmds:

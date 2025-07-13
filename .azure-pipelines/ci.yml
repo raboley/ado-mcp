@@ -33,7 +33,7 @@ stages:
         echo "Setting up Python environment..."
         python -m pip install --upgrade pip
         pip install uv
-        uv sync
+        task install
       displayName: 'Setup Python Environment'
     
     - script: |
@@ -62,13 +62,13 @@ stages:
         echo "Setting up Python environment..."
         python -m pip install --upgrade pip
         pip install uv
-        uv sync
+        task install
       displayName: 'Setup Python Environment'
     
     - script: |
         set -e
         echo "Running formatting checks with Task..."
-        task lint
+        task format-check
       displayName: 'Check Code Formatting'
       
     - script: |
