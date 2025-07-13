@@ -34,7 +34,7 @@ stages:
         python -m pip install --upgrade pip
         pip install uv
         echo "Installing project dependencies..."
-        uv sync --dev
+        uv sync --extra dev
         echo "Verifying installation..."
         uv run pytest --version
       displayName: 'Setup Python Environment'
@@ -66,7 +66,7 @@ stages:
         python -m pip install --upgrade pip
         pip install uv
         echo "Installing project dependencies..."
-        uv sync --dev
+        uv sync --extra dev
         echo "Verifying installation..."
         uv run ruff --version
       displayName: 'Setup Python Environment'
