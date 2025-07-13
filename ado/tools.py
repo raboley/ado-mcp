@@ -1,7 +1,7 @@
 import logging
 from typing import List, Optional
 from ado.errors import AdoAuthenticationError
-from ado.models import Project, Pipeline, CreatePipelineRequest, ConfigurationType, PipelineConfiguration, Repository, ServiceConnection, PipelineRun, PipelinePreviewRequest, PreviewRun, TimelineResponse, StepFailure, FailureSummary, LogCollection
+from ado.models import Project, Pipeline, CreatePipelineRequest, ConfigurationType, PipelineConfiguration, Repository, ServiceConnection, PipelineRun, PipelinePreviewRequest, PreviewRun, TimelineResponse, StepFailure, FailureSummary, LogCollection, PipelineOutcome
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +189,32 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.get_pipeline(project_id, pipeline_id)
 
     @mcp_instance.tool
+    def get_build_by_id(project_id: str, build_id: int) -> dict:
+        """
+        🔍 MAP BUILD ID TO PIPELINE: Retrieves build details and extracts pipeline information.
+        
+        ⚡ USE THIS WHEN: User provides an Azure DevOps URL with buildId parameter
+        
+        CRITICAL: buildId in URLs is actually a RUN ID, not a pipeline ID!
+        This tool maps run_id → pipeline_id so you can use other pipeline tools.
+        
+        Example: URL has buildId=324 → use this tool → get pipeline_id=84
+        Then use pipeline_id=84 with other tools like get_pipeline_failure_summary.
+        
+        Args:
+            project_id (str): The project UUID (get from list_projects if needed)
+            build_id (int): The buildId from Azure DevOps URL (this is actually a run_id)
+            
+        Returns:
+            dict: Build details with definition.id (pipeline_id) and definition.name
+        """
+        ado_client_instance = client_container.get('client')
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return {}
+        return ado_client_instance.get_build_by_id(project_id, build_id)
+
+    @mcp_instance.tool
     def run_pipeline(project_id: str, pipeline_id: int) -> Optional[PipelineRun]:
         """
         Triggers a run for a specific pipeline in an Azure DevOps project.
@@ -271,15 +297,25 @@ def register_ado_tools(mcp_instance, client_container):
         run_id: int
     ) -> Optional[FailureSummary]:
         """
-        Gets a comprehensive summary of pipeline failures, identifying root causes and affected components.
-
+        🔥 ANALYZE FAILED BUILDS: Get comprehensive failure analysis with root causes.
+        
+        ⚡ USE THIS WHEN: User wants to know why a build failed
+        
+        This tool provides intelligent failure analysis:
+        - Root cause tasks (actual failing steps)
+        - Hierarchy failures (jobs that failed due to child failures)  
+        - Categorized error information
+        - Log content for failing steps
+        
+        IMPORTANT: Use get_build_by_id first if you only have a buildId from URL!
+        
         Args:
-            project_id (str): The ID of the project.
-            pipeline_id (int): The ID of the pipeline.
-            run_id (int): The ID of the pipeline run.
+            project_id (str): The project UUID
+            pipeline_id (int): Pipeline definition ID (NOT the buildId from URL!)
+            run_id (int): The run/build ID (buildId from URL)
 
         Returns:
-            Optional[FailureSummary]: Detailed failure analysis including root cause tasks and hierarchy failures, or None if client unavailable.
+            FailureSummary: Analysis with root_cause_tasks, hierarchy_failures, total_failed_steps
         """
         ado_client_instance = client_container.get('client')
         if not ado_client_instance:
@@ -387,3 +423,37 @@ def register_ado_tools(mcp_instance, client_container):
             return None
         
         return ado_client_instance.get_log_content_by_id(project_id, pipeline_id, run_id, log_id)
+
+    @mcp_instance.tool
+    def run_pipeline_and_get_outcome(
+        project_id: str, 
+        pipeline_id: int,
+        timeout_seconds: int = 300
+    ) -> Optional[PipelineOutcome]:
+        """
+        🚀 RUN PIPELINE & WAIT: Execute pipeline and get complete outcome analysis.
+        
+        ⚡ USE THIS WHEN: User wants to run a pipeline and see results immediately
+        
+        This is the most comprehensive execution tool that:
+        1. Starts the pipeline
+        2. Waits for completion (up to timeout)
+        3. Returns success/failure with detailed analysis
+        4. Includes failure summary and logs if it fails
+        
+        Perfect for: "Run the pipeline and tell me what happens"
+        
+        Args:
+            project_id (str): The project UUID  
+            pipeline_id (int): Pipeline definition ID (use find_pipeline_by_name if needed)
+            timeout_seconds (int): Max wait time (default: 300s = 5 minutes)
+            
+        Returns:
+            PipelineOutcome: Complete results with pipeline_run, success flag, failure_summary, execution_time
+        """
+        ado_client_instance = client_container.get('client')
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+        
+        return ado_client_instance.run_pipeline_and_get_outcome(project_id, pipeline_id, timeout_seconds)

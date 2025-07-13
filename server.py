@@ -61,8 +61,10 @@ def set_ado_organization(organization_url: str) -> dict:
 # Initial client setup
 client_container['client'], _ = initialize_ado_client(org_url=os.environ.get("ADO_ORGANIZATION_URL"))
 
-from ado import tools
+from ado import tools, helpers, resources
 tools.register_ado_tools(mcp, client_container)
+helpers.register_helper_tools(mcp, client_container)
+resources.register_mcp_resources(mcp)
 
 if __name__ == "__main__":  # pragma: no cover
     mcp.run()

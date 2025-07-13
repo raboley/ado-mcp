@@ -994,3 +994,240 @@ async def test_logs_tools_no_client(mcp_client_with_unset_ado_env: Client):
         "project_id": "any", "pipeline_id": 1, "run_id": 1
     })
     assert result.data is None, "Should return None when client unavailable"
+
+@requires_ado_creds
+async def test_run_pipeline_and_get_outcome_success(mcp_client: Client):
+    """Tests successful pipeline run with complete outcome tracking."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 59  # test_run_and_get_pipeline_run_details (quick success pipeline)
+    
+    result = await mcp_client.call_tool("run_pipeline_and_get_outcome", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "timeout_seconds": 300
+    })
+    
+    outcome = result.data
+    assert outcome is not None, "Outcome should not be None"
+    assert isinstance(outcome, dict), "Outcome should be a dictionary"
+    
+    # Verify outcome structure
+    assert "pipeline_run" in outcome, "Should have pipeline_run"
+    assert "success" in outcome, "Should have success flag"
+    assert "failure_summary" in outcome, "Should have failure_summary field"
+    assert "execution_time_seconds" in outcome, "Should have execution time"
+    
+    # Verify pipeline run data
+    pipeline_run = outcome["pipeline_run"]
+    assert pipeline_run["id"] is not None, "Pipeline run should have ID"
+    assert pipeline_run["state"] == "completed", "Pipeline should be completed"
+    assert pipeline_run["result"] == "succeeded", "Pipeline should have succeeded"
+    assert pipeline_run["pipeline"]["id"] == pipeline_id, "Pipeline ID should match"
+    
+    # Verify success outcome
+    assert outcome["success"] is True, "Should be marked as successful"
+    assert outcome["failure_summary"] is None, "Successful run should have no failure summary"
+    assert outcome["execution_time_seconds"] > 0, "Should have positive execution time"
+    assert outcome["execution_time_seconds"] < 300, "Should complete within timeout"
+    
+    print(f"✓ Successful pipeline completed in {outcome['execution_time_seconds']:.2f} seconds")
+
+@requires_ado_creds
+async def test_run_pipeline_and_get_outcome_failure(mcp_client: Client):
+    """Tests failed pipeline run with failure analysis."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 83  # log-test-failing pipeline (designed to fail)
+    
+    result = await mcp_client.call_tool("run_pipeline_and_get_outcome", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "timeout_seconds": 300
+    })
+    
+    outcome = result.data
+    assert outcome is not None, "Outcome should not be None"
+    assert isinstance(outcome, dict), "Outcome should be a dictionary"
+    
+    # Verify outcome structure
+    assert "pipeline_run" in outcome, "Should have pipeline_run"
+    assert "success" in outcome, "Should have success flag"
+    assert "failure_summary" in outcome, "Should have failure_summary field"
+    assert "execution_time_seconds" in outcome, "Should have execution time"
+    
+    # Verify pipeline run data
+    pipeline_run = outcome["pipeline_run"]
+    assert pipeline_run["id"] is not None, "Pipeline run should have ID"
+    assert pipeline_run["state"] == "completed", "Pipeline should be completed"
+    assert pipeline_run["result"] == "failed", "Pipeline should have failed"
+    assert pipeline_run["pipeline"]["id"] == pipeline_id, "Pipeline ID should match"
+    
+    # Verify failure outcome
+    assert outcome["success"] is False, "Should be marked as failed"
+    assert outcome["failure_summary"] is not None, "Failed run should have failure summary"
+    assert outcome["execution_time_seconds"] > 0, "Should have positive execution time"
+    
+    # Verify failure summary structure
+    failure_summary = outcome["failure_summary"]
+    assert "total_failed_steps" in failure_summary, "Should have total failed steps"
+    assert "root_cause_tasks" in failure_summary, "Should have root cause tasks"
+    assert "hierarchy_failures" in failure_summary, "Should have hierarchy failures"
+    
+    assert failure_summary["total_failed_steps"] > 0, "Should have failed steps"
+    assert len(failure_summary["root_cause_tasks"]) > 0, "Should have root cause tasks"
+    
+    # Verify root cause task structure
+    root_cause = failure_summary["root_cause_tasks"][0]
+    assert "step_name" in root_cause, "Root cause should have step name"
+    assert "step_type" in root_cause, "Root cause should have step type"
+    assert "result" in root_cause, "Root cause should have result"
+    assert root_cause["step_type"] == "Task", "Root cause should be a Task"
+    assert root_cause["result"] == "failed", "Root cause should be failed"
+    
+    print(f"✓ Failed pipeline analyzed in {outcome['execution_time_seconds']:.2f} seconds")
+    print(f"  Found {failure_summary['total_failed_steps']} failed steps")
+    print(f"  Root cause: {root_cause['step_name']}")
+
+@requires_ado_creds 
+async def test_run_pipeline_and_get_outcome_custom_timeout(mcp_client: Client):
+    """Tests pipeline run with custom timeout setting."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 59  # test_run_and_get_pipeline_run_details (quick success pipeline)
+    
+    result = await mcp_client.call_tool("run_pipeline_and_get_outcome", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "timeout_seconds": 600  # Custom longer timeout
+    })
+    
+    outcome = result.data
+    assert outcome is not None, "Outcome should not be None"
+    assert outcome["success"] is True, "Should be successful"
+    assert outcome["execution_time_seconds"] < 600, "Should complete well within timeout"
+    
+    print(f"✓ Pipeline with custom timeout completed in {outcome['execution_time_seconds']:.2f} seconds")
+
+async def test_run_pipeline_and_get_outcome_no_client(mcp_client_with_unset_ado_env: Client):
+    """Tests that run_pipeline_and_get_outcome returns None when client is not available."""
+    result = await mcp_client_with_unset_ado_env.call_tool("run_pipeline_and_get_outcome", {
+        "project_id": "any", 
+        "pipeline_id": 1,
+        "timeout_seconds": 300
+    })
+    assert result.data is None, "Should return None when client unavailable"
+    
+    print("✓ Properly handles missing client")
+
+async def test_run_pipeline_and_get_outcome_tool_registration(mcp_client: Client):
+    """Tests that the run_pipeline_and_get_outcome tool is properly registered."""
+    # List available tools
+    tools_response = await mcp_client.list_tools()
+    
+    # Handle both potential response formats
+    if hasattr(tools_response, 'tools'):
+        tools = tools_response.tools
+    else:
+        tools = tools_response
+    
+    # Check that our new tool is registered
+    tool_names = [tool.name for tool in tools]
+    assert "run_pipeline_and_get_outcome" in tool_names, "run_pipeline_and_get_outcome tool should be registered"
+    
+    # Find the tool and verify its schema
+    outcome_tool = next(tool for tool in tools if tool.name == "run_pipeline_and_get_outcome")
+    assert outcome_tool.description is not None, "Tool should have description"
+    assert "RUN PIPELINE & WAIT" in outcome_tool.description, "Tool description should mention pipeline running and waiting"
+    
+    # Verify input schema has required parameters
+    input_schema = outcome_tool.inputSchema
+    assert input_schema is not None, "Tool should have input schema"
+    assert "properties" in input_schema, "Schema should have properties"
+    
+    properties = input_schema["properties"]
+    assert "project_id" in properties, "Should have project_id parameter"
+    assert "pipeline_id" in properties, "Should have pipeline_id parameter" 
+    assert "timeout_seconds" in properties, "Should have timeout_seconds parameter"
+    
+    required = input_schema.get("required", [])
+    assert "project_id" in required, "project_id should be required"
+    assert "pipeline_id" in required, "pipeline_id should be required"
+    # timeout_seconds should have a default, so not required
+    
+    print("✓ run_pipeline_and_get_outcome tool properly registered with correct schema")
+
+@requires_ado_creds
+async def test_get_build_by_id_success(mcp_client: Client):
+    """Tests getting build details by build ID to extract pipeline information."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    build_id = 324  # Known build/run ID from URL buildId=324
+    
+    result = await mcp_client.call_tool("get_build_by_id", {
+        "project_id": project_id,
+        "build_id": build_id
+    })
+    
+    build_data = result.data
+    assert build_data is not None, "Build data should not be None"
+    assert isinstance(build_data, dict), "Build data should be a dictionary"
+    
+    # Verify build structure includes definition information
+    assert "id" in build_data, "Build should have id field"
+    assert "definition" in build_data, "Build should have definition field"
+    assert "buildNumber" in build_data, "Build should have buildNumber"
+    assert "status" in build_data, "Build should have status"
+    assert "result" in build_data, "Build should have result"
+    
+    # Verify definition (pipeline) information
+    definition = build_data["definition"]
+    assert "id" in definition, "Definition should have id field"
+    assert "name" in definition, "Definition should have name field"
+    assert isinstance(definition["id"], int), "Definition ID should be integer"
+    
+    # For buildId=324, we expect pipeline_id=84 and name="log-test-complex"
+    assert definition["id"] == 84, f"Expected pipeline ID 84, got {definition['id']}"
+    assert definition["name"] == "log-test-complex", f"Expected pipeline name 'log-test-complex', got {definition['name']}"
+    
+    print(f"✓ Build {build_id} maps to pipeline {definition['id']} ({definition['name']})")
+
+async def test_get_build_by_id_no_client(mcp_client_with_unset_ado_env: Client):
+    """Tests that get_build_by_id returns None when client is not available."""
+    result = await mcp_client_with_unset_ado_env.call_tool("get_build_by_id", {
+        "project_id": "any",
+        "build_id": 1
+    })
+    assert result.data is None, "Should return None when client unavailable"
+
+async def test_get_build_by_id_tool_registration(mcp_client: Client):
+    """Tests that the get_build_by_id tool is properly registered."""
+    # List available tools
+    tools_response = await mcp_client.list_tools()
+    
+    # Handle both potential response formats
+    if hasattr(tools_response, 'tools'):
+        tools = tools_response.tools
+    else:
+        tools = tools_response
+    
+    # Check that our new tool is registered
+    tool_names = [tool.name for tool in tools]
+    assert "get_build_by_id" in tool_names, "get_build_by_id tool should be registered"
+    
+    # Find the tool and verify its schema
+    build_tool = next(tool for tool in tools if tool.name == "get_build_by_id")
+    assert build_tool.description is not None, "Tool should have description"
+    assert "buildId" in build_tool.description, "Tool description should mention buildId"
+    assert "MAP BUILD ID TO PIPELINE" in build_tool.description, "Tool description should explain mapping purpose"
+    
+    # Verify input schema has required parameters
+    input_schema = build_tool.inputSchema
+    assert input_schema is not None, "Tool should have input schema"
+    assert "properties" in input_schema, "Schema should have properties"
+    
+    properties = input_schema["properties"]
+    assert "project_id" in properties, "Should have project_id parameter"
+    assert "build_id" in properties, "Should have build_id parameter"
+    
+    required = input_schema.get("required", [])
+    assert "project_id" in required, "project_id should be required"
+    assert "build_id" in required, "build_id should be required"
+    
+    print("✓ get_build_by_id tool properly registered with correct schema")

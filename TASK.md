@@ -84,6 +84,30 @@
     *   **API Integration:** Uses Azure DevOps Build Timeline API for accurate step status instead of parsing logs
     *   **Documentation:** Added Google-style docstrings for all public methods and tools
 
+*   [x] **Feature: Run Pipeline and Get Outcome** - 2025-07-13
+    *   **Functionality:** Implemented comprehensive pipeline execution with automatic failure analysis in `ado/client.py`:
+        - `run_pipeline_and_get_outcome` - Combines run_pipeline, wait for completion, and failure analysis in one operation
+        - Returns complete outcome with execution time, success status, and detailed failure analysis if applicable
+        - Configurable timeout with graceful error handling
+    *   **Models:** Added `PipelineOutcome` model in `ado/models.py`:
+        - Contains pipeline run details, success flag, optional failure summary, and execution time
+        - Provides single comprehensive result for pipeline execution and analysis
+    *   **Tooling:** Created `run_pipeline_and_get_outcome` MCP tool in `ado/tools.py`:
+        - One-stop tool for running pipelines and getting complete results
+        - Automatically provides failure logs and analysis for failed pipelines
+        - Eliminates need for multiple tool calls to track pipeline execution
+    *   **Testing:** Added 5 comprehensive end-to-end tests covering:
+        - Successful pipeline execution with timing verification
+        - Failed pipeline execution with failure analysis validation
+        - Custom timeout configuration testing
+        - Error handling for missing client
+        - Tool registration and schema validation
+    *   **Integration:** Leverages existing tools internally:
+        - Uses `run_pipeline` to start execution
+        - Uses `wait_for_pipeline_completion` to monitor progress
+        - Uses `get_pipeline_failure_summary` for failure analysis when needed
+    *   **User Experience:** Provides complete pipeline execution in a single tool call, ideal for CI/CD automation and interactive pipeline management
+
 ## Discovered During Work
 
 *   [x] **Feature: Comprehensive Pipeline E2E Tests** - 2025-07-13

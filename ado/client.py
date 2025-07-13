@@ -5,7 +5,7 @@ import logging
 import time
 from typing import List, Optional
 from .errors import AdoAuthenticationError
-from .models import Project, Pipeline, CreatePipelineRequest, PipelineRun, RunState, RunResult, PipelinePreviewRequest, PreviewRun, TimelineResponse, TimelineRecord, StepFailure, FailureSummary, LogCollection, LogEntry
+from .models import Project, Pipeline, CreatePipelineRequest, PipelineRun, RunState, RunResult, PipelinePreviewRequest, PreviewRun, TimelineResponse, TimelineRecord, StepFailure, FailureSummary, LogCollection, LogEntry, PipelineOutcome
 
 logger = logging.getLogger(__name__)
 
@@ -321,6 +321,29 @@ class AdoClient:
         logger.debug(f"Pipeline run {run_id} state: {response.get('state')}, result: {response.get('result')}")
         return PipelineRun(**response)
 
+    def get_build_by_id(self, project_id: str, build_id: int) -> dict:
+        """
+        Retrieves build details by build ID using the Azure DevOps Build API.
+        
+        This method uses the Build API to get comprehensive build information,
+        including the definition (pipeline) details from just the build/run ID.
+        
+        Args:
+            project_id (str): The ID of the project.
+            build_id (int): The ID of the build/run.
+            
+        Returns:
+            dict: Build details including definition information.
+            
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        url = f"{self.organization_url}/{project_id}/_apis/build/builds/{build_id}?api-version=7.1"
+        logger.info(f"Getting build details for build {build_id} in project {project_id}")
+        response = self._send_request("GET", url)
+        logger.debug(f"Build {build_id} definition: {response.get('definition', {}).get('name')}")
+        return response
+
     def preview_pipeline(self, project_id: str, pipeline_id: int, request: Optional[PipelinePreviewRequest] = None) -> PreviewRun:
         """
         Previews a pipeline without executing it, returning the final YAML and other preview information.
@@ -584,3 +607,63 @@ class AdoClient:
             return filtered_failures
         
         return all_failures
+
+    def run_pipeline_and_get_outcome(self, project_id: str, pipeline_id: int, timeout_seconds: int = 300) -> PipelineOutcome:
+        """
+        Runs a pipeline, waits for completion, and returns the outcome with failure details if applicable.
+        
+        This method combines multiple operations:
+        1. Triggers the pipeline run
+        2. Waits for the pipeline to complete (or timeout)
+        3. If the pipeline failed, gets failure analysis with logs
+        
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            timeout_seconds (int): Maximum time to wait for completion (default: 300).
+            
+        Returns:
+            PipelineOutcome: Complete outcome including run details and failure summary if failed.
+            
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+            TimeoutError: If the pipeline doesn't complete within the timeout.
+        """
+        start_time = time.time()
+        logger.info(f"Starting pipeline {pipeline_id} run and outcome tracking")
+        
+        # Step 1: Run the pipeline
+        pipeline_run = self.run_pipeline(project_id, pipeline_id)
+        run_id = pipeline_run.id
+        logger.info(f"Pipeline started with run ID: {run_id}")
+        
+        # Step 2: Wait for completion
+        completed_run = self.wait_for_pipeline_completion(
+            project_id, pipeline_id, run_id, timeout_seconds
+        )
+        
+        execution_time = time.time() - start_time
+        logger.info(f"Pipeline completed in {execution_time:.2f} seconds with result: {completed_run.result}")
+        
+        # Step 3: Determine success and get failure details if needed
+        success = completed_run.result == RunResult.SUCCEEDED
+        failure_summary = None
+        
+        if not success:
+            logger.info("Pipeline failed, getting failure analysis")
+            try:
+                failure_summary = self.get_pipeline_failure_summary(project_id, pipeline_id, run_id)
+                logger.info(f"Found {failure_summary.total_failed_steps} failed steps")
+            except Exception as e:
+                logger.warning(f"Could not get failure summary: {e}")
+                # Continue without failure summary rather than failing the whole operation
+        
+        outcome = PipelineOutcome(
+            pipeline_run=completed_run,
+            success=success,
+            failure_summary=failure_summary,
+            execution_time_seconds=execution_time
+        )
+        
+        logger.info(f"Pipeline outcome: {'SUCCESS' if success else 'FAILURE'}")
+        return outcome

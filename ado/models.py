@@ -251,3 +251,15 @@ class LogCollection(BaseModel):
     """
     logs: List[LogEntry]
     url: str
+
+
+class PipelineOutcome(BaseModel):
+    """
+    Represents the complete outcome of running a pipeline and waiting for completion.
+    
+    Contains the pipeline run details and, if the pipeline failed, the failure analysis.
+    """
+    pipeline_run: PipelineRun
+    success: bool
+    failure_summary: Optional[FailureSummary] = None
+    execution_time_seconds: float
