@@ -1,6 +1,7 @@
 import logging
+from typing import List
 from ado.errors import AdoAuthenticationError
-from ado.models import Project
+from ado.models import Project, Pipeline, CreatePipelineRequest, ConfigurationType, PipelineConfiguration
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.list_projects()
 
     @mcp_instance.tool
-    def list_pipelines(project_id: str) -> list[dict]:
+    def list_pipelines(project_id: str) -> List[Pipeline]:
         """
         Lists all pipelines in a given Azure DevOps project.
 
@@ -51,15 +52,48 @@ def register_ado_tools(mcp_instance, client_container):
             project_id (str): The ID of the project.
 
         Returns:
-            list[dict]: A list of dictionaries, where each dictionary
-                        represents a pipeline.
+            List[Pipeline]: A list of Pipeline objects.
         """
         ado_client_instance = client_container.get('client')
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return []
         pipelines_response = ado_client_instance.list_pipelines(project_id)
+        logger.info(f"Retrieved {len(pipelines_response)} pipelines for project {project_id}")
         return pipelines_response
+
+    @mcp_instance.tool
+    def create_pipeline(project_id: str, name: str, configuration_type: str = "yaml", folder: str = None) -> Pipeline:
+        """
+        Creates a new pipeline in a given Azure DevOps project.
+
+        Args:
+            project_id (str): The ID of the project.
+            name (str): The name of the pipeline.
+            configuration_type (str): The type of configuration (yaml, designerJson, etc.). Defaults to "yaml".
+            folder (str, optional): The folder to create the pipeline in.
+
+        Returns:
+            Pipeline: The created pipeline object.
+        """
+        ado_client_instance = client_container.get('client')
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+        
+        try:
+            config_type = ConfigurationType(configuration_type)
+        except ValueError:
+            logger.error(f"Invalid configuration type: {configuration_type}")
+            config_type = ConfigurationType.YAML
+        
+        request = CreatePipelineRequest(
+            name=name,
+            folder=folder,
+            configuration=PipelineConfiguration(type=config_type)
+        )
+        
+        return ado_client_instance.create_pipeline(project_id, request)
 
     @mcp_instance.tool
     def get_pipeline(project_id: str, pipeline_id: int) -> dict:

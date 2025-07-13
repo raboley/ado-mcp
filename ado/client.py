@@ -2,7 +2,9 @@ import os
 import requests
 from base64 import b64encode
 import logging
+from typing import List
 from .errors import AdoAuthenticationError
+from .models import Project, Pipeline, CreatePipelineRequest, PipelineRun
 
 logger = logging.getLogger(__name__)
 
@@ -116,22 +118,34 @@ class AdoClient:
             logger.error(f"Authentication check failed with an exception: {e}")
             raise AdoAuthenticationError(f"Authentication check failed: {e}") from e
 
-    def list_projects(self) -> list[dict]:
+    def list_projects(self) -> List[Project]:
         """
         Retrieves a list of projects in the organization.
 
         Returns:
-            list[dict]: A list of dictionaries, where each dictionary
-                        represents a project.
+            List[Project]: A list of Project objects.
 
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
         url = f"{self.organization_url}/_apis/projects?api-version=7.2-preview.4"
+        logger.info(f"Fetching projects from: {url}")
         response = self._send_request("GET", url)
-        return response.get("value", [])
+        projects_data = response.get("value", [])
+        logger.info(f"Retrieved {len(projects_data)} projects")
+        
+        projects = []
+        for project_data in projects_data:
+            try:
+                project = Project(**project_data)
+                projects.append(project)
+                logger.debug(f"Parsed project: {project.name} (ID: {project.id})")
+            except Exception as e:
+                logger.error(f"Failed to parse project data: {project_data}. Error: {e}")
+                
+        return projects
 
-    def list_pipelines(self, project_id: str) -> list[dict]:
+    def list_pipelines(self, project_id: str) -> List[Pipeline]:
         """
         Retrieves a list of pipelines for a given project.
 
@@ -139,15 +153,56 @@ class AdoClient:
             project_id (str): The ID of the project.
 
         Returns:
-            list[dict]: A list of dictionaries, where each dictionary
-                        represents a pipeline.
+            List[Pipeline]: A list of Pipeline objects.
 
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
         url = f"{self.organization_url}/{project_id}/_apis/pipelines?api-version=7.2-preview.1"
+        logger.info(f"Fetching pipelines for project {project_id} from: {url}")
         response = self._send_request("GET", url)
-        return response.get("value", [])
+        pipelines_data = response.get("value", [])
+        logger.info(f"Retrieved {len(pipelines_data)} pipelines for project {project_id}")
+        
+        if pipelines_data:
+            logger.debug(f"First pipeline data: {pipelines_data[0]}")
+        
+        pipelines = []
+        for pipeline_data in pipelines_data:
+            try:
+                pipeline = Pipeline(**pipeline_data)
+                pipelines.append(pipeline)
+                logger.debug(f"Parsed pipeline: {pipeline.name} (ID: {pipeline.id})")
+            except Exception as e:
+                logger.error(f"Failed to parse pipeline data: {pipeline_data}. Error: {e}")
+                
+        return pipelines
+
+    def create_pipeline(self, project_id: str, request: CreatePipelineRequest) -> Pipeline:
+        """
+        Creates a new pipeline in the specified project.
+
+        Args:
+            project_id (str): The ID of the project.
+            request (CreatePipelineRequest): The pipeline creation request.
+
+        Returns:
+            Pipeline: The created pipeline object.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        url = f"{self.organization_url}/{project_id}/_apis/pipelines?api-version=7.2-preview.1"
+        logger.info(f"Creating pipeline '{request.name}' in project {project_id}")
+        
+        # Convert Pydantic model to dict for the request
+        request_data = request.model_dump(exclude_none=True)
+        logger.debug(f"Pipeline creation request data: {request_data}")
+        
+        response = self._send_request("POST", url, json=request_data)
+        logger.info(f"Successfully created pipeline: {response.get('name')} (ID: {response.get('id')})")
+        
+        return Pipeline(**response)
 
     def get_pipeline(self, project_id: str, pipeline_id: int) -> dict:
         """

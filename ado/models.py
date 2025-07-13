@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any
+from enum import Enum
 
 class Project(BaseModel):
     """
@@ -6,9 +8,65 @@ class Project(BaseModel):
     """
     id: str
     name: str
-    description: str | None = None
+    description: Optional[str] = None
     url: str
     state: str
     revision: int
     visibility: str
     lastUpdateTime: str
+
+class ConfigurationType(str, Enum):
+    """
+    Configuration types for Azure DevOps pipelines.
+    """
+    YAML = "yaml"
+    DESIGNER_JSON = "designerJson"
+    JUST_IN_TIME = "justInTime"
+    DESIGNER_HYPHEN_JSON = "designerHyphenJson"
+    UNKNOWN = "unknown"
+
+class PipelineConfiguration(BaseModel):
+    """
+    Represents pipeline configuration.
+    """
+    type: ConfigurationType
+
+class ReferenceLinks(BaseModel):
+    """
+    Represents reference links for ADO objects.
+    """
+    links: Optional[Dict[str, Any]] = None
+
+class Pipeline(BaseModel):
+    """
+    Represents an Azure DevOps pipeline.
+    """
+    id: int
+    name: str
+    revision: int
+    url: str
+    folder: Optional[str] = None
+    configuration: Optional[PipelineConfiguration] = None
+    links: Optional[ReferenceLinks] = Field(None, alias="_links")
+
+    model_config = {"populate_by_name": True}
+
+class CreatePipelineRequest(BaseModel):
+    """
+    Request model for creating a new pipeline.
+    """
+    name: str
+    folder: Optional[str] = None
+    configuration: PipelineConfiguration
+
+class PipelineRun(BaseModel):
+    """
+    Represents a pipeline run.
+    """
+    id: int
+    name: Optional[str] = None
+    url: str
+    state: Optional[str] = None
+    result: Optional[str] = None
+    createdDate: Optional[str] = None
+    finishedDate: Optional[str] = None

@@ -61,17 +61,58 @@ async def test_list_pipelines_returns_valid_list(mcp_client: Client):
         assert isinstance(pipelines, list), f"Expected list, got {type(pipelines)}"
         
         # If we find pipelines, test their structure
-        if pipelines and str(pipelines[0]) != "Root()":
+        if pipelines:
             pipelines_found = True
             pipeline = pipelines[0]
-            assert isinstance(pipeline, dict)
-            assert "id" in pipeline
-            assert "name" in pipeline
+            # FastMCP converts Pydantic models to dicts for transport, so we expect a dict
+            assert isinstance(pipeline, dict), f"Pipeline should be dict, got: {type(pipeline)}"
+            assert "id" in pipeline, f"Pipeline should have id field, got keys: {pipeline.keys()}"
+            assert "name" in pipeline, f"Pipeline should have name field, got keys: {pipeline.keys()}"
+            assert isinstance(pipeline["id"], int), f"Pipeline id should be int, got: {type(pipeline['id'])}"
+            assert isinstance(pipeline["name"], str), f"Pipeline name should be str, got: {type(pipeline['name'])}"
             break
     
     # If no project has pipelines, that's still a valid test result
     if not pipelines_found:
         pytest.skip("No pipelines found in any project.")
+
+@requires_ado_creds
+async def test_create_pipeline_creates_valid_pipeline(mcp_client: Client):
+    """Tests that the create_pipeline tool creates a valid pipeline."""
+    projects_result = await mcp_client.call_tool("list_projects")
+    projects = projects_result.data
+    if not projects:
+        pytest.skip("No projects found to test pipeline creation.")
+    
+    # Use the ado-mcp project
+    project_id = None
+    for project in projects:
+        if project["name"] == "ado-mcp":
+            project_id = project["id"]
+            break
+    
+    if not project_id:
+        pytest.skip("ado-mcp project not found. Please create it first.")
+    
+    # Create a test pipeline
+    pipeline_name = f"test-pipeline-{int(__import__('time').time())}"
+    result = await mcp_client.call_tool("create_pipeline", {
+        "project_id": project_id,
+        "name": pipeline_name,
+        "configuration_type": "yaml"
+    })
+    
+    pipeline = result.data
+    assert isinstance(pipeline, dict), f"Created pipeline should be dict, got: {type(pipeline)}"
+    assert "id" in pipeline, f"Created pipeline should have id field, got keys: {pipeline.keys()}"
+    assert "name" in pipeline, f"Created pipeline should have name field, got keys: {pipeline.keys()}"
+    assert pipeline["name"] == pipeline_name, f"Pipeline name should be {pipeline_name}, got: {pipeline['name']}"
+    assert isinstance(pipeline["id"], int), f"Pipeline id should be int, got: {type(pipeline['id'])}"
+    
+    # Verify the pipeline appears in the list
+    pipelines_list = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
+    pipeline_ids = [p["id"] for p in pipelines_list.data]
+    assert pipeline["id"] in pipeline_ids, f"Created pipeline {pipeline['id']} should appear in pipelines list"
 
 @requires_ado_creds
 async def test_get_pipeline_returns_valid_details(mcp_client: Client):
@@ -86,8 +127,8 @@ async def test_get_pipeline_returns_valid_details(mcp_client: Client):
     for project in projects:
         project_id = project['id']
         pipelines = (await mcp_client.call_tool("list_pipelines", {"project_id": project_id})).data
-        if pipelines and str(pipelines[0]) != "Root()":
-            pipeline_id = pipelines[0]['id']
+        if pipelines:
+            pipeline_id = pipelines[0]["id"]
             break
     
     if not pipeline_id:
@@ -110,8 +151,8 @@ async def test_run_and_get_pipeline_run_details(mcp_client: Client):
     for project in projects:
         project_id = project['id']
         pipelines = (await mcp_client.call_tool("list_pipelines", {"project_id": project_id})).data
-        if pipelines and str(pipelines[0]) != "Root()":
-            pipeline_id = pipelines[0]['id']
+        if pipelines:
+            pipeline_id = pipelines[0]["id"]
             break
     
     if not pipeline_id:
