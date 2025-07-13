@@ -24,16 +24,15 @@ variables:
   - name: debugMode
     value: ${{ parameters.enableDebug }}
 
-pool: server
+pool:
+  vmImage: ubuntu-latest
 
 steps:
   - script: echo "Environment=$(selectedEnvironment), Debug=$(debugMode)"
     displayName: 'Display parameters and variables'
   
-  - task: Delay@1
+  - script: echo "Processing step..."
     displayName: 'Processing step'
-    inputs:
-      delayForMinutes: '0'
       
   - ${{ if parameters.enableDebug }}:
     - script: echo "Debug mode is enabled!"

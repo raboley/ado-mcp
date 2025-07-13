@@ -3,13 +3,12 @@ name: Valid Preview Test Pipeline
 
 trigger: none  # Manual trigger only for testing
 
-pool: server
+pool:
+  vmImage: ubuntu-latest
 
 steps:
-  - task: Delay@1
-    displayName: 'Simple delay step'
-    inputs:
-      delayForMinutes: '0'
-  
   - script: echo "Hello from preview test!"
     displayName: 'Echo test message'
+  
+  - script: echo "Preview test completed successfully"
+    displayName: 'Completion message'

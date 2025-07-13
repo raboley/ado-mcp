@@ -3,7 +3,8 @@ name: Invalid Preview Test Pipeline
 
 trigger: none
 
-pool: server
+pool:
+  vmImage: ubuntu-latest
 
 steps:
   - task: NonExistentTask@999
