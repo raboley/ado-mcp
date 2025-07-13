@@ -18,7 +18,12 @@ tasks:
       - .venv/pyvenv.cfg
 
   test:
-    desc: Run project tests
+    desc: Run project tests in parallel
+    cmds:
+      - uv run pytest -v -n auto
+
+  test-sequential:
+    desc: Run project tests sequentially (for debugging)
     cmds:
       - uv run pytest -v
 
@@ -30,7 +35,7 @@ tasks:
   coverage:
     desc: Generate code coverage report
     cmds:
-      -  uv run pytest -v --cov
+      -  uv run pytest -v --cov -n auto
 
   run:
     desc: Run the FastAPI application

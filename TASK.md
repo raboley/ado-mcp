@@ -62,3 +62,7 @@
         - test_pipeline_lifecycle_wait_for_completion (ID: 61)
         - test_multiple_pipeline_runs (ID: 62)
         - test_pipeline_run_status_progression (ID: 63)
+    *   **Parallel Test Execution:** Added pytest-xdist for 5.5x faster test execution (~15s vs 80s):
+        - `task test` runs tests in parallel by default
+        - `task test-sequential` for debugging when sequential execution is needed
+        - `task coverage` also supports parallel execution

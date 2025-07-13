@@ -4,6 +4,7 @@
 - **Check CONTRIBUTING.md** when working on tasks.
 - **Use consistent naming conventions, file structure, and architecture patterns** as described in `PLANNING.md`.
 - **Use venv_linux** (the virtual environment) whenever executing Python commands, including for tests.
+- **Read [NEW_TOOL_WORKFLOW.md](NEW_TOOL_WORKFLOW.md)** when asked to create a new tool
 
 ### 🧱 Code Structure & Modularity
 - **Never create a file longer than 500 lines of code.** If a file approaches this limit, refactor by splitting it into modules or helper files.
@@ -21,9 +22,13 @@
 - **Always create Pytest end to end tests for new features** that a user can experience.
 - **Only create end to end tests using actual data and real connections** - black box test how a user would test.
 - **ALWAYS use `task test` to run tests** - never run pytest directly. This ensures proper environment variables are sourced.
-- **For single tests use `task test-single TEST_NAME=path/to/test`** - this sources environment variables correctly.
+- **Tests run in parallel by default** using pytest-xdist for faster execution (~15s vs 80s):
+  - Use `task test` for parallel execution (default)
+  - Use `task test-sequential` for debugging when you need sequential execution
+  - Use `task test-single TEST_NAME=path::to::test` for individual test execution
 - **Tests require ADO credentials** - AZURE_DEVOPS_EXT_PAT and ADO_ORGANIZATION_URL must be set via Taskfile.
 - **FastMCP converts Pydantic models to dictionaries** - tests should expect dictionary responses, not Pydantic objects.
+- **Dedicated test pipelines** are pre-created for pipeline run tests to avoid create/delete overhead.
 - **After updating any logic**, check whether existing unit tests need to be updated. If so, do it. use `task test` to ensure everything still works
 - **Tests should live in a `/tests` folder** mirroring the main app structure.
 - **NEVER use mocking in tests.** 
