@@ -7,6 +7,7 @@ like URLs, pipeline names, YAML files, etc. and convert them to the appropriate 
 
 import logging
 import re
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ class AdoInputParser:
     """Intelligent parser for various Azure DevOps input formats."""
 
     @staticmethod
-    def parse_ado_url(url: str) -> dict[str, str | None]:
+    def parse_ado_url(url: str) -> dict[str, str | int | None]:
         """
         Parse an Azure DevOps URL to extract organization, project, and build/pipeline information.
 
@@ -43,7 +44,7 @@ class AdoInputParser:
             # Parse query parameters
             query_params = parse_qs(parsed.query)
 
-            result = {
+            result: dict[str, str | int | None] = {
                 "organization": organization,
                 "project": project,
                 "build_id": None,
@@ -70,7 +71,7 @@ class AdoInputParser:
             return {"error": f"Failed to parse URL: {str(e)}"}
 
     @staticmethod
-    def extract_pipeline_info_from_text(text: str) -> dict[str, str | list[str]]:
+    def extract_pipeline_info_from_text(text: str) -> dict[str, list[str]]:
         """
         Extract pipeline-related information from free-form text.
 
@@ -83,7 +84,7 @@ class AdoInputParser:
         Returns:
             Dict with potential pipeline names, yaml files, build numbers, urls
         """
-        result = {"pipeline_names": [], "yaml_files": [], "build_numbers": [], "urls": []}
+        result: dict[str, list[str]] = {"pipeline_names": [], "yaml_files": [], "build_numbers": [], "urls": []}
 
         # Find URLs
         url_pattern = r"https?://[^\s]+"
@@ -102,7 +103,7 @@ class AdoInputParser:
 
         # Find build numbers (numeric sequences that might be build IDs)
         build_pattern = r"\b\d{2,6}\b"  # 2-6 digit numbers
-        build_numbers = [int(m) for m in re.findall(build_pattern, text)]
+        build_numbers = re.findall(build_pattern, text)
         result["build_numbers"] = build_numbers
 
         return result
@@ -144,7 +145,7 @@ def register_helper_tools(mcp_instance, client_container):
                 "suggestion": "Use set_ado_organization tool first",
             }
 
-        result = {
+        result: dict[str, Any] = {
             "input_type": "unknown",
             "extracted_info": {},
             "next_steps": [],
@@ -171,10 +172,10 @@ def register_helper_tools(mcp_instance, client_container):
                     ]
 
                 # Override org/project if found in URL
-                organization = url_info["organization"]
-                project = url_info["project"]
+                organization = str(url_info["organization"]) if url_info["organization"] else None
+                project = str(url_info["project"]) if url_info["project"] else None
             else:
-                result["error"] = url_info["error"]
+                result["error"] = str(url_info["error"]) if url_info["error"] else None
         else:
             # Parse text for pipeline information
             text_info = AdoInputParser.extract_pipeline_info_from_text(user_input)
@@ -236,7 +237,7 @@ def register_helper_tools(mcp_instance, client_container):
             # Get all pipelines
             pipelines = ado_client_instance.list_pipelines(project_id)
 
-            matches = []
+            matches: list[dict[str, Any]] = []
             pipeline_name_lower = pipeline_name.lower()
 
             for pipeline in pipelines:
@@ -284,7 +285,7 @@ def register_helper_tools(mcp_instance, client_container):
                     )
 
             # Sort by confidence
-            matches.sort(key=lambda x: x["confidence"], reverse=True)
+            matches.sort(key=lambda x: float(x["confidence"]), reverse=True)
 
             result = {
                 "search_term": pipeline_name,
@@ -294,10 +295,11 @@ def register_helper_tools(mcp_instance, client_container):
             }
 
             if matches:
-                best_match = matches[0]
-                if best_match["confidence"] >= 0.8:
+                best_match: dict[str, Any] = matches[0]
+                if float(best_match["confidence"]) >= 0.8:
+                    pipeline_info = best_match['pipeline']
                     result["suggested_actions"] = [
-                        f"Use pipeline_id={best_match['pipeline']['id']} for '{best_match['pipeline']['name']}'",
+                        f"Use pipeline_id={pipeline_info['id']} for '{pipeline_info['name']}'",
                         "High confidence match found",
                     ]
                 else:
@@ -354,7 +356,7 @@ def register_helper_tools(mcp_instance, client_container):
                     project_name = p["name"]
                     project_id = p["id"]
 
-                if project_name.lower() == url_info["project"].lower():
+                if project_name and url_info["project"] and project_name.lower() == str(url_info["project"]).lower():
                     project = {"id": project_id, "name": project_name}
                     break
 

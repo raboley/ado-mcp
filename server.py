@@ -11,7 +11,7 @@ from ado.errors import AdoAuthenticationError
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-mcp = FastMCP(name="ado-mcp", version="0.1.0")
+mcp: FastMCP = FastMCP(name="ado-mcp", version="0.1.0")
 
 # Global container for the ADO client
 client_container = {

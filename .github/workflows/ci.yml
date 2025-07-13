@@ -70,3 +70,6 @@ jobs:
     
     - name: Check code formatting
       run: task format-check
+    
+    - name: Run type checks
+      run: task typecheck
