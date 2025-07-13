@@ -54,7 +54,7 @@ class AdoClient:
         if "Sign In" in response.text:
             logger.error(
                 "Authentication failed: Response contains sign-in page. "
-                f"Response text: '{response.text[:200]}...'"
+                f"Response text: {response.text[:200]}..." # Removed newline character
             )
             raise AdoAuthenticationError(
                 "Authentication failed. The response contained a sign-in page, "
@@ -130,3 +130,75 @@ class AdoClient:
         url = f"{self.organization_url}/_apis/projects?api-version=7.2-preview.4"
         response = self._send_request("GET", url)
         return response.get("value", [])
+
+    def list_pipelines(self, project_id: str) -> list[dict]:
+        """
+        Retrieves a list of pipelines for a given project.
+
+        Args:
+            project_id (str): The ID of the project.
+
+        Returns:
+            list[dict]: A list of dictionaries, where each dictionary
+                        represents a pipeline.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        url = f"{self.organization_url}/{project_id}/_apis/pipelines?api-version=7.2-preview.1"
+        response = self._send_request("GET", url)
+        return response.get("value", [])
+
+    def get_pipeline(self, project_id: str, pipeline_id: int) -> dict:
+        """
+        Retrieves details for a specific pipeline.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+
+        Returns:
+            dict: A dictionary representing the pipeline details.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        url = f"{self.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}?api-version=7.2-preview.1"
+        response = self._send_request("GET", url)
+        return response
+
+    def run_pipeline(self, project_id: str, pipeline_id: int) -> dict:
+        """
+        Triggers a run for a specific pipeline.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+
+        Returns:
+            dict: A dictionary representing the pipeline run details.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        url = f"{self.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs?api-version=7.2-preview.1"
+        response = self._send_request("POST", url, json={})
+        return response
+
+    def get_pipeline_run(self, project_id: str, run_id: int) -> dict:
+        """
+        Retrieves details for a specific pipeline run.
+
+        Args:
+            project_id (str): The ID of the project.
+            run_id (int): The ID of the pipeline run.
+
+        Returns:
+            dict: A dictionary representing the pipeline run details.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        url = f"{self.organization_url}/{project_id}/_apis/pipelines/runs/{run_id}?api-version=7.2-preview.1"
+        response = self._send_request("GET", url)
+        return response

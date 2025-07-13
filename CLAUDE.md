@@ -3,7 +3,7 @@
 - **Check `TASK.md`** before starting a new task. If the task isn’t listed, add it with a brief description and today's date.
 - **Check CONTRIBUTING.md** when working on tasks.
 - **Use consistent naming conventions, file structure, and architecture patterns** as described in `PLANNING.md`.
-- **Use venv_linux** (the virtual environment) whenever executing Python commands, including for unit tests.
+- **Use venv_linux** (the virtual environment) whenever executing Python commands, including for tests.
 
 ### 🧱 Code Structure & Modularity
 - **Never create a file longer than 500 lines of code.** If a file approaches this limit, refactor by splitting it into modules or helper files.
@@ -18,12 +18,11 @@
 - **Use logging module to add observability** Any errors must include all relevant execution context so an llm can fix it.
 
 ### 🧪 Testing & Reliability
-- **Always create Pytest unit tests for new features** that a user can experience.
+- **Always create Pytest end to end tests for new features** that a user can experience.
 - **Only create end to end tests using actual data and real connections** - black box test how a user would test.
 - **After updating any logic**, check whether existing unit tests need to be updated. If so, do it. use `task test` to ensure everything still works
 - **Tests should live in a `/tests` folder** mirroring the main app structure.
-- **coverage should be 100%** use `task coverage` to check for test coverage
-- **Only failure scenarios** can be mocked, when it is impossible or very difficult to reproduce the errors without mocks. 
+- **NEVER use mocking in tests.** 
   - Include at least:
     - 1 test for expected use
     - 1 edge case
@@ -31,9 +30,10 @@
     - 1 test to ensure tools and resources are added to the mcp server.
 
 ### ✅ Task Completion
-- **Always Run tests** ensuring they all pass before marking something complete
+- **Always Run tests** ensuring they all pass using `task test` before marking something complete
 - **Mark completed tasks in `TASK.md`** immediately after finishing them.
 - Add new sub-tasks or TODOs discovered during development to `TASK.md` under a “Discovered During Work” section.
+- Request Feedback from the human before moving on to the next feature task.
 
 ### 📎 Style & Conventions
 - **Use Python** as the primary language.
@@ -41,8 +41,9 @@
 - **Use Taskfile** for all build and test commands.
 - **Follow PEP8**, use type hints, and format with `black`.
 - **Use `pydantic` for data validation**.
+- **Strongly type data structures** create datatypes for structures we receive or send.
 - Use `FastAPI` for APIs and `SQLAlchemy` or `SQLModel` for ORM if applicable.
-- Write **docstrings for every function** using the Google style:
+- Write **docstrings for every public function** using the Google style:
   ```python
   def example():
       """
@@ -73,4 +74,3 @@
   - End to End tests
   - Observability
   - Code Doc comments
-- 

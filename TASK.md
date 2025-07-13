@@ -12,25 +12,25 @@
     *   **Testing:** Write a unit test in `tests/ado/test_client.py` for `list_projects`. Write an integration test in `tests/test_server.py` for the `projects/list` tool.
     *   **Documentation:** Add docstrings for the `list_projects` method and the `projects/list` tool.
 
-*   [ ] **Feature: List ADO Pipelines**
+*   [x] **Feature: List ADO Pipelines**
     *   **Functionality:** Implement a `list_pipelines` method in `ado/client.py` to call the [pipelines list](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/pipelines/list?view=azure-devops-rest-7.2) API.
     *   **Tooling:** Create a `pipelines/list` tool in `ado/tools.py`.
     *   **Testing:** Write a unit test for `list_pipelines` and an integration test for the `pipelines/list` tool.
     *   **Documentation:** Add docstrings for the method and tool.
 
-*   [ ] **Feature: Get Pipeline Details**
+*   [x] **Feature: Get Pipeline Details**
     *   **Functionality:** Implement `get_pipeline` in `ado/client.py` using the [pipelines get](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/pipelines/get?view=azure-devops-rest-7.2) API.
     *   **Tooling:** Create a `pipelines/get` tool in `ado/tools.py`.
     *   **Testing:** Write a unit test for `get_pipeline` and an integration test for the `pipelines/get` tool.
     *   **Documentation:** Add docstrings for the method and tool.
 
-*   [ ] **Feature: Run a Pipeline**
+*   [x] **Feature: Run a Pipeline**
     *   **Functionality:** Implement `run_pipeline` in `ado/client.py` using the [run pipeline](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/runs/run-pipeline?view=azure-devops-rest-7.2) API.
     *   **Tooling:** Create a `pipelines/run` tool in `ado/tools.py`.
     *   **Testing:** Write a unit test for `run_pipeline` and an integration test for the `pipelines/run` tool.
     *   **Documentation:** Add docstrings for the method and tool.
 
-*   [ ] **Feature: Get Pipeline Run Status**
+*   [x] **Feature: Get Pipeline Run Status**
     *   **Functionality:** Implement `get_pipeline_run` in `ado/client.py` using the [runs get](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/runs/get?view=azure-devops-rest-7.2) API.
     *   **Tooling:** Create a `pipelines/runs/get` tool in `ado/tools.py`.
     *   **Testing:** Write a unit test for `get_pipeline_run` and an integration test for the `pipelines/runs/get` tool.
