@@ -144,6 +144,15 @@ async def test_create_pipeline_creates_valid_pipeline(mcp_client: Client):
     pipelines_list = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
     pipeline_ids = [p["id"] for p in pipelines_list.data]
     assert pipeline_id in pipeline_ids, f"Created pipeline {pipeline_id} should appear in pipelines list"
+    
+    # Clean up: Delete the test pipeline
+    delete_result = await mcp_client.call_tool("delete_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id})
+    assert delete_result.data is True, f"Failed to delete test pipeline {pipeline_id}"
+    
+    # Verify the pipeline was deleted
+    pipelines_list_after = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
+    pipeline_ids_after = [p["id"] for p in pipelines_list_after.data]
+    assert pipeline_id not in pipeline_ids_after, f"Pipeline {pipeline_id} should be deleted but still appears in list"
 
 @requires_ado_creds
 async def test_list_service_connections_returns_valid_list(mcp_client: Client):
@@ -173,6 +182,113 @@ async def test_list_service_connections_returns_valid_list(mcp_client: Client):
         print(f"First connection content: {connections[0]}")
     
     assert isinstance(connections, list), f"Expected list, got {type(connections)}"
+
+@requires_ado_creds
+async def test_delete_pipeline_removes_pipeline(mcp_client: Client):
+    """Tests that the delete_pipeline tool successfully removes a pipeline."""
+    projects_result = await mcp_client.call_tool("list_projects")
+    projects = projects_result.data
+    if not projects:
+        pytest.skip("No projects found to test pipeline deletion.")
+    
+    # Use the ado-mcp project
+    project_id = None
+    for project in projects:
+        if project["name"] == "ado-mcp":
+            project_id = project["id"]
+            break
+    
+    if not project_id:
+        pytest.skip("ado-mcp project not found.")
+    
+    # Get service connections first
+    connections_result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
+    connections = connections_result.data
+    if not connections:
+        pytest.skip("No service connections found to test pipeline deletion.")
+    
+    # Find GitHub service connection
+    github_connection_id = None
+    for connection in connections:
+        if connection["type"] == "GitHub":
+            github_connection_id = connection["id"]
+            break
+    
+    if not github_connection_id:
+        pytest.skip("No GitHub service connection found.")
+    
+    # Create a test pipeline to delete
+    pipeline_name = f"delete-test-pipeline-{int(__import__('time').time())}"
+    create_result = await mcp_client.call_tool("create_pipeline", {
+        "project_id": project_id,
+        "name": pipeline_name,
+        "yaml_path": "tests/ado/fixtures/fast.test.pipeline.yml",
+        "repository_name": "raboley/ado-mcp",
+        "service_connection_id": github_connection_id,
+        "configuration_type": "yaml",
+        "folder": "/test"
+    })
+    
+    pipeline = create_result.data
+    pipeline_id = pipeline.id if hasattr(pipeline, 'id') else pipeline["id"]
+    
+    # Verify pipeline exists
+    pipelines_before = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
+    pipeline_ids_before = [p["id"] for p in pipelines_before.data]
+    assert pipeline_id in pipeline_ids_before, f"Created pipeline {pipeline_id} should exist before deletion"
+    
+    # Delete the pipeline
+    delete_result = await mcp_client.call_tool("delete_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id})
+    assert delete_result.data is True, f"Failed to delete pipeline {pipeline_id}"
+    
+    # Verify pipeline was deleted
+    pipelines_after = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
+    pipeline_ids_after = [p["id"] for p in pipelines_after.data]
+    assert pipeline_id not in pipeline_ids_after, f"Pipeline {pipeline_id} should be deleted but still appears in list"
+
+@requires_ado_creds
+async def test_cleanup_existing_test_pipelines(mcp_client: Client):
+    """Clean up any existing test pipelines from previous test runs."""
+    projects_result = await mcp_client.call_tool("list_projects")
+    projects = projects_result.data
+    if not projects:
+        pytest.skip("No projects found to clean up test pipelines.")
+    
+    # Use the ado-mcp project
+    project_id = None
+    for project in projects:
+        if project["name"] == "ado-mcp":
+            project_id = project["id"]
+            break
+    
+    if not project_id:
+        pytest.skip("ado-mcp project not found.")
+    
+    # Get all pipelines
+    pipelines_result = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
+    pipelines = pipelines_result.data
+    
+    # Find test pipelines (those starting with "test")
+    test_pipelines = [p for p in pipelines if p["name"].startswith("test")]
+    
+    if not test_pipelines:
+        pytest.skip("No test pipelines found to clean up.")
+    
+    # Delete each test pipeline
+    deleted_count = 0
+    for pipeline in test_pipelines:
+        pipeline_id = pipeline["id"]
+        pipeline_name = pipeline["name"]
+        
+        delete_result = await mcp_client.call_tool("delete_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id})
+        if delete_result.data:
+            deleted_count += 1
+            print(f"Deleted test pipeline: {pipeline_name} (ID: {pipeline_id})")
+        else:
+            print(f"Failed to delete test pipeline: {pipeline_name} (ID: {pipeline_id})")
+    
+    print(f"Successfully cleaned up {deleted_count} test pipelines")
+    assert deleted_count > 0, "Should have deleted at least one test pipeline"
 
 @requires_ado_creds
 async def test_get_pipeline_returns_valid_details(mcp_client: Client):

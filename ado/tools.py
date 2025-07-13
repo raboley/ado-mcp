@@ -143,6 +143,34 @@ def register_ado_tools(mcp_instance, client_container):
         return connections
 
     @mcp_instance.tool
+    def delete_pipeline(project_id: str, pipeline_id: int) -> bool:
+        """
+        Deletes a pipeline from a given Azure DevOps project.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline to delete.
+
+        Returns:
+            bool: True if deletion was successful, False otherwise.
+        """
+        ado_client_instance = client_container.get('client')
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return False
+        
+        try:
+            result = ado_client_instance.delete_pipeline(project_id, pipeline_id)
+            if result:
+                logger.info(f"Successfully deleted pipeline {pipeline_id} from project {project_id}")
+            else:
+                logger.warning(f"Failed to delete pipeline {pipeline_id} from project {project_id}")
+            return result
+        except Exception as e:
+            logger.error(f"Error deleting pipeline {pipeline_id}: {e}")
+            return False
+
+    @mcp_instance.tool
     def get_pipeline(project_id: str, pipeline_id: int) -> dict:
         """
         Retrieves details for a specific pipeline in an Azure DevOps project.

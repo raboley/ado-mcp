@@ -228,6 +228,39 @@ class AdoClient:
         
         return connections_data
 
+    def delete_pipeline(self, project_id: str, pipeline_id: int) -> bool:
+        """
+        Deletes a pipeline (build definition) from the specified project.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline to delete.
+
+        Returns:
+            bool: True if deletion was successful, False otherwise.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        url = f"{self.organization_url}/{project_id}/_apis/build/definitions/{pipeline_id}?api-version=7.1"
+        logger.info(f"Deleting pipeline {pipeline_id} from project {project_id}")
+        
+        try:
+            response = requests.delete(url, headers=self.headers, timeout=10)
+            self._validate_response(response)
+            
+            if response.status_code == 204:
+                logger.info(f"Successfully deleted pipeline {pipeline_id}")
+                return True
+            else:
+                logger.warning(f"Unexpected status code {response.status_code} when deleting pipeline {pipeline_id}")
+                response.raise_for_status()
+                return False
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to delete pipeline {pipeline_id}: {e}")
+            raise
+
     def get_pipeline(self, project_id: str, pipeline_id: int) -> dict:
         """
         Retrieves details for a specific pipeline.
