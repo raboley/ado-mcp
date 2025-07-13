@@ -33,7 +33,10 @@ stages:
         echo "Setting up Python environment..."
         python -m pip install --upgrade pip
         pip install uv
-        task install
+        echo "Installing project dependencies..."
+        uv sync --dev
+        echo "Verifying installation..."
+        uv run pytest --version
       displayName: 'Setup Python Environment'
     
     - script: |
@@ -62,7 +65,10 @@ stages:
         echo "Setting up Python environment..."
         python -m pip install --upgrade pip
         pip install uv
-        task install
+        echo "Installing project dependencies..."
+        uv sync --dev
+        echo "Verifying installation..."
+        uv run ruff --version
       displayName: 'Setup Python Environment'
     
     - script: |
