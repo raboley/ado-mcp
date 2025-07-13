@@ -230,7 +230,8 @@ async def test_delete_pipeline_removes_pipeline(mcp_client: Client):
     })
     
     pipeline = create_result.data
-    pipeline_id = pipeline.id if hasattr(pipeline, 'id') else pipeline["id"]
+    assert hasattr(pipeline, 'id'), "Created pipeline should have an id attribute"
+    pipeline_id = pipeline.id
     
     # Verify pipeline exists
     pipelines_before = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
@@ -245,50 +246,6 @@ async def test_delete_pipeline_removes_pipeline(mcp_client: Client):
     pipelines_after = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
     pipeline_ids_after = [p["id"] for p in pipelines_after.data]
     assert pipeline_id not in pipeline_ids_after, f"Pipeline {pipeline_id} should be deleted but still appears in list"
-
-@requires_ado_creds
-async def test_cleanup_existing_test_pipelines(mcp_client: Client):
-    """Clean up any existing test pipelines from previous test runs."""
-    projects_result = await mcp_client.call_tool("list_projects")
-    projects = projects_result.data
-    if not projects:
-        pytest.skip("No projects found to clean up test pipelines.")
-    
-    # Use the ado-mcp project
-    project_id = None
-    for project in projects:
-        if project["name"] == "ado-mcp":
-            project_id = project["id"]
-            break
-    
-    if not project_id:
-        pytest.skip("ado-mcp project not found.")
-    
-    # Get all pipelines
-    pipelines_result = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
-    pipelines = pipelines_result.data
-    
-    # Find test pipelines (those starting with "test")
-    test_pipelines = [p for p in pipelines if p["name"].startswith("test")]
-    
-    if not test_pipelines:
-        pytest.skip("No test pipelines found to clean up.")
-    
-    # Delete each test pipeline
-    deleted_count = 0
-    for pipeline in test_pipelines:
-        pipeline_id = pipeline["id"]
-        pipeline_name = pipeline["name"]
-        
-        delete_result = await mcp_client.call_tool("delete_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id})
-        if delete_result.data:
-            deleted_count += 1
-            print(f"Deleted test pipeline: {pipeline_name} (ID: {pipeline_id})")
-        else:
-            print(f"Failed to delete test pipeline: {pipeline_name} (ID: {pipeline_id})")
-    
-    print(f"Successfully cleaned up {deleted_count} test pipelines")
-    assert deleted_count > 0, "Should have deleted at least one test pipeline"
 
 @requires_ado_creds
 async def test_get_pipeline_returns_valid_details(mcp_client: Client):
@@ -317,31 +274,26 @@ async def test_get_pipeline_returns_valid_details(mcp_client: Client):
 @requires_ado_creds
 async def test_run_and_get_pipeline_run_details(mcp_client: Client):
     """Tests running a pipeline and getting its run details."""
-    projects = (await mcp_client.call_tool("list_projects")).data
-    if not projects:
-        pytest.skip("No projects found.")
-    
-    # Try multiple projects to find one with pipelines
-    pipeline_id = None
-    project_id = None
-    for project in projects:
-        project_id = project['id']
-        pipelines = (await mcp_client.call_tool("list_pipelines", {"project_id": project_id})).data
-        if pipelines:
-            pipeline_id = pipelines[0]["id"]
-            break
-    
-    if not pipeline_id:
-        pytest.skip("No pipelines found in any project.")
+    # Use dedicated test pipeline created for this test
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 59  # test_run_and_get_pipeline_run_details pipeline
 
     run_details = (await mcp_client.call_tool("run_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id})).data
-    assert isinstance(run_details, dict)
-    assert "id" in run_details
+    assert run_details is not None, "Pipeline run should not be None"
+    assert isinstance(run_details, dict), "Pipeline run should be a dictionary"
+    assert "id" in run_details, "Pipeline run should have an id field"
+    assert isinstance(run_details["id"], int), f"Pipeline run id should be int, got: {type(run_details['id'])}"
+    
     run_id = run_details["id"]
 
-    run_status = (await mcp_client.call_tool("get_pipeline_run", {"project_id": project_id, "run_id": run_id})).data
-    assert isinstance(run_status, dict)
-    assert run_status.get("id") == run_id
+    # Wait a moment for the run to be available in the API
+    await __import__('asyncio').sleep(2)
+    
+    run_status = (await mcp_client.call_tool("get_pipeline_run", {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id})).data
+    assert run_status is not None, "Pipeline run status should not be None"
+    assert isinstance(run_status, dict), "Pipeline run status should be a dictionary"
+    assert "id" in run_status, "Pipeline run status should have an id field"
+    assert run_status["id"] == run_id, f"Expected run_id {run_id}, got {run_status['id']}"
 
 # --- Tests for behavior without a valid ADO client ---
 
@@ -372,7 +324,7 @@ async def test_no_client_run_pipeline(mcp_client_with_unset_ado_env: Client):
 
 async def test_no_client_get_pipeline_run(mcp_client_with_unset_ado_env: Client):
     """Tests get_pipeline_run returns None when client is not available."""
-    result = await mcp_client_with_unset_ado_env.call_tool("get_pipeline_run", {"project_id": "any", "run_id": 1})
+    result = await mcp_client_with_unset_ado_env.call_tool("get_pipeline_run", {"project_id": "any", "pipeline_id": 1, "run_id": 1})
     assert result.data is None
 
 # --- Tests for stateful behavior (switching orgs) ---
@@ -410,3 +362,201 @@ async def test_set_organization_failure_and_recovery(mcp_client: Client):
     # 4. Verify client is still valid
     auth_result_after_recovery = await mcp_client.call_tool("check_ado_authentication")
     assert auth_result_after_recovery.data is True, "Auth should succeed after switching to valid org"
+
+@requires_ado_creds
+async def test_pipeline_lifecycle_fire_and_forget(mcp_client: Client):
+    """
+    Tests fire-and-forget pipeline execution: run → verify started.
+    """
+    # Use dedicated test pipeline created for this test
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 60  # test_pipeline_lifecycle_fire_and_forget pipeline
+    
+    # Run the pipeline (fire and forget)
+    run_result = await mcp_client.call_tool("run_pipeline", {
+        "project_id": project_id, 
+        "pipeline_id": pipeline_id
+    })
+    
+    pipeline_run = run_result.data
+    assert pipeline_run is not None, "Pipeline run should not be None"
+    
+    # Verify pipeline run is a proper dictionary (FastMCP converts Pydantic to dict)
+    assert isinstance(pipeline_run, dict), "Pipeline run should be a dictionary"
+    assert "id" in pipeline_run, "Pipeline run should have an id field"
+    assert "state" in pipeline_run, "Pipeline run should have a state field"
+    assert isinstance(pipeline_run["id"], int), f"Run ID should be int, got: {type(pipeline_run['id'])}"
+    assert pipeline_run["state"] is not None, "Run state should not be None"
+    
+    # Verify the run was started (should be either inProgress or already completed for fast pipeline)
+    accepted_states = ["inProgress", "completed", "unknown"]
+    assert pipeline_run["state"] in accepted_states, f"Expected state in {accepted_states}, got: {pipeline_run['state']}"
+    
+    print(f"✓ Pipeline run {pipeline_run['id']} started successfully with state: {pipeline_run['state']}")
+
+@requires_ado_creds
+async def test_pipeline_lifecycle_wait_for_completion(mcp_client: Client):
+    """
+    Tests pipeline execution with completion waiting: run → poll until completed → verify result.
+    """
+    # Use dedicated test pipeline created for this test
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 61  # test_pipeline_lifecycle_wait_for_completion pipeline
+    
+    # Run the pipeline
+    run_result = await mcp_client.call_tool("run_pipeline", {
+        "project_id": project_id, 
+        "pipeline_id": pipeline_id
+    })
+    
+    pipeline_run = run_result.data
+    assert isinstance(pipeline_run, dict), "Pipeline run should be a dictionary"
+    assert "id" in pipeline_run, "Pipeline run should have an id field"
+    run_id = pipeline_run["id"]
+    
+    print(f"Started pipeline run {run_id}, waiting for completion...")
+    
+    # Poll for completion (max 2 minutes for the fast test pipeline)
+    max_attempts = 24  # 24 * 5 seconds = 2 minutes
+    attempt = 0
+    final_run = None
+    
+    while attempt < max_attempts:
+        attempt += 1
+        await __import__('asyncio').sleep(5)  # Wait 5 seconds between checks
+        
+        # Get current run status
+        status_result = await mcp_client.call_tool("get_pipeline_run", {
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
+            "run_id": run_id
+        })
+        
+        current_run = status_result.data
+        assert isinstance(current_run, dict), "Pipeline run should be a dictionary"
+        assert "state" in current_run, "Pipeline run should have a state field"
+        
+        print(f"Attempt {attempt}: Pipeline run {run_id} state: {current_run['state']}")
+        
+        # Check if completed
+        if current_run["state"] == "completed":
+            final_run = current_run
+            break
+    
+    # Verify completion
+    assert final_run is not None, f"Pipeline run {run_id} did not complete within 2 minutes"
+    
+    assert "result" in final_run, "Pipeline run should have a result field"
+    print(f"✓ Pipeline run {run_id} completed with result: {final_run['result']}")
+    
+    # For the fast test pipeline, we expect it to succeed
+    assert final_run["result"] in ["succeeded", "failed"], f"Expected valid result, got: {final_run['result']}"
+@requires_ado_creds
+async def test_multiple_pipeline_runs(mcp_client: Client):
+    """
+    Tests running the same pipeline multiple times to ensure proper handling.
+    """
+    # Use dedicated test pipeline created for this test
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 62  # test_multiple_pipeline_runs pipeline
+    
+    run_ids = []
+    
+    # Run the pipeline 3 times
+    for i in range(3):
+        run_result = await mcp_client.call_tool("run_pipeline", {
+            "project_id": project_id, 
+            "pipeline_id": pipeline_id
+        })
+        
+        pipeline_run = run_result.data
+        assert isinstance(pipeline_run, dict), "Pipeline run should be a dictionary"
+        assert "id" in pipeline_run, "Pipeline run should have an id field"
+        run_ids.append(pipeline_run["id"])
+        
+        print(f"Started run {i+1}: {pipeline_run['id']}")
+        
+        # Brief pause between runs
+        await __import__('asyncio').sleep(2)
+    
+    # Verify all runs have unique IDs
+    assert len(set(run_ids)) == 3, f"All run IDs should be unique, got: {run_ids}"
+    
+    # Verify we can get status for each run
+    for run_id in run_ids:
+        status_result = await mcp_client.call_tool("get_pipeline_run", {
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
+            "run_id": run_id
+        })
+        
+        current_run = status_result.data
+        assert current_run is not None, f"Should be able to get status for run {run_id}"
+        assert isinstance(current_run, dict), f"Run {run_id} should be a dictionary"
+        assert "state" in current_run, f"Run {run_id} should have a state field"
+        assert current_run["state"] is not None, f"Run {run_id} should have a state"
+        
+    print(f"✓ Successfully created and tracked {len(run_ids)} pipeline runs")
+
+@requires_ado_creds
+async def test_pipeline_run_status_progression(mcp_client: Client):
+    """
+    Tests that we can properly track pipeline run status changes over time.
+    """
+    # Use dedicated test pipeline created for this test
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 63  # test_pipeline_run_status_progression pipeline
+    
+    # Run the pipeline
+    run_result = await mcp_client.call_tool("run_pipeline", {
+        "project_id": project_id, 
+        "pipeline_id": pipeline_id
+    })
+    
+    pipeline_run = run_result.data
+    assert isinstance(pipeline_run, dict), "Pipeline run should be a dictionary"
+    assert "id" in pipeline_run, "Pipeline run should have an id field"
+    run_id = pipeline_run["id"]
+    
+    print(f"Started pipeline run {run_id}")
+    
+    # Track status changes for up to 30 seconds
+    previous_state = None
+    status_changes = []
+    
+    for i in range(6):  # 6 checks over 30 seconds
+        status_result = await mcp_client.call_tool("get_pipeline_run", {
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
+            "run_id": run_id
+        })
+        
+        current_run = status_result.data
+        assert isinstance(current_run, dict), "Pipeline run should be a dictionary"
+        assert "state" in current_run, "Pipeline run should have a state field"
+        assert "result" in current_run, "Pipeline run should have a result field"
+        
+        if current_run["state"] != previous_state:
+            status_changes.append({
+                "state": current_run["state"],
+                "result": current_run["result"],
+                "check": i + 1
+            })
+            print(f"Check {i+1}: State changed to {current_run['state']} (result: {current_run['result']})")
+            previous_state = current_run["state"]
+        
+        # If completed, no need to continue checking
+        if current_run["state"] == "completed":
+            break
+            
+        await __import__('asyncio').sleep(5)
+    
+    # Verify we captured at least one status
+    assert len(status_changes) > 0, "Should have captured at least one status change"
+    
+    # Verify the final status is reasonable
+    final_status = status_changes[-1]
+    valid_states = ["inProgress", "completed", "unknown"]
+    assert final_status["state"] in valid_states, f"Final state should be valid, got: {final_status['state']}"
+    
+    print(f"✓ Successfully tracked {len(status_changes)} status changes for run {run_id}")

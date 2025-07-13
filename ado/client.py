@@ -2,9 +2,10 @@ import os
 import requests
 from base64 import b64encode
 import logging
-from typing import List
+import time
+from typing import List, Optional
 from .errors import AdoAuthenticationError
-from .models import Project, Pipeline, CreatePipelineRequest, PipelineRun
+from .models import Project, Pipeline, CreatePipelineRequest, PipelineRun, RunState, RunResult
 
 logger = logging.getLogger(__name__)
 
@@ -279,7 +280,7 @@ class AdoClient:
         response = self._send_request("GET", url)
         return response
 
-    def run_pipeline(self, project_id: str, pipeline_id: int) -> dict:
+    def run_pipeline(self, project_id: str, pipeline_id: int) -> PipelineRun:
         """
         Triggers a run for a specific pipeline.
 
@@ -288,29 +289,82 @@ class AdoClient:
             pipeline_id (int): The ID of the pipeline.
 
         Returns:
-            dict: A dictionary representing the pipeline run details.
+            PipelineRun: A PipelineRun object representing the pipeline run details.
 
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
         url = f"{self.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs?api-version=7.2-preview.1"
+        logger.info(f"Running pipeline {pipeline_id} in project {project_id}")
         response = self._send_request("POST", url, json={})
-        return response
+        logger.info(f"Pipeline run started: {response.get('id')} with state: {response.get('state')}")
+        return PipelineRun(**response)
 
-    def get_pipeline_run(self, project_id: str, run_id: int) -> dict:
+    def get_pipeline_run(self, project_id: str, pipeline_id: int, run_id: int) -> PipelineRun:
         """
         Retrieves details for a specific pipeline run.
 
         Args:
             project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
             run_id (int): The ID of the pipeline run.
 
         Returns:
-            dict: A dictionary representing the pipeline run details.
+            PipelineRun: A PipelineRun object representing the pipeline run details.
 
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
-        url = f"{self.organization_url}/{project_id}/_apis/pipelines/runs/{run_id}?api-version=7.2-preview.1"
+        url = f"{self.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs/{run_id}?api-version=7.2-preview.1"
+        logger.debug(f"Getting pipeline run {run_id} details for project {project_id}")
         response = self._send_request("GET", url)
-        return response
+        logger.debug(f"Pipeline run {run_id} state: {response.get('state')}, result: {response.get('result')}")
+        return PipelineRun(**response)
+
+    def wait_for_pipeline_completion(
+        self, 
+        project_id: str, 
+        pipeline_id: int,
+        run_id: int, 
+        timeout_seconds: int = 300, 
+        poll_interval_seconds: int = 10
+    ) -> PipelineRun:
+        """
+        Waits for a pipeline run to complete by polling its status.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            run_id (int): The ID of the pipeline run.
+            timeout_seconds (int): Maximum time to wait in seconds. Defaults to 300 (5 minutes).
+            poll_interval_seconds (int): Time between status checks in seconds. Defaults to 10.
+
+        Returns:
+            PipelineRun: The final pipeline run object.
+
+        Raises:
+            TimeoutError: If the pipeline doesn't complete within the timeout period.
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        start_time = time.time()
+        logger.info(f"Waiting for pipeline run {run_id} to complete (timeout: {timeout_seconds}s)")
+        
+        while True:
+            # Check if we've exceeded the timeout
+            elapsed_time = time.time() - start_time
+            if elapsed_time > timeout_seconds:
+                raise TimeoutError(
+                    f"Pipeline run {run_id} did not complete within {timeout_seconds} seconds"
+                )
+            
+            # Get the current status
+            pipeline_run = self.get_pipeline_run(project_id, pipeline_id, run_id)
+            
+            # Check if the run has completed
+            if pipeline_run.is_completed():
+                logger.info(f"Pipeline run {run_id} completed with result: {pipeline_run.result}")
+                return pipeline_run
+            
+            # Log current status and wait before next check
+            logger.debug(f"Pipeline run {run_id} still in progress (state: {pipeline_run.state})")
+            time.sleep(poll_interval_seconds)

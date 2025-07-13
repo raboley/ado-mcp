@@ -1,7 +1,7 @@
 import logging
-from typing import List
+from typing import List, Optional
 from ado.errors import AdoAuthenticationError
-from ado.models import Project, Pipeline, CreatePipelineRequest, ConfigurationType, PipelineConfiguration, Repository, ServiceConnection
+from ado.models import Project, Pipeline, CreatePipelineRequest, ConfigurationType, PipelineConfiguration, Repository, ServiceConnection, PipelineRun
 
 logger = logging.getLogger(__name__)
 
@@ -189,7 +189,7 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.get_pipeline(project_id, pipeline_id)
 
     @mcp_instance.tool
-    def run_pipeline(project_id: str, pipeline_id: int) -> dict:
+    def run_pipeline(project_id: str, pipeline_id: int) -> Optional[PipelineRun]:
         """
         Triggers a run for a specific pipeline in an Azure DevOps project.
 
@@ -198,28 +198,29 @@ def register_ado_tools(mcp_instance, client_container):
             pipeline_id (int): The ID of the pipeline.
 
         Returns:
-            dict: A dictionary representing the pipeline run details.
+            Optional[PipelineRun]: A PipelineRun object representing the pipeline run details, or None if client unavailable.
         """
         ado_client_instance = client_container.get('client')
         if not ado_client_instance:
             logger.error("ADO client is not available.")
-            return {}
+            return None
         return ado_client_instance.run_pipeline(project_id, pipeline_id)
 
     @mcp_instance.tool
-    def get_pipeline_run(project_id: str, run_id: int) -> dict:
+    def get_pipeline_run(project_id: str, pipeline_id: int, run_id: int) -> Optional[PipelineRun]:
         """
         Retrieves details for a specific pipeline run in an Azure DevOps project.
 
         Args:
             project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
             run_id (int): The ID of the pipeline run.
 
         Returns:
-            dict: A dictionary representing the pipeline run details.
+            Optional[PipelineRun]: A PipelineRun object representing the pipeline run details, or None if client unavailable.
         """
         ado_client_instance = client_container.get('client')
         if not ado_client_instance:
             logger.error("ADO client is not available.")
-            return {}
-        return ado_client_instance.get_pipeline_run(project_id, run_id)
+            return None
+        return ado_client_instance.get_pipeline_run(project_id, pipeline_id, run_id)

@@ -75,14 +75,80 @@ class CreatePipelineRequest(BaseModel):
     folder: Optional[str] = None
     configuration: PipelineConfiguration
 
+class RunState(str, Enum):
+    """
+    Represents the state of a pipeline run.
+    """
+    UNKNOWN = "unknown"
+    IN_PROGRESS = "inProgress"
+    COMPLETED = "completed"
+    CANCELING = "canceling"
+
+class RunResult(str, Enum):
+    """
+    Represents the result of a pipeline run.
+    """
+    UNKNOWN = "unknown"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELED = "canceled"
+
+class PipelineReference(BaseModel):
+    """
+    Represents a reference to a pipeline.
+    """
+    id: int
+    name: Optional[str] = None
+    url: Optional[str] = None
+    folder: Optional[str] = None
+
 class PipelineRun(BaseModel):
     """
-    Represents a pipeline run.
+    Represents a pipeline run with comprehensive status tracking.
     """
     id: int
     name: Optional[str] = None
     url: str
-    state: Optional[str] = None
-    result: Optional[str] = None
+    state: Optional[RunState] = None
+    result: Optional[RunResult] = None
     createdDate: Optional[str] = None
     finishedDate: Optional[str] = None
+    pipeline: Optional[PipelineReference] = None
+    resources: Optional[Dict[str, Any]] = None
+    variables: Optional[Dict[str, Any]] = None
+
+    def is_completed(self) -> bool:
+        """
+        Check if the pipeline run has completed.
+        
+        Returns:
+            bool: True if the run is completed, False otherwise.
+        """
+        return self.state == RunState.COMPLETED
+
+    def is_successful(self) -> bool:
+        """
+        Check if the pipeline run completed successfully.
+        
+        Returns:
+            bool: True if the run succeeded, False otherwise.
+        """
+        return self.is_completed() and self.result == RunResult.SUCCEEDED
+
+    def is_failed(self) -> bool:
+        """
+        Check if the pipeline run failed.
+        
+        Returns:
+            bool: True if the run failed, False otherwise.
+        """
+        return self.is_completed() and self.result == RunResult.FAILED
+
+    def is_in_progress(self) -> bool:
+        """
+        Check if the pipeline run is currently in progress.
+        
+        Returns:
+            bool: True if the run is in progress, False otherwise.
+        """
+        return self.state == RunState.IN_PROGRESS

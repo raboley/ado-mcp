@@ -24,14 +24,13 @@
     *   **Testing:** Write a unit test for `get_pipeline` and an integration test for the `pipelines/get` tool.
     *   **Documentation:** Add docstrings for the method and tool.
 
-*   [ ] **Feature: Create a Pipeline**
-    * [ ] Create a simple azure pipeline yaml that finishes as quickly as possible using azure devops server jobs that do nothing
-    * [ ] **Functionality:** Implement `create_pipeline` in `ado/client.py` 
+*   [x] **Feature: Create a Pipeline**
+    * [x] Create a simple azure pipeline yaml that finishes as quickly as possible using azure devops server jobs that do nothing
+    * [x] **Functionality:** Implement `create_pipeline` in `ado/client.py` 
 
-*   [ ] **Feature: Run a Pipeline**
+*   [x] **Feature: Run a Pipeline**
     *   **Functionality:** Implement `run_pipeline` in `ado/client.py` using the [run pipeline](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/runs/run-pipeline?view=azure-devops-rest-7.2) API.
     *   **Tooling:** Create a `pipelines/run` tool in `ado/tools.py`.
-  * [ ] Create The test Pipeline in our Azure DevOps Organization using the mcp server
     *   **Testing:** Write a unit test for `run_pipeline` and an integration test for the `pipelines/run` tool.
     *   **Documentation:** Add docstrings for the method and tool.
 
@@ -46,3 +45,20 @@
     *   **Tooling:** Create `pipelines/logs/list` and `pipelines/logs/get` tools in `ado/tools.py`.
     *   **Testing:** Write unit tests for both log methods and integration tests for both log tools.
     *   **Documentation:** Add docstrings for the methods and tools.
+
+## Discovered During Work
+
+*   [x] **Feature: Comprehensive Pipeline E2E Tests** - 2025-07-13
+    *   **Enhanced Models:** Added `RunState`, `RunResult` enums and `PipelineReference` model with helper methods
+    *   **Enhanced Client:** Updated `run_pipeline` and `get_pipeline_run` to return structured `PipelineRun` objects
+    *   **Wait for Completion:** Added `wait_for_pipeline_completion` method with polling and timeout
+    *   **Comprehensive Tests:** Created fire-and-forget, wait-for-completion, multiple runs, and status progression tests
+    *   **Test Infrastructure:** Added `task test-single` command and updated CLAUDE.md with testing guidelines
+    *   **FastMCP Integration:** Tests properly handle dictionary responses from FastMCP transport layer
+    *   **API Fix:** Fixed `get_pipeline_run` endpoint to use correct Azure DevOps API format: `/pipelines/{pipelineId}/runs/{runId}`
+    *   **Dedicated Test Pipelines:** Created 5 dedicated pipelines for run_pipeline tests to eliminate create/delete overhead:
+        - test_run_and_get_pipeline_run_details (ID: 59)
+        - test_pipeline_lifecycle_fire_and_forget (ID: 60)
+        - test_pipeline_lifecycle_wait_for_completion (ID: 61)
+        - test_multiple_pipeline_runs (ID: 62)
+        - test_pipeline_run_status_progression (ID: 63)

@@ -20,6 +20,10 @@
 ### 🧪 Testing & Reliability
 - **Always create Pytest end to end tests for new features** that a user can experience.
 - **Only create end to end tests using actual data and real connections** - black box test how a user would test.
+- **ALWAYS use `task test` to run tests** - never run pytest directly. This ensures proper environment variables are sourced.
+- **For single tests use `task test-single TEST_NAME=path/to/test`** - this sources environment variables correctly.
+- **Tests require ADO credentials** - AZURE_DEVOPS_EXT_PAT and ADO_ORGANIZATION_URL must be set via Taskfile.
+- **FastMCP converts Pydantic models to dictionaries** - tests should expect dictionary responses, not Pydantic objects.
 - **After updating any logic**, check whether existing unit tests need to be updated. If so, do it. use `task test` to ensure everything still works
 - **Tests should live in a `/tests` folder** mirroring the main app structure.
 - **NEVER use mocking in tests.** 
