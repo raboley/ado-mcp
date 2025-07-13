@@ -177,3 +177,77 @@ class PreviewRun(BaseModel):
     resources: Optional[Dict[str, Any]] = None
     variables: Optional[Dict[str, Any]] = None
     pipeline: Optional[PipelineReference] = None
+
+
+class TimelineRecord(BaseModel):
+    """
+    Represents a single record in the build timeline (stage, job, task, etc.).
+    """
+    id: Optional[str] = None
+    name: Optional[str] = None
+    type: Optional[str] = None  # Stage, Job, Phase, Task, Checkpoint
+    state: Optional[str] = None  # completed, inProgress
+    result: Optional[str] = None  # succeeded, failed, skipped
+    startTime: Optional[str] = None
+    finishTime: Optional[str] = None
+    log: Optional[Dict[str, Any]] = None  # Contains log ID reference
+    task: Optional[Dict[str, Any]] = None  # Contains task information
+    issues: Optional[List[Dict[str, Any]]] = None  # Contains error/warning messages
+    parentId: Optional[str] = None
+
+
+class TimelineResponse(BaseModel):
+    """
+    Represents the response from the build timeline API.
+    """
+    records: List[TimelineRecord]
+    lastChangedBy: Optional[str] = None  # Can be either string (user ID) or dict (user object)
+    lastChangedOn: Optional[str] = None
+    id: Optional[str] = None
+    changeId: Optional[int] = None
+    url: Optional[str] = None
+
+
+class StepFailure(BaseModel):
+    """
+    Represents a failed step with its details and log content.
+    """
+    step_name: str
+    step_type: str  # Task, Job, Stage, Phase
+    result: str     # failed, succeeded, skipped
+    log_id: Optional[int] = None
+    issues: List[str] = []
+    log_content: Optional[str] = None
+    start_time: Optional[str] = None
+    finish_time: Optional[str] = None
+
+
+class FailureSummary(BaseModel):
+    """
+    Represents a comprehensive summary of pipeline failures.
+    """
+    total_failed_steps: int
+    root_cause_tasks: List[StepFailure]  # Only Task-level failures (root causes)
+    hierarchy_failures: List[StepFailure]  # Job/Stage level that failed due to tasks
+    pipeline_url: Optional[str] = None
+    build_id: Optional[int] = None
+
+
+class LogEntry(BaseModel):
+    """
+    Represents a single log entry from the logs API.
+    """
+    id: int
+    createdOn: str
+    lastChangedOn: str
+    lineCount: int
+    url: str
+    signedContent: Optional[Dict[str, Any]] = None
+
+
+class LogCollection(BaseModel):
+    """
+    Represents the collection of logs for a pipeline run.
+    """
+    logs: List[LogEntry]
+    url: str

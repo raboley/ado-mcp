@@ -5,7 +5,7 @@ import logging
 import time
 from typing import List, Optional
 from .errors import AdoAuthenticationError
-from .models import Project, Pipeline, CreatePipelineRequest, PipelineRun, RunState, RunResult, PipelinePreviewRequest, PreviewRun
+from .models import Project, Pipeline, CreatePipelineRequest, PipelineRun, RunState, RunResult, PipelinePreviewRequest, PreviewRun, TimelineResponse, TimelineRecord, StepFailure, FailureSummary, LogCollection, LogEntry
 
 logger = logging.getLogger(__name__)
 
@@ -396,3 +396,191 @@ class AdoClient:
             # Log current status and wait before next check
             logger.debug(f"Pipeline run {run_id} still in progress (state: {pipeline_run.state})")
             time.sleep(poll_interval_seconds)
+
+    def list_pipeline_logs(self, project_id: str, pipeline_id: int, run_id: int) -> LogCollection:
+        """
+        Lists logs for a specific pipeline run.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            run_id (int): The ID of the pipeline run.
+
+        Returns:
+            LogCollection: A collection of log entries for the pipeline run.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        url = f"{self.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs/{run_id}/logs?api-version=7.2-preview.1"
+        logger.info(f"Listing logs for pipeline run {run_id} in project {project_id}")
+        response = self._send_request("GET", url)
+        logger.info(f"Retrieved {len(response.get('logs', []))} logs for run {run_id}")
+        return LogCollection(**response)
+
+    def get_log_content_by_id(self, project_id: str, pipeline_id: int, run_id: int, log_id: int) -> str:
+        """
+        Gets the content of a specific log from a pipeline run.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            run_id (int): The ID of the pipeline run.
+            log_id (int): The ID of the specific log.
+
+        Returns:
+            str: The log content as a string.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        # Get log metadata with signed content URL
+        url = f"{self.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs/{run_id}/logs/{log_id}?$expand=signedContent&api-version=7.2-preview.1"
+        logger.info(f"Getting log content for log {log_id} from run {run_id}")
+        response = self._send_request("GET", url)
+        
+        # Extract and fetch content from signed URL
+        if 'signedContent' in response and 'url' in response['signedContent']:
+            import requests
+            signed_url = response['signedContent']['url']
+            content_response = requests.get(signed_url)
+            content_response.raise_for_status()
+            logger.info(f"Retrieved log content ({len(content_response.text)} characters) for log {log_id}")
+            return content_response.text
+        
+        logger.warning(f"No signed content URL found for log {log_id}")
+        return ""
+
+    def get_pipeline_timeline(self, project_id: str, pipeline_id: int, run_id: int) -> TimelineResponse:
+        """
+        Gets the build timeline for a pipeline run, showing status of all stages, jobs, and tasks.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            run_id (int): The ID of the pipeline run (also serves as build ID).
+
+        Returns:
+            TimelineResponse: The timeline showing status of all pipeline components.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        # Use the run_id as build_id for the build timeline API
+        url = f"{self.organization_url}/{project_id}/_apis/build/builds/{run_id}/timeline?api-version=7.2-preview.2"
+        logger.info(f"Getting timeline for pipeline run {run_id} in project {project_id}")
+        response = self._send_request("GET", url)
+        logger.info(f"Retrieved timeline with {len(response.get('records', []))} records for run {run_id}")
+        return TimelineResponse(**response)
+
+    def get_pipeline_failure_summary(self, project_id: str, pipeline_id: int, run_id: int) -> FailureSummary:
+        """
+        Gets a comprehensive summary of pipeline failures, including root causes and affected components.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            run_id (int): The ID of the pipeline run.
+
+        Returns:
+            FailureSummary: Detailed summary of failures with log content for root causes.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        logger.info(f"Analyzing failures for pipeline run {run_id}")
+        
+        # Get the timeline to identify failed steps
+        timeline = self.get_pipeline_timeline(project_id, pipeline_id, run_id)
+        
+        # Find all failed records
+        failed_records = [record for record in timeline.records if record.result == 'failed']
+        
+        # Separate root causes (Tasks) from hierarchy failures (Jobs, Stages)
+        root_cause_tasks = []
+        hierarchy_failures = []
+        
+        for record in failed_records:
+            # Extract issues as strings
+            issues = []
+            if record.issues:
+                issues = [issue.get('message', 'Unknown error') for issue in record.issues]
+            
+            step_failure = StepFailure(
+                step_name=record.name or 'Unknown Step',
+                step_type=record.type or 'Unknown',
+                result=record.result or 'failed',
+                log_id=record.log.get('id') if record.log else None,
+                issues=issues,
+                start_time=record.startTime,
+                finish_time=record.finishTime
+            )
+            
+            # Get log content for tasks with logs
+            if record.type == 'Task' and step_failure.log_id:
+                try:
+                    step_failure.log_content = self.get_log_content_by_id(
+                        project_id, pipeline_id, run_id, step_failure.log_id
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to get log content for step {record.name}: {e}")
+                    step_failure.log_content = f"Error retrieving log: {e}"
+            
+            # Categorize failures
+            if record.type == 'Task':
+                root_cause_tasks.append(step_failure)
+            else:
+                hierarchy_failures.append(step_failure)
+        
+        # Get pipeline URL from the run
+        pipeline_run = self.get_pipeline_run(project_id, pipeline_id, run_id)
+        pipeline_url = None
+        if hasattr(pipeline_run, '_links') and pipeline_run._links:
+            pipeline_url = pipeline_run._links.get('web', {}).get('href')
+        
+        total_failed = len(failed_records)
+        logger.info(f"Found {total_failed} failed steps: {len(root_cause_tasks)} root causes, {len(hierarchy_failures)} hierarchy failures")
+        
+        return FailureSummary(
+            total_failed_steps=total_failed,
+            root_cause_tasks=root_cause_tasks,
+            hierarchy_failures=hierarchy_failures,
+            pipeline_url=pipeline_url,
+            build_id=run_id
+        )
+
+    def get_failed_step_logs(self, project_id: str, pipeline_id: int, run_id: int, step_name: Optional[str] = None) -> List[StepFailure]:
+        """
+        Gets detailed log information for failed steps, optionally filtered by step name.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            run_id (int): The ID of the pipeline run.
+            step_name (Optional[str]): Filter to specific step name (case-insensitive partial match).
+
+        Returns:
+            List[StepFailure]: List of failed steps with their log content.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        logger.info(f"Getting failed step logs for run {run_id}" + (f" (filter: {step_name})" if step_name else ""))
+        
+        # Get failure summary which includes log content for root causes
+        failure_summary = self.get_pipeline_failure_summary(project_id, pipeline_id, run_id)
+        
+        # Combine all failed steps
+        all_failures = failure_summary.root_cause_tasks + failure_summary.hierarchy_failures
+        
+        # Filter by step name if provided
+        if step_name:
+            step_name_lower = step_name.lower()
+            filtered_failures = [
+                failure for failure in all_failures 
+                if step_name_lower in failure.step_name.lower()
+            ]
+            logger.info(f"Filtered to {len(filtered_failures)} steps matching '{step_name}'")
+            return filtered_failures
+        
+        return all_failures

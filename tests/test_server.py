@@ -739,3 +739,258 @@ async def test_preview_pipeline_no_client(mcp_client_with_unset_ado_env: Client)
         "pipeline_id": 1
     })
     assert result.data is None, "Preview should return None when client is unavailable"
+
+# --- Tests for pipeline logs functionality ---
+
+@requires_ado_creds
+async def test_get_pipeline_failure_summary_simple_pipeline(mcp_client: Client):
+    """Tests getting failure summary for a simple failing pipeline."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 83  # log-test-failing pipeline
+    run_id = 323  # Known failed run
+    
+    result = await mcp_client.call_tool("get_pipeline_failure_summary", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "run_id": run_id
+    })
+    
+    summary = result.data
+    assert summary is not None, "Summary should not be None"
+    assert isinstance(summary, dict), "Summary should be a dictionary"
+    
+    # Verify summary structure
+    assert "total_failed_steps" in summary, "Summary should have total_failed_steps"
+    assert "root_cause_tasks" in summary, "Summary should have root_cause_tasks"
+    assert "hierarchy_failures" in summary, "Summary should have hierarchy_failures"
+    assert summary["total_failed_steps"] > 0, "Should have failed steps"
+    
+    # Verify we have root cause tasks
+    assert len(summary["root_cause_tasks"]) > 0, "Should have root cause tasks"
+    root_cause = summary["root_cause_tasks"][0]
+    assert root_cause["step_name"] == "Run Tests", "Root cause should be 'Run Tests'"
+    assert root_cause["step_type"] == "Task", "Root cause should be Task type"
+    assert root_cause["result"] == "failed", "Root cause should have failed result"
+    assert len(root_cause["issues"]) > 0, "Root cause should have issues"
+    assert root_cause["log_content"] is not None, "Root cause should have log content"
+    assert len(root_cause["log_content"]) > 0, "Log content should not be empty"
+    
+    print(f"✓ Simple pipeline failure analysis: {summary['total_failed_steps']} failed steps")
+
+@requires_ado_creds
+async def test_get_pipeline_failure_summary_complex_pipeline(mcp_client: Client):
+    """Tests getting failure summary for a complex multi-stage failing pipeline."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 84  # log-test-complex pipeline
+    run_id = 324  # Known failed run
+    
+    result = await mcp_client.call_tool("get_pipeline_failure_summary", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "run_id": run_id
+    })
+    
+    summary = result.data
+    assert summary is not None, "Summary should not be None"
+    assert isinstance(summary, dict), "Summary should be a dictionary"
+    
+    # Complex pipeline should have multiple failures
+    assert summary["total_failed_steps"] >= 4, "Complex pipeline should have multiple failures"
+    assert len(summary["root_cause_tasks"]) >= 1, "Should have at least one root cause task"
+    assert len(summary["hierarchy_failures"]) >= 3, "Should have hierarchy failures"
+    
+    # Find the Unit Tests failure
+    unit_tests_failure = None
+    for task in summary["root_cause_tasks"]:
+        if "Unit Tests" in task["step_name"]:
+            unit_tests_failure = task
+            break
+    
+    assert unit_tests_failure is not None, "Should find Unit Tests failure"
+    assert unit_tests_failure["step_type"] == "Task", "Unit Tests should be Task type"
+    assert unit_tests_failure["log_content"] is not None, "Should have log content"
+    
+    # Verify log content contains expected error messages
+    log_content = unit_tests_failure["log_content"]
+    assert "FAIL" in log_content, "Log should contain FAIL message"
+    assert "ERROR" in log_content, "Log should contain ERROR message"
+    assert "UserService.validateEmail" in log_content, "Log should contain specific error details"
+    
+    print(f"✓ Complex pipeline failure analysis: {summary['total_failed_steps']} failed steps")
+
+@requires_ado_creds
+async def test_get_failed_step_logs_with_filter(mcp_client: Client):
+    """Tests getting failed step logs with name filtering."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 84  # log-test-complex pipeline
+    run_id = 324  # Known failed run
+    
+    # Test filtering by step name
+    result = await mcp_client.call_tool("get_failed_step_logs", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "run_id": run_id,
+        "step_name": "Unit Tests"
+    })
+    
+    step_logs = result.data
+    assert step_logs is not None, "Step logs should not be None"
+    assert isinstance(step_logs, list), "Step logs should be a list"
+    assert len(step_logs) >= 1, "Should find at least one matching step"
+    
+    # Verify the filtered step
+    unit_tests_step = step_logs[0]
+    assert "Unit Tests" in unit_tests_step["step_name"], "Should match filter criteria"
+    assert unit_tests_step["step_type"] == "Task", "Should be Task type"
+    assert unit_tests_step["result"] == "failed", "Should be failed"
+    assert unit_tests_step["log_content"] is not None, "Should have log content"
+    
+    print(f"✓ Step filtering found: {unit_tests_step['step_name']}")
+
+@requires_ado_creds
+async def test_get_failed_step_logs_all_steps(mcp_client: Client):
+    """Tests getting all failed step logs without filtering."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 83  # log-test-failing pipeline
+    run_id = 323  # Known failed run
+    
+    result = await mcp_client.call_tool("get_failed_step_logs", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "run_id": run_id
+    })
+    
+    step_logs = result.data
+    assert step_logs is not None, "Step logs should not be None"
+    assert isinstance(step_logs, list), "Step logs should be a list"
+    assert len(step_logs) > 0, "Should have failed steps"
+    
+    # Should include both root causes and hierarchy failures
+    step_types = [step["step_type"] for step in step_logs]
+    assert "Task" in step_types, "Should include Task-level failures"
+    
+    # Verify each step has required fields
+    for step in step_logs:
+        assert "step_name" in step, "Step should have step_name"
+        assert "step_type" in step, "Step should have step_type"
+        assert "result" in step, "Step should have result"
+        assert step["result"] == "failed", "All steps should be failed"
+    
+    print(f"✓ All failed steps retrieved: {len(step_logs)} steps")
+
+@requires_ado_creds
+async def test_get_pipeline_timeline(mcp_client: Client):
+    """Tests getting pipeline timeline with detailed step status."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 83  # log-test-failing pipeline
+    run_id = 323  # Known failed run
+    
+    result = await mcp_client.call_tool("get_pipeline_timeline", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "run_id": run_id
+    })
+    
+    timeline = result.data
+    assert timeline is not None, "Timeline should not be None"
+    assert isinstance(timeline, dict), "Timeline should be a dictionary"
+    assert "records" in timeline, "Timeline should have records"
+    
+    records = timeline["records"]
+    assert len(records) > 0, "Should have timeline records"
+    
+    # Verify different record types are present
+    record_types = [record.get("type") for record in records]
+    assert "Task" in record_types, "Should have Task records"
+    assert "Stage" in record_types, "Should have Stage records"
+    
+    # Find the failed task
+    failed_tasks = [r for r in records if r.get("result") == "failed" and r.get("type") == "Task"]
+    assert len(failed_tasks) > 0, "Should have failed tasks"
+    
+    failed_task = failed_tasks[0]
+    assert failed_task["name"] == "Run Tests", "Failed task should be 'Run Tests'"
+    assert "log" in failed_task, "Failed task should have log reference"
+    assert failed_task["log"]["id"] is not None, "Should have log ID"
+    
+    print(f"✓ Timeline retrieved with {len(records)} records")
+
+@requires_ado_creds
+async def test_list_pipeline_logs(mcp_client: Client):
+    """Tests listing all logs for a pipeline run."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 83  # log-test-failing pipeline
+    run_id = 323  # Known failed run
+    
+    result = await mcp_client.call_tool("list_pipeline_logs", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "run_id": run_id
+    })
+    
+    logs = result.data
+    assert logs is not None, "Logs should not be None"
+    assert isinstance(logs, dict), "Logs should be a dictionary"
+    assert "logs" in logs, "Should have logs array"
+    assert "url" in logs, "Should have URL"
+    
+    log_entries = logs["logs"]
+    assert len(log_entries) > 0, "Should have log entries"
+    
+    # Verify log entry structure
+    for log_entry in log_entries[:3]:  # Check first 3 logs
+        assert "id" in log_entry, "Log entry should have ID"
+        assert "lineCount" in log_entry, "Log entry should have line count"
+        assert "createdOn" in log_entry, "Log entry should have creation time"
+        assert isinstance(log_entry["id"], int), "Log ID should be integer"
+        assert log_entry["lineCount"] >= 0, "Line count should be non-negative"
+    
+    print(f"✓ Found {len(log_entries)} log entries")
+
+@requires_ado_creds
+async def test_get_log_content_by_id(mcp_client: Client):
+    """Tests getting specific log content by ID."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 83  # log-test-failing pipeline
+    run_id = 323  # Known failed run
+    log_id = 8  # Known log ID for the failed "Run Tests" step
+    
+    result = await mcp_client.call_tool("get_log_content_by_id", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "run_id": run_id,
+        "log_id": log_id
+    })
+    
+    log_content = result.data
+    assert log_content is not None, "Log content should not be None"
+    assert isinstance(log_content, str), "Log content should be a string"
+    assert len(log_content) > 0, "Log content should not be empty"
+    
+    # Verify log content contains expected information
+    assert "Run Tests" in log_content, "Log should contain step name"
+    assert "Command line" in log_content, "Log should contain task information"
+    assert "ERROR" in log_content, "Log should contain error information"
+    assert "Bash exited with code '1'" in log_content, "Log should contain exit code info"
+    
+    print(f"✓ Retrieved log content: {len(log_content)} characters")
+
+async def test_logs_tools_no_client(mcp_client_with_unset_ado_env: Client):
+    """Tests that logs tools return None when client is not available."""
+    # Test failure summary
+    result = await mcp_client_with_unset_ado_env.call_tool("get_pipeline_failure_summary", {
+        "project_id": "any", "pipeline_id": 1, "run_id": 1
+    })
+    assert result.data is None, "Should return None when client unavailable"
+    
+    # Test failed step logs
+    result = await mcp_client_with_unset_ado_env.call_tool("get_failed_step_logs", {
+        "project_id": "any", "pipeline_id": 1, "run_id": 1
+    })
+    assert result.data is None, "Should return None when client unavailable"
+    
+    # Test timeline
+    result = await mcp_client_with_unset_ado_env.call_tool("get_pipeline_timeline", {
+        "project_id": "any", "pipeline_id": 1, "run_id": 1
+    })
+    assert result.data is None, "Should return None when client unavailable"

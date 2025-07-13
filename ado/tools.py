@@ -1,7 +1,7 @@
 import logging
 from typing import List, Optional
 from ado.errors import AdoAuthenticationError
-from ado.models import Project, Pipeline, CreatePipelineRequest, ConfigurationType, PipelineConfiguration, Repository, ServiceConnection, PipelineRun, PipelinePreviewRequest, PreviewRun
+from ado.models import Project, Pipeline, CreatePipelineRequest, ConfigurationType, PipelineConfiguration, Repository, ServiceConnection, PipelineRun, PipelinePreviewRequest, PreviewRun, TimelineResponse, StepFailure, FailureSummary, LogCollection
 
 logger = logging.getLogger(__name__)
 
@@ -263,3 +263,127 @@ def register_ado_tools(mcp_instance, client_container):
         )
         
         return ado_client_instance.preview_pipeline(project_id, pipeline_id, request)
+
+    @mcp_instance.tool
+    def get_pipeline_failure_summary(
+        project_id: str, 
+        pipeline_id: int, 
+        run_id: int
+    ) -> Optional[FailureSummary]:
+        """
+        Gets a comprehensive summary of pipeline failures, identifying root causes and affected components.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            run_id (int): The ID of the pipeline run.
+
+        Returns:
+            Optional[FailureSummary]: Detailed failure analysis including root cause tasks and hierarchy failures, or None if client unavailable.
+        """
+        ado_client_instance = client_container.get('client')
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+        
+        return ado_client_instance.get_pipeline_failure_summary(project_id, pipeline_id, run_id)
+
+    @mcp_instance.tool
+    def get_failed_step_logs(
+        project_id: str, 
+        pipeline_id: int, 
+        run_id: int,
+        step_name: Optional[str] = None
+    ) -> Optional[List[StepFailure]]:
+        """
+        Gets detailed log information for failed steps, optionally filtered by step name.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            run_id (int): The ID of the pipeline run.
+            step_name (Optional[str]): Filter to specific step name (case-insensitive partial match).
+
+        Returns:
+            Optional[List[StepFailure]]: List of failed steps with their log content, or None if client unavailable.
+        """
+        ado_client_instance = client_container.get('client')
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+        
+        return ado_client_instance.get_failed_step_logs(project_id, pipeline_id, run_id, step_name)
+
+    @mcp_instance.tool
+    def get_pipeline_timeline(
+        project_id: str, 
+        pipeline_id: int, 
+        run_id: int
+    ) -> Optional[TimelineResponse]:
+        """
+        Gets the build timeline for a pipeline run, showing status of all stages, jobs, and tasks.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            run_id (int): The ID of the pipeline run.
+
+        Returns:
+            Optional[TimelineResponse]: Timeline showing status of all pipeline components, or None if client unavailable.
+        """
+        ado_client_instance = client_container.get('client')
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+        
+        return ado_client_instance.get_pipeline_timeline(project_id, pipeline_id, run_id)
+
+    @mcp_instance.tool
+    def list_pipeline_logs(
+        project_id: str, 
+        pipeline_id: int, 
+        run_id: int
+    ) -> Optional[LogCollection]:
+        """
+        Lists all logs for a specific pipeline run.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            run_id (int): The ID of the pipeline run.
+
+        Returns:
+            Optional[LogCollection]: Collection of log entries for the pipeline run, or None if client unavailable.
+        """
+        ado_client_instance = client_container.get('client')
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+        
+        return ado_client_instance.list_pipeline_logs(project_id, pipeline_id, run_id)
+
+    @mcp_instance.tool
+    def get_log_content_by_id(
+        project_id: str, 
+        pipeline_id: int, 
+        run_id: int,
+        log_id: int
+    ) -> Optional[str]:
+        """
+        Gets the content of a specific log from a pipeline run.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            run_id (int): The ID of the pipeline run.
+            log_id (int): The ID of the specific log.
+
+        Returns:
+            Optional[str]: The log content as a string, or None if client unavailable.
+        """
+        ado_client_instance = client_container.get('client')
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+        
+        return ado_client_instance.get_log_content_by_id(project_id, pipeline_id, run_id, log_id)

@@ -52,11 +52,37 @@
     *   **Test Fixtures:** Added test YAML files: valid-preview.yml, parameterized-preview.yml, invalid-preview.yml
     *   **Documentation:** Added Google-style docstrings for all public methods and tools.
 
-*   [ ] **Feature: Get Pipeline Logs**
-    *   **Functionality:** Implement `list_pipeline_logs` and `get_pipeline_log_content` in `ado/client.py` using the [logs list](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/logs/list?view=azure-devops-rest-7.2) and [logs get](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/logs/get?view=azure-devops-rest-7.2) APIs.
-    *   **Tooling:** Create `pipelines/logs/list` and `pipelines/logs/get` tools in `ado/tools.py`.
-    *   **Testing:** Write unit tests for both log methods and integration tests for both log tools.
-    *   **Documentation:** Add docstrings for the methods and tools.
+*   [x] **Feature: Get Pipeline Logs** - 2025-07-13
+    *   **Functionality:** Implemented comprehensive logs and failure analysis functionality in `ado/client.py`:
+        - `list_pipeline_logs` - Lists all logs for a pipeline run
+        - `get_log_content_by_id` - Gets content from specific logs using signed URLs
+        - `get_pipeline_timeline` - Gets build timeline showing status of all stages/jobs/tasks
+        - `get_pipeline_failure_summary` - Analyzes failures and categorizes root causes vs hierarchy failures
+        - `get_failed_step_logs` - Gets detailed logs for failed steps with optional filtering
+    *   **Models:** Added comprehensive models in `ado/models.py`:
+        - `TimelineRecord`, `TimelineResponse` - For build timeline data
+        - `StepFailure`, `FailureSummary` - For failure analysis and log content
+        - `LogEntry`, `LogCollection` - For log listing and metadata
+    *   **Tooling:** Created 5 MCP tools in `ado/tools.py`:
+        - `get_pipeline_failure_summary` - High-level failure analysis
+        - `get_failed_step_logs` - Detailed logs for failed steps
+        - `get_pipeline_timeline` - Full timeline view
+        - `list_pipeline_logs` - Log listing
+        - `get_log_content_by_id` - Individual log content
+    *   **Testing:** Added 8 comprehensive end-to-end tests covering:
+        - Successful pipeline logs listing
+        - Log content retrieval with signed URLs
+        - Timeline analysis for completed pipelines
+        - Failure detection and root cause analysis
+        - Failed step log retrieval
+        - Step filtering by name
+        - Error handling for missing logs
+        - Tool registration verification
+    *   **Test Infrastructure:** Created dedicated test pipelines with intentional failures:
+        - failing-pipeline.yml - Simple failing pipeline for basic failure testing
+        - complex-pipeline.yml - Multi-stage pipeline with various failure scenarios
+    *   **API Integration:** Uses Azure DevOps Build Timeline API for accurate step status instead of parsing logs
+    *   **Documentation:** Added Google-style docstrings for all public methods and tools
 
 ## Discovered During Work
 
