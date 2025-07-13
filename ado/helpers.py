@@ -84,7 +84,12 @@ class AdoInputParser:
         Returns:
             Dict with potential pipeline names, yaml files, build numbers, urls
         """
-        result: dict[str, list[str]] = {"pipeline_names": [], "yaml_files": [], "build_numbers": [], "urls": []}
+        result: dict[str, list[str]] = {
+            "pipeline_names": [],
+            "yaml_files": [],
+            "build_numbers": [],
+            "urls": [],
+        }
 
         # Find URLs
         url_pattern = r"https?://[^\s]+"
@@ -297,7 +302,7 @@ def register_helper_tools(mcp_instance, client_container):
             if matches:
                 best_match: dict[str, Any] = matches[0]
                 if float(best_match["confidence"]) >= 0.8:
-                    pipeline_info = best_match['pipeline']
+                    pipeline_info = best_match["pipeline"]
                     result["suggested_actions"] = [
                         f"Use pipeline_id={pipeline_info['id']} for '{pipeline_info['name']}'",
                         "High confidence match found",
@@ -356,7 +361,11 @@ def register_helper_tools(mcp_instance, client_container):
                     project_name = p["name"]
                     project_id = p["id"]
 
-                if project_name and url_info["project"] and project_name.lower() == str(url_info["project"]).lower():
+                if (
+                    project_name
+                    and url_info["project"]
+                    and project_name.lower() == str(url_info["project"]).lower()
+                ):
                     project = {"id": project_id, "name": project_name}
                     break
 
