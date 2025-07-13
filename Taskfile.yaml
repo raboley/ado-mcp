@@ -20,7 +20,7 @@ tasks:
   test:
     desc: Run project tests in parallel
     cmds:
-      - uv run pytest -v -n auto
+      - uv run pytest -v -n auto --junitxml=pytest-results.xml
 
   test-sequential:
     desc: Run project tests sequentially (for debugging)
