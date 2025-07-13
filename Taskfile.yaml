@@ -37,6 +37,18 @@ tasks:
     cmds:
       -  uv run pytest -v --cov -n auto
 
+  format:
+    desc: Format code with ruff
+    cmds:
+      - uv run ruff format .
+      - uv run ruff check --fix .
+
+  format-check:
+    desc: Check code formatting without making changes
+    cmds:
+      - uv run ruff format --check .
+      - uv run ruff check .
+
   run:
     desc: Run the FastAPI application
     cmds:

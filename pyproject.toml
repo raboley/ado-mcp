@@ -1,36 +1,89 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "ado-mcp"
 version = "0.1.0"
-description = "An MCP server for Azure DevOps"
+description = "An intelligent MCP server for Azure DevOps with smart pipeline analysis and automation"
 readme = "README.md"
 requires-python = ">=3.12"
-# Add dependencies used by your application code
+license = {text = "MIT"}
+authors = [
+    {name = "Azure DevOps MCP Contributors"}
+]
+keywords = [
+    "azure-devops", "mcp", "model-context-protocol", "ci-cd", "pipelines", 
+    "automation", "devops", "azure", "llm", "ai-tools"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Typing :: Typed",
+]
 dependencies = [
     "fastmcp>=2.10.0",
     "requests>=2.30.0",
     "python-dotenv>=1.0.0"
 ]
 
+[project.scripts]
+ado-mcp = "server:main"
+
+[project.urls]
+Homepage = "https://github.com/your-org/ado-mcp"
+Repository = "https://github.com/your-org/ado-mcp"
+Issues = "https://github.com/your-org/ado-mcp/issues"
+Documentation = "https://github.com/your-org/ado-mcp#readme"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
-    "pytest-asyncio>=0.23.0",
+    "pytest-asyncio>=1.0.0",
+    "pytest-cov>=6.2.1",
+    "pytest-mock>=3.14.1",
+    "pytest-xdist>=3.6.0",
+    "ruff>=0.1.0",
 ]
 
 [tool.setuptools]
 py-modules = ["server"]
 packages = ["ado"]
 
+[tool.setuptools.package-data]
+ado = ["py.typed"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 
-[tool.uv]
-dev-dependencies = [
-    "pytest-asyncio>=1.0.0",
-    "pytest-cov>=6.2.1",
-    "pytest-mock>=3.14.1",
-    "pytest-xdist>=3.6.0",
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings  
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
 ]
+ignore = [
+    "E501", # line too long, handled by formatter
+    "B008", # do not perform function calls in argument defaults
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
 
 [tool.coverage.run]
 source = ["ado", "server"]

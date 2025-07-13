@@ -1,0 +1,16 @@
+include README.md
+include CLAUDE.md
+include PLANNING.md
+include TASK.md
+include pyproject.toml
+include Taskfile.yaml
+include .python-version
+recursive-include ado *.py
+recursive-include ado py.typed
+recursive-include tests *.py
+recursive-include yaml-fixtures *.yml *.yaml
+exclude tests/temp_*
+global-exclude __pycache__
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude .DS_Store

@@ -66,5 +66,9 @@ tools.register_ado_tools(mcp, client_container)
 helpers.register_helper_tools(mcp, client_container)
 resources.register_mcp_resources(mcp)
 
-if __name__ == "__main__":  # pragma: no cover
+def main():
+    """Main entry point for the ado-mcp server."""
     mcp.run()
+
+if __name__ == "__main__":  # pragma: no cover
+    main()
