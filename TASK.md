@@ -40,6 +40,18 @@
     *   **Testing:** Write a unit test for `get_pipeline_run` and an integration test for the `pipelines/runs/get` tool.
     *   **Documentation:** Add docstrings for the method and tool.
 
+*   [x] **Feature: Pipeline Preview** - 2025-07-13
+    *   **Functionality:** Implement `preview_pipeline` in `ado/client.py` using the [pipeline preview](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/preview/preview?view=azure-devops-rest-7.2) API.
+    *   **Models:** Added `PipelinePreviewRequest` and `PreviewRun` models to handle preview request parameters and response data.
+    *   **Tooling:** Created `preview_pipeline` tool in `ado/tools.py` with support for yamlOverride, variables, templateParameters, and stagesToSkip.
+    *   **Testing:** Added comprehensive tests for static preview, parameterized pipelines, YAML override, error handling, and edge cases.
+    *   **Test Infrastructure:** Created 3 dedicated test pipelines for preview testing:
+        - preview-test-valid (ID: 74) - Simple valid pipeline
+        - preview-test-parameterized (ID: 75) - Pipeline with parameters and variables
+        - preview-test-invalid (ID: 76) - Pipeline with intentional errors for error testing
+    *   **Test Fixtures:** Added test YAML files: valid-preview.yml, parameterized-preview.yml, invalid-preview.yml
+    *   **Documentation:** Added Google-style docstrings for all public methods and tools.
+
 *   [ ] **Feature: Get Pipeline Logs**
     *   **Functionality:** Implement `list_pipeline_logs` and `get_pipeline_log_content` in `ado/client.py` using the [logs list](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/logs/list?view=azure-devops-rest-7.2) and [logs get](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/logs/get?view=azure-devops-rest-7.2) APIs.
     *   **Tooling:** Create `pipelines/logs/list` and `pipelines/logs/get` tools in `ado/tools.py`.

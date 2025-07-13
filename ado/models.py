@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from enum import Enum
 
 class Project(BaseModel):
@@ -152,3 +152,28 @@ class PipelineRun(BaseModel):
             bool: True if the run is in progress, False otherwise.
         """
         return self.state == RunState.IN_PROGRESS
+
+
+class PipelinePreviewRequest(BaseModel):
+    """
+    Request model for previewing a pipeline without executing it.
+    """
+    previewRun: Optional[bool] = True
+    yamlOverride: Optional[str] = None
+    resources: Optional[Dict[str, Any]] = None
+    templateParameters: Optional[Dict[str, Any]] = None
+    variables: Optional[Dict[str, Any]] = None
+    stagesToSkip: Optional[List[str]] = None
+
+
+class PreviewRun(BaseModel):
+    """
+    Represents the result of a pipeline preview operation.
+    """
+    finalYaml: Optional[str] = None
+    id: Optional[int] = None
+    name: Optional[str] = None
+    url: Optional[str] = None
+    resources: Optional[Dict[str, Any]] = None
+    variables: Optional[Dict[str, Any]] = None
+    pipeline: Optional[PipelineReference] = None

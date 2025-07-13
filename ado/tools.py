@@ -1,7 +1,7 @@
 import logging
 from typing import List, Optional
 from ado.errors import AdoAuthenticationError
-from ado.models import Project, Pipeline, CreatePipelineRequest, ConfigurationType, PipelineConfiguration, Repository, ServiceConnection, PipelineRun
+from ado.models import Project, Pipeline, CreatePipelineRequest, ConfigurationType, PipelineConfiguration, Repository, ServiceConnection, PipelineRun, PipelinePreviewRequest, PreviewRun
 
 logger = logging.getLogger(__name__)
 
@@ -224,3 +224,42 @@ def register_ado_tools(mcp_instance, client_container):
             logger.error("ADO client is not available.")
             return None
         return ado_client_instance.get_pipeline_run(project_id, pipeline_id, run_id)
+
+    @mcp_instance.tool
+    def preview_pipeline(
+        project_id: str, 
+        pipeline_id: int,
+        yaml_override: Optional[str] = None,
+        variables: Optional[dict] = None,
+        template_parameters: Optional[dict] = None,
+        stages_to_skip: Optional[List[str]] = None
+    ) -> Optional[PreviewRun]:
+        """
+        Previews a pipeline without executing it, returning the final YAML and other preview information.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            yaml_override (Optional[str]): Optional YAML override for testing different configurations.
+            variables (Optional[dict]): Optional runtime variables for the preview.
+            template_parameters (Optional[dict]): Optional template parameters for the preview.
+            stages_to_skip (Optional[List[str]]): Optional list of stage names to skip during preview.
+
+        Returns:
+            Optional[PreviewRun]: A PreviewRun object representing the pipeline preview details, or None if client unavailable.
+        """
+        ado_client_instance = client_container.get('client')
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+        
+        # Build the preview request
+        request = PipelinePreviewRequest(
+            previewRun=True,
+            yamlOverride=yaml_override,
+            variables=variables,
+            templateParameters=template_parameters,
+            stagesToSkip=stages_to_skip
+        )
+        
+        return ado_client_instance.preview_pipeline(project_id, pipeline_id, request)

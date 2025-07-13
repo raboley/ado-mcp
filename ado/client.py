@@ -5,7 +5,7 @@ import logging
 import time
 from typing import List, Optional
 from .errors import AdoAuthenticationError
-from .models import Project, Pipeline, CreatePipelineRequest, PipelineRun, RunState, RunResult
+from .models import Project, Pipeline, CreatePipelineRequest, PipelineRun, RunState, RunResult, PipelinePreviewRequest, PreviewRun
 
 logger = logging.getLogger(__name__)
 
@@ -320,6 +320,34 @@ class AdoClient:
         response = self._send_request("GET", url)
         logger.debug(f"Pipeline run {run_id} state: {response.get('state')}, result: {response.get('result')}")
         return PipelineRun(**response)
+
+    def preview_pipeline(self, project_id: str, pipeline_id: int, request: Optional[PipelinePreviewRequest] = None) -> PreviewRun:
+        """
+        Previews a pipeline without executing it, returning the final YAML and other preview information.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            request (Optional[PipelinePreviewRequest]): Optional preview request parameters.
+
+        Returns:
+            PreviewRun: A PreviewRun object representing the pipeline preview details.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        url = f"{self.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/preview?api-version=7.2-preview.1"
+        logger.info(f"Previewing pipeline {pipeline_id} in project {project_id}")
+        
+        # Use the request data if provided, otherwise send an empty preview request
+        request_data = {}
+        if request:
+            request_data = request.model_dump(exclude_none=True)
+        
+        logger.debug(f"Pipeline preview request data: {request_data}")
+        response = self._send_request("POST", url, json=request_data)
+        logger.info(f"Pipeline preview completed for pipeline {pipeline_id}")
+        return PreviewRun(**response)
 
     def wait_for_pipeline_completion(
         self, 

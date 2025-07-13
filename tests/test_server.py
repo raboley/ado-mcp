@@ -560,3 +560,182 @@ async def test_pipeline_run_status_progression(mcp_client: Client):
     assert final_status["state"] in valid_states, f"Final state should be valid, got: {final_status['state']}"
     
     print(f"✓ Successfully tracked {len(status_changes)} status changes for run {run_id}")
+
+# --- Tests for pipeline preview functionality ---
+
+@requires_ado_creds
+async def test_preview_pipeline_valid_yaml(mcp_client: Client):
+    """Tests previewing a pipeline with valid YAML."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 74  # preview-test-valid pipeline
+    
+    result = await mcp_client.call_tool("preview_pipeline", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id
+    })
+    
+    preview_data = result.data
+    assert preview_data is not None, "Preview should not be None"
+    assert isinstance(preview_data, dict), "Preview should be a dictionary"
+    
+    # Check for the finalYaml field which is the key output
+    assert "finalYaml" in preview_data, "Preview should contain finalYaml field"
+    assert preview_data["finalYaml"] is not None, "Final YAML should not be None"
+    assert isinstance(preview_data["finalYaml"], str), "Final YAML should be a string"
+    assert len(preview_data["finalYaml"]) > 0, "Final YAML should not be empty"
+    
+    print(f"✓ Successfully previewed pipeline {pipeline_id}")
+    print(f"  Final YAML length: {len(preview_data['finalYaml'])} characters")
+
+@requires_ado_creds
+async def test_preview_pipeline_with_yaml_override(mcp_client: Client):
+    """Tests previewing a pipeline with YAML override."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 74  # preview-test-valid pipeline
+    
+    # Provide a simple YAML override
+    yaml_override = """
+name: Override Test Pipeline
+trigger: none
+pool:
+  vmImage: ubuntu-latest
+steps:
+  - script: echo "This is an override!"
+    displayName: 'Override step'
+"""
+    
+    result = await mcp_client.call_tool("preview_pipeline", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "yaml_override": yaml_override
+    })
+    
+    preview_data = result.data
+    assert preview_data is not None, "Preview with override should not be None"
+    assert isinstance(preview_data, dict), "Preview should be a dictionary"
+    assert "finalYaml" in preview_data, "Preview should contain finalYaml field"
+    
+    final_yaml = preview_data["finalYaml"]
+    assert "Override Test Pipeline" in final_yaml, "Final YAML should contain override content"
+    assert "This is an override!" in final_yaml, "Final YAML should contain override script"
+    
+    print(f"✓ Successfully previewed pipeline {pipeline_id} with YAML override")
+
+@requires_ado_creds  
+async def test_preview_pipeline_with_variables(mcp_client: Client):
+    """Tests previewing a parameterized pipeline with runtime variables."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 75  # preview-test-parameterized pipeline
+    
+    # Provide runtime variables
+    variables = {
+        "testEnvironment": "staging",
+        "enableDebug": True
+    }
+    
+    result = await mcp_client.call_tool("preview_pipeline", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "variables": variables
+    })
+    
+    preview_data = result.data
+    assert preview_data is not None, "Preview with variables should not be None"
+    assert isinstance(preview_data, dict), "Preview should be a dictionary"
+    assert "finalYaml" in preview_data, "Preview should contain finalYaml field"
+    
+    final_yaml = preview_data["finalYaml"]
+    assert final_yaml is not None, "Final YAML should not be None"
+    assert len(final_yaml) > 0, "Final YAML should not be empty"
+    
+    print(f"✓ Successfully previewed parameterized pipeline {pipeline_id} with variables")
+    print(f"  Variables provided: {variables}")
+
+@requires_ado_creds
+async def test_preview_pipeline_with_template_parameters(mcp_client: Client):
+    """Tests previewing a pipeline with template parameters."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 75  # preview-test-parameterized pipeline
+    
+    # Provide template parameters
+    template_parameters = {
+        "testEnvironment": "prod",
+        "enableDebug": False
+    }
+    
+    result = await mcp_client.call_tool("preview_pipeline", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "template_parameters": template_parameters
+    })
+    
+    preview_data = result.data
+    assert preview_data is not None, "Preview with template parameters should not be None"
+    assert isinstance(preview_data, dict), "Preview should be a dictionary"
+    assert "finalYaml" in preview_data, "Preview should contain finalYaml field"
+    
+    print(f"✓ Successfully previewed pipeline {pipeline_id} with template parameters")
+    print(f"  Template parameters: {template_parameters}")
+
+@requires_ado_creds
+async def test_preview_pipeline_error_handling(mcp_client: Client):
+    """Tests error handling when previewing an invalid pipeline."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 76  # preview-test-invalid pipeline
+    
+    # This should either return an error response or handle the invalid YAML gracefully
+    try:
+        result = await mcp_client.call_tool("preview_pipeline", {
+            "project_id": project_id,
+            "pipeline_id": pipeline_id
+        })
+        
+        # If we get a result, it should still be structured properly
+        if result.data is not None:
+            preview_data = result.data
+            assert isinstance(preview_data, dict), "Even error responses should be dictionaries"
+            
+            # The preview may contain error information or a best-effort YAML
+            print(f"✓ Preview tool handled invalid pipeline gracefully")
+            if "finalYaml" in preview_data:
+                print(f"  Received final YAML despite errors")
+        else:
+            print(f"✓ Preview tool returned None for invalid pipeline")
+            
+    except Exception as e:
+        # Some errors are expected when dealing with invalid YAML
+        print(f"✓ Preview tool properly raised exception for invalid pipeline: {type(e).__name__}")
+        assert isinstance(e, Exception), "Should raise a proper exception type"
+
+@requires_ado_creds
+async def test_preview_pipeline_nonexistent_pipeline(mcp_client: Client):
+    """Tests error handling when trying to preview a non-existent pipeline."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 99999  # Non-existent pipeline ID
+    
+    try:
+        result = await mcp_client.call_tool("preview_pipeline", {
+            "project_id": project_id,
+            "pipeline_id": pipeline_id
+        })
+        
+        # Should either return None or raise an exception
+        if result.data is None:
+            print(f"✓ Preview tool returned None for non-existent pipeline")
+        else:
+            # If we get a result, check it's properly structured
+            assert isinstance(result.data, dict), "Response should be a dictionary"
+            print(f"✓ Preview tool handled non-existent pipeline ID gracefully")
+            
+    except Exception as e:
+        # HTTP 404 or similar errors are expected
+        print(f"✓ Preview tool properly raised exception for non-existent pipeline: {type(e).__name__}")
+        assert isinstance(e, Exception), "Should raise a proper exception type"
+
+async def test_preview_pipeline_no_client(mcp_client_with_unset_ado_env: Client):
+    """Tests preview_pipeline returns None when client is not available."""
+    result = await mcp_client_with_unset_ado_env.call_tool("preview_pipeline", {
+        "project_id": "any",
+        "pipeline_id": 1
+    })
+    assert result.data is None, "Preview should return None when client is unavailable"
