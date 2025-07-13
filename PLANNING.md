@@ -1,28 +1,5 @@
-# Product Requirements Document: Azure DevOps MCP Server
+k
 
-## 1. Introduction/Overview
-
-This document outlines the requirements for an Azure DevOps (ADO) Model Context Protocol (MCP) Server. This server will enable a Gemini AI assistant to interact with Azure DevOps to execute and monitor pipelines. The primary goal is to create a seamless experience for the AI to manage ADO pipelines, retrieve results, and use those results to assist users or for its own learning and problem-solving. This will shorten the development loop by allowing the AI to identify and potentially fix issues in ADO pipelines without human intervention.
-
-## 2. Goals
-
-*   **Automation:** Enable the AI to programmatically run ADO pipelines.
-*   **Efficiency:** Reduce the need for human intervention in the pipeline execution and debugging process.
-*   **Intelligence:** Allow the AI to learn from pipeline failures and provide intelligent suggestions for fixes.
-*   **User Experience:** Create a conversational and intuitive interface for the AI to interact with the ADO server.
-
-## 3. User Stories
-
-*   As an AI assistant, I want to be able to list all available pipelines in a given ADO organization and project so that I can help the user choose the correct one.
-*   As an AI assistant, I want to be able to inspect a pipeline to see its required and optional parameters, so that I can guide the user in providing the correct inputs.
-*   As an AI assistant, I want to be able to run a pipeline with a given set of parameters.
-*   As an AI assistant, I want to be notified when a pipeline has completed, and whether it succeeded or failed.
-*   As an AI assistant, when a pipeline fails, I want to retrieve the full logs so that I can analyze them and provide a helpful summary of the error to the user.
-*   As an AI assistant, I want to be able to view the history of previously run pipelines to understand past successes and failures.
-
-## 4. Functional Requirements
-
-1.  The server MUST provide an endpoint to list all pipelines within a specified ADO organization and project.
 2.  The server MUST provide an endpoint to get the details of a specific pipeline, including its parameters (name, type, default value, required/optional).
 3.  The server MUST provide an endpoint to trigger a pipeline run with specified parameters.
 4.  The server MUST provide an endpoint to get the status of a pipeline run (e.g., in progress, succeeded, failed).
