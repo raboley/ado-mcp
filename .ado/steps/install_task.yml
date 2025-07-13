@@ -1,0 +1,36 @@
+# Azure DevOps step template for installing Taskfile
+# This template installs the Task CLI tool for executing complex build logic
+# Usage: - template: .ado/steps/install_task.yml
+
+steps:
+- script: |
+    set -e
+    echo "Installing Taskfile..."
+    
+    # Detect OS and architecture
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m)
+    
+    # Map architecture names
+    case $ARCH in
+      x86_64) ARCH="amd64" ;;
+      aarch64) ARCH="arm64" ;;
+      arm64) ARCH="arm64" ;;
+    esac
+    
+    # Download and install Task
+    TASK_VERSION="latest"
+    DOWNLOAD_URL="https://github.com/go-task/task/releases/latest/download/task_${OS}_${ARCH}.tar.gz"
+    
+    echo "Downloading Task from: $DOWNLOAD_URL"
+    curl -sL "$DOWNLOAD_URL" | tar -xz -C /tmp
+    
+    # Make it executable and move to PATH
+    chmod +x /tmp/task
+    sudo mv /tmp/task /usr/local/bin/task
+    
+    # Verify installation
+    task --version
+    echo "✅ Taskfile installed successfully"
+  displayName: 'Install Taskfile CLI'
+  condition: succeeded()

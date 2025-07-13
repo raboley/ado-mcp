@@ -1,0 +1,78 @@
+# Azure DevOps CI Pipeline for ado-mcp
+# Runs tests and formatting checks on every commit to main and PRs targeting main
+
+trigger:
+  branches:
+    include:
+    - main
+
+pr:
+  branches:
+    include:
+    - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  # Use the default pipeline service connection token for authentication
+  AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+  ADO_ORGANIZATION_URL: $(System.TeamFoundationCollectionUri)
+
+stages:
+- stage: CI
+  displayName: 'Continuous Integration'
+  jobs:
+  - job: Tests
+    displayName: 'Run Tests'
+    steps:
+    - template: ../.ado/steps/install_task.yml
+    
+    - script: |
+        set -e
+        echo "Setting up Python environment..."
+        python -m pip install --upgrade pip
+        pip install uv
+        uv sync
+      displayName: 'Setup Python Environment'
+    
+    - script: |
+        set -e
+        echo "Running tests with Task..."
+        task test
+      displayName: 'Run Tests'
+      env:
+        AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+        ADO_ORGANIZATION_URL: $(System.TeamFoundationCollectionUri)
+    
+    - task: PublishTestResults@2
+      displayName: 'Publish Test Results'
+      inputs:
+        testResultsFiles: '**/pytest-results.xml'
+        testRunTitle: 'Python Tests'
+      condition: succeededOrFailed()
+
+  - job: Formatting
+    displayName: 'Code Formatting Checks'
+    steps:
+    - template: ../.ado/steps/install_task.yml
+    
+    - script: |
+        set -e
+        echo "Setting up Python environment..."
+        python -m pip install --upgrade pip
+        pip install uv
+        uv sync
+      displayName: 'Setup Python Environment'
+    
+    - script: |
+        set -e
+        echo "Running formatting checks with Task..."
+        task lint
+      displayName: 'Check Code Formatting'
+      
+    - script: |
+        set -e
+        echo "Running type checks with Task..."
+        task typecheck
+      displayName: 'Run Type Checks'
