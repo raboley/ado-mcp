@@ -43,7 +43,7 @@ def initialize_ado_client(org_url=None):
 def set_ado_organization(organization_url: str) -> dict:
     """
     Switches the active Azure DevOps organization for the MCP server.
-    If the switch fails, the client is invalidated.
+    If the switch fails, the previous client state is preserved.
     """
     logger.info(f"Attempting to switch to ADO organization: {organization_url}")
     
@@ -54,8 +54,8 @@ def set_ado_organization(organization_url: str) -> dict:
         logger.info(f"Successfully switched to organization: {organization_url}")
         return {"result": True}
     else:
-        logger.error(f"Failed to switch to organization: {organization_url}. Invalidating client.")
-        client_container['client'] = None
+        logger.error(f"Failed to switch to organization: {organization_url}. Keeping previous client state.")
+        # Don't modify the client_container - preserve the previous valid client
         raise AdoAuthenticationError(f"Authentication check failed: {error_message}")
 
 # Initial client setup

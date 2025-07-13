@@ -24,9 +24,14 @@
     *   **Testing:** Write a unit test for `get_pipeline` and an integration test for the `pipelines/get` tool.
     *   **Documentation:** Add docstrings for the method and tool.
 
-*   [x] **Feature: Run a Pipeline**
+*   [ ] **Feature: Create a Pipeline**
+    * [ ] Create a simple azure pipeline yaml that finishes as quickly as possible using azure devops server jobs that do nothing
+    * [ ] **Functionality:** Implement `create_pipeline` in `ado/client.py` 
+
+*   [ ] **Feature: Run a Pipeline**
     *   **Functionality:** Implement `run_pipeline` in `ado/client.py` using the [run pipeline](https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/runs/run-pipeline?view=azure-devops-rest-7.2) API.
     *   **Tooling:** Create a `pipelines/run` tool in `ado/tools.py`.
+  * [ ] Create The test Pipeline in our Azure DevOps Organization using the mcp server
     *   **Testing:** Write a unit test for `run_pipeline` and an integration test for the `pipelines/run` tool.
     *   **Documentation:** Add docstrings for the method and tool.
 
