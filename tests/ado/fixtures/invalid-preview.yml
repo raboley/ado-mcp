@@ -1,0 +1,26 @@
+# Invalid pipeline YAML for testing error handling
+name: Invalid Preview Test Pipeline
+
+trigger: none
+
+pool: server
+
+steps:
+  - task: NonExistentTask@999
+    displayName: 'This task does not exist'
+    inputs:
+      invalidProperty: 'This should cause validation errors'
+  
+  - script: echo "This step follows an invalid task"
+    displayName: 'Step after error'
+
+  # Missing required property for this task
+  - task: Delay@1
+    inputs:
+      # delayForMinutes is required but missing
+
+  # Invalid YAML syntax below (intentional)
+  invalidYamlStructure:
+    - this: should
+      - cause: parser
+        errors: [unclosed bracket

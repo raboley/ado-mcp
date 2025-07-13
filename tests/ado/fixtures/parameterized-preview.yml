@@ -1,0 +1,40 @@
+# Parameterized pipeline for preview testing with variables
+name: Parameterized Preview Test Pipeline
+
+trigger: none  # Manual trigger only for testing
+
+parameters:
+  - name: testEnvironment
+    displayName: 'Test Environment'
+    type: string
+    default: 'dev'
+    values:
+      - dev
+      - staging
+      - prod
+
+  - name: enableDebug
+    displayName: 'Enable Debug Mode'
+    type: boolean
+    default: false
+
+variables:
+  - name: selectedEnvironment
+    value: ${{ parameters.testEnvironment }}
+  - name: debugMode
+    value: ${{ parameters.enableDebug }}
+
+pool: server
+
+steps:
+  - script: echo "Environment=$(selectedEnvironment), Debug=$(debugMode)"
+    displayName: 'Display parameters and variables'
+  
+  - task: Delay@1
+    displayName: 'Processing step'
+    inputs:
+      delayForMinutes: '0'
+      
+  - ${{ if parameters.enableDebug }}:
+    - script: echo "Debug mode is enabled!"
+      displayName: 'Debug information'

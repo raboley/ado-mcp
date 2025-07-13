@@ -1,0 +1,15 @@
+# Valid simple pipeline for preview testing
+name: Valid Preview Test Pipeline
+
+trigger: none  # Manual trigger only for testing
+
+pool: server
+
+steps:
+  - task: Delay@1
+    displayName: 'Simple delay step'
+    inputs:
+      delayForMinutes: '0'
+  
+  - script: echo "Hello from preview test!"
+    displayName: 'Echo test message'
