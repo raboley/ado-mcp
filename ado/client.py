@@ -1,14 +1,15 @@
 """Azure DevOps client with core functionality and pipeline operations."""
 
-import os
-import requests
-from base64 import b64encode
 import logging
-from typing import List, Dict, Any
+import os
+from base64 import b64encode
+from typing import Any
+
+import requests
 
 from .errors import AdoAuthenticationError
 from .models import Project
-from .pipelines import PipelineOperations, BuildOperations, LogOperations
+from .pipelines import BuildOperations, LogOperations, PipelineOperations
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ class AdoClient:
                 "Authentication failed. The response contained a sign-in page, "
                 "which likely means the Personal Access Token (PAT) is invalid or expired."
             )
-        
+
         # Check for anonymous user in connectionData response (specific to auth check)
         if response.url and "connectionData" in response.url:
             try:
@@ -96,7 +97,7 @@ class AdoClient:
                 # If we can't parse JSON or find expected fields, continue normal processing
                 pass
 
-    def _send_request(self, method: str, url: str, **kwargs) -> Dict[str, Any]:
+    def _send_request(self, method: str, url: str, **kwargs) -> dict[str, Any]:
         """
         Send an authenticated request to the Azure DevOps API.
 
@@ -143,7 +144,7 @@ class AdoClient:
         try:
             url = f"{self.organization_url}/_apis/connectionData?api-version=7.1-preview.1"
             logger.debug("Testing authentication with ConnectionData endpoint")
-            response = self._send_request("GET", url)
+            self._send_request("GET", url)
             logger.info("✅ Authentication successful")
             return True
         except AdoAuthenticationError:
@@ -153,7 +154,7 @@ class AdoClient:
             logger.error(f"Authentication check failed with an exception: {e}")
             raise AdoAuthenticationError(f"Authentication check failed: {e}") from e
 
-    def list_projects(self) -> List[Project]:
+    def list_projects(self) -> list[Project]:
         """
         Retrieve a list of projects in the organization.
 
@@ -183,7 +184,7 @@ class AdoClient:
 
         return projects
 
-    def list_service_connections(self, project_id: str) -> List[Dict[str, Any]]:
+    def list_service_connections(self, project_id: str) -> list[dict[str, Any]]:
         """
         List service connections for a given project.
 
@@ -200,7 +201,9 @@ class AdoClient:
         logger.info(f"Fetching service connections for project {project_id}")
         response = self._send_request("GET", url)
         connections_data = response.get("value", [])
-        logger.info(f"Retrieved {len(connections_data)} service connections for project {project_id}")
+        logger.info(
+            f"Retrieved {len(connections_data)} service connections for project {project_id}"
+        )
 
         if connections_data:
             logger.debug(f"First service connection: {connections_data[0]}")
@@ -241,11 +244,22 @@ class AdoClient:
         """Get build details by ID."""
         return self._builds.get_build_by_id(project_id, build_id)
 
-    def wait_for_pipeline_completion(self, project_id: str, pipeline_id: int, run_id: int, timeout_seconds: int = 300, poll_interval_seconds: int = 10):
+    def wait_for_pipeline_completion(
+        self,
+        project_id: str,
+        pipeline_id: int,
+        run_id: int,
+        timeout_seconds: int = 300,
+        poll_interval_seconds: int = 10,
+    ):
         """Wait for pipeline completion."""
-        return self._builds.wait_for_pipeline_completion(project_id, pipeline_id, run_id, timeout_seconds, poll_interval_seconds)
+        return self._builds.wait_for_pipeline_completion(
+            project_id, pipeline_id, run_id, timeout_seconds, poll_interval_seconds
+        )
 
-    def run_pipeline_and_get_outcome(self, project_id: str, pipeline_id: int, timeout_seconds: int = 300):
+    def run_pipeline_and_get_outcome(
+        self, project_id: str, pipeline_id: int, timeout_seconds: int = 300
+    ):
         """Run pipeline and get complete outcome."""
         return self._builds.run_pipeline_and_get_outcome(project_id, pipeline_id, timeout_seconds)
 

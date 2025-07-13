@@ -1,14 +1,14 @@
 """Pipeline logging and failure analysis operations."""
 
 import logging
+
 import requests
-from typing import List, Optional
 
 from ..models import (
-    LogCollection,
-    TimelineResponse,
     FailureSummary,
+    LogCollection,
     StepFailure,
+    TimelineResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,9 @@ class LogOperations:
         logger.info(f"Retrieved {len(response.get('logs', []))} logs for run {run_id}")
         return LogCollection(**response)
 
-    def get_log_content_by_id(self, project_id: str, pipeline_id: int, run_id: int, log_id: int) -> str:
+    def get_log_content_by_id(
+        self, project_id: str, pipeline_id: int, run_id: int, log_id: int
+    ) -> str:
         """
         Get the content of a specific log from a pipeline run.
 
@@ -68,13 +70,17 @@ class LogOperations:
             signed_url = response["signedContent"]["url"]
             content_response = requests.get(signed_url)
             content_response.raise_for_status()
-            logger.info(f"Retrieved log content ({len(content_response.text)} characters) for log {log_id}")
+            logger.info(
+                f"Retrieved log content ({len(content_response.text)} characters) for log {log_id}"
+            )
             return content_response.text
 
         logger.warning(f"No signed content URL found for log {log_id}")
         return ""
 
-    def get_pipeline_timeline(self, project_id: str, pipeline_id: int, run_id: int) -> TimelineResponse:
+    def get_pipeline_timeline(
+        self, project_id: str, pipeline_id: int, run_id: int
+    ) -> TimelineResponse:
         """
         Get the build timeline for a pipeline run, showing status of all stages, jobs, and tasks.
 
@@ -93,10 +99,14 @@ class LogOperations:
         url = f"{self._client.organization_url}/{project_id}/_apis/build/builds/{run_id}/timeline?api-version=7.2-preview.2"
         logger.info(f"Getting timeline for pipeline run {run_id} in project {project_id}")
         response = self._client._send_request("GET", url)
-        logger.info(f"Retrieved timeline with {len(response.get('records', []))} records for run {run_id}")
+        logger.info(
+            f"Retrieved timeline with {len(response.get('records', []))} records for run {run_id}"
+        )
         return TimelineResponse(**response)
 
-    def get_pipeline_failure_summary(self, project_id: str, pipeline_id: int, run_id: int) -> FailureSummary:
+    def get_pipeline_failure_summary(
+        self, project_id: str, pipeline_id: int, run_id: int
+    ) -> FailureSummary:
         """
         Get a comprehensive summary of pipeline failures, including root causes and affected components.
 
@@ -113,6 +123,7 @@ class LogOperations:
         """
         # Import here to avoid circular imports
         from .builds import BuildOperations
+
         builds_ops = BuildOperations(self._client)
 
         logger.info(f"Analyzing failures for pipeline run {run_id}")
@@ -179,8 +190,8 @@ class LogOperations:
         )
 
     def get_failed_step_logs(
-        self, project_id: str, pipeline_id: int, run_id: int, step_name: Optional[str] = None
-    ) -> List[StepFailure]:
+        self, project_id: str, pipeline_id: int, run_id: int, step_name: str | None = None
+    ) -> list[StepFailure]:
         """
         Get detailed log information for failed steps, optionally filtered by step name.
 
@@ -196,7 +207,10 @@ class LogOperations:
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
-        logger.info(f"Getting failed step logs for run {run_id}" + (f" filtered by '{step_name}'" if step_name else ""))
+        logger.info(
+            f"Getting failed step logs for run {run_id}"
+            + (f" filtered by '{step_name}'" if step_name else "")
+        )
 
         # Get the failure summary which already has logs
         failure_summary = self.get_pipeline_failure_summary(project_id, pipeline_id, run_id)

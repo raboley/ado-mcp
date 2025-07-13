@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ado-mcp"
 version = "0.1.0"
-description = "An intelligent MCP server for Azure DevOps with smart pipeline analysis and automation"
+description = "An MCP server for Azure DevOps pipelines."
 readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "MIT"}
 authors = [
-    {name = "Azure DevOps MCP Contributors"}
+    {name = "Russell Boley", email="countrypeaches@gmail.com"}
 ]
 keywords = [
     "azure-devops", "mcp", "model-context-protocol", "ci-cd", "pipelines", 
@@ -39,10 +39,10 @@ dependencies = [
 ado-mcp = "server:main"
 
 [project.urls]
-Homepage = "https://github.com/your-org/ado-mcp"
-Repository = "https://github.com/your-org/ado-mcp"
-Issues = "https://github.com/your-org/ado-mcp/issues"
-Documentation = "https://github.com/your-org/ado-mcp#readme"
+Homepage = "https://github.com/raboley/ado-mcp"
+Repository = "https://github.com/raboley/ado-mcp"
+Issues = "https://github.com/raboley/ado-mcp/issues"
+Documentation = "https://github.com/raboley/ado-mcp#readme"
 
 [project.optional-dependencies]
 dev = [
@@ -68,6 +68,8 @@ asyncio_mode = "auto"
 [tool.ruff]
 target-version = "py312"
 line-length = 100
+
+[tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings  

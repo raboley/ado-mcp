@@ -9,9 +9,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def register_mcp_resources(mcp_instance):
     """Register MCP resources that provide documentation and guidance to LLMs."""
-    
+
     @mcp_instance.resource("ado://user-guide/getting-started")
     def getting_started_guide():
         """Essential getting started guide for Azure DevOps MCP operations."""
@@ -22,7 +23,7 @@ def register_mcp_resources(mcp_instance):
 When a user provides Azure DevOps information, follow this decision tree:
 
 ### 1. User Provides a URL
-✅ **USE: `analyze_pipeline_input`** 
+✅ **USE: `analyze_pipeline_input`**
 - Pass the full URL as `user_input`
 - This will automatically parse and guide you to the right next steps
 
@@ -49,7 +50,7 @@ When a user provides Azure DevOps information, follow this decision tree:
 ## ✅ Always Start With These Helper Tools
 
 1. **`analyze_pipeline_input`** - For any user input
-2. **`resolve_pipeline_from_url`** - For URLs specifically  
+2. **`resolve_pipeline_from_url`** - For URLs specifically
 3. **`find_pipeline_by_name`** - For pipeline name searches
 
 These tools will guide you to the specific low-level tools needed.
@@ -67,7 +68,7 @@ These tools will guide you to the specific low-level tools needed.
 https://dev.azure.com/Org/Project/_build/results?buildId=324&view=results
 ```
 - **Organization**: Org
-- **Project**: Project  
+- **Project**: Project
 - **buildId=324**: This is a RUN ID (specific execution)
 - **Next Step**: Use `resolve_pipeline_from_url` or `analyze_pipeline_input`
 
@@ -105,7 +106,7 @@ https://dev.azure.com/Org/Project/_build
 - **project name** (in URL) → need to map to **project_id** (UUID)
 """
 
-    @mcp_instance.resource("ado://workflows/failure-analysis") 
+    @mcp_instance.resource("ado://workflows/failure-analysis")
     def failure_analysis_workflow():
         """Complete workflow for analyzing pipeline failures."""
         return """# Pipeline Failure Analysis Workflow
@@ -127,7 +128,7 @@ analyze_pipeline_input(user_input="<build_number>")
 ```
 get_pipeline_failure_summary(
     project_id="<from_step_1>",
-    pipeline_id="<from_step_1>", 
+    pipeline_id="<from_step_1>",
     run_id="<build_id_from_url>"
 )
 ```
@@ -232,7 +233,7 @@ get_pipeline_run(
 - **`list_pipelines`**: See all pipelines in project
 - **`get_build_by_id`**: Map build/run ID to pipeline ID
 
-### Pipeline Execution  
+### Pipeline Execution
 - **`run_pipeline`**: Start pipeline execution
 - **`run_pipeline_and_get_outcome`**: Run and wait for completion
 - **`preview_pipeline`**: Preview without executing

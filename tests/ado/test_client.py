@@ -1,9 +1,11 @@
+import logging
 import os
+
 import pytest
 import requests
+
 from ado.client import AdoClient
 from ado.errors import AdoAuthenticationError
-import logging
 
 # These environment variables are expected to be set by your Taskfile
 ADO_ORGANIZATION_URL = os.environ.get("ADO_ORGANIZATION_URL")
@@ -11,7 +13,7 @@ ADO_PAT = os.environ.get("AZURE_DEVOPS_EXT_PAT")
 
 requires_ado_creds = pytest.mark.skipif(
     not all([ADO_ORGANIZATION_URL, ADO_PAT]),
-    reason="Skipping E2E test: ADO_ORGANIZATION_URL or AZURE_DEVOPS_EXT_PAT not set."
+    reason="Skipping E2E test: ADO_ORGANIZATION_URL or AZURE_DEVOPS_EXT_PAT not set.",
 )
 
 
@@ -52,7 +54,9 @@ def test_ado_client_can_get_projects(caplog):
     """Tests that the client can fetch projects successfully."""
     with caplog.at_level(logging.INFO):
         client = AdoClient(organization_url=ADO_ORGANIZATION_URL, pat=ADO_PAT)
-        projects = client._send_request("GET", f"{ADO_ORGANIZATION_URL}/_apis/projects?api-version=7.2-preview.4")
+        projects = client._send_request(
+            "GET", f"{ADO_ORGANIZATION_URL}/_apis/projects?api-version=7.2-preview.4"
+        )
 
     assert projects is not None, "The API response should not be None."
     assert "value" in projects, "The response should contain a 'value' key."
@@ -71,5 +75,6 @@ def test_ado_client_handles_http_error_gracefully(caplog):
         with pytest.raises(requests.exceptions.HTTPError, match="404 Client Error"):
             client._send_request("GET", bad_url)
 
-    assert any("HTTP Error" in message for message in caplog.messages), \
+    assert any("HTTP Error" in message for message in caplog.messages), (
         "The HTTP error was not logged as expected."
+    )

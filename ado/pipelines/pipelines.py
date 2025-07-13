@@ -1,10 +1,10 @@
 """Pipeline CRUD operations."""
 
 import logging
-from typing import List, Optional
+
 import requests
 
-from ..models import Pipeline, CreatePipelineRequest, PipelinePreviewRequest, PreviewRun
+from ..models import CreatePipelineRequest, Pipeline, PipelinePreviewRequest, PreviewRun
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class PipelineOperations:
         """Initialize with reference to core client."""
         self._client = client_core
 
-    def list_pipelines(self, project_id: str) -> List[Pipeline]:
+    def list_pipelines(self, project_id: str) -> list[Pipeline]:
         """
         Retrieve a list of pipelines for a given project.
 
@@ -71,7 +71,9 @@ class PipelineOperations:
         logger.debug(f"Pipeline creation request data: {request_data}")
 
         response = self._client._send_request("POST", url, json=request_data)
-        logger.info(f"Successfully created pipeline: {response.get('name')} (ID: {response.get('id')})")
+        logger.info(
+            f"Successfully created pipeline: {response.get('name')} (ID: {response.get('id')})"
+        )
 
         return Pipeline(**response)
 
@@ -100,7 +102,9 @@ class PipelineOperations:
                 logger.info(f"Successfully deleted pipeline {pipeline_id}")
                 return True
             else:
-                logger.warning(f"Unexpected status code {response.status_code} when deleting pipeline {pipeline_id}")
+                logger.warning(
+                    f"Unexpected status code {response.status_code} when deleting pipeline {pipeline_id}"
+                )
                 response.raise_for_status()
                 return False
 
@@ -129,7 +133,7 @@ class PipelineOperations:
         return response
 
     def preview_pipeline(
-        self, project_id: str, pipeline_id: int, request: Optional[PipelinePreviewRequest] = None
+        self, project_id: str, pipeline_id: int, request: PipelinePreviewRequest | None = None
     ) -> PreviewRun:
         """
         Preview a pipeline without executing it, returning the final YAML and other preview information.

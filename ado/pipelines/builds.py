@@ -2,9 +2,9 @@
 
 import logging
 import time
-from typing import Dict, Any
+from typing import Any
 
-from ..models import PipelineRun, PipelineOutcome
+from ..models import PipelineOutcome, PipelineRun
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,9 @@ class BuildOperations:
         url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs?api-version=7.2-preview.1"
         logger.info(f"Running pipeline {pipeline_id} in project {project_id}")
         response = self._client._send_request("POST", url, json={})
-        logger.info(f"Pipeline run started: {response.get('id')} with state: {response.get('state')}")
+        logger.info(
+            f"Pipeline run started: {response.get('id')} with state: {response.get('state')}"
+        )
         return PipelineRun(**response)
 
     def get_pipeline_run(self, project_id: str, pipeline_id: int, run_id: int) -> PipelineRun:
@@ -54,10 +56,12 @@ class BuildOperations:
         url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs/{run_id}?api-version=7.2-preview.1"
         logger.debug(f"Getting pipeline run {run_id} details for project {project_id}")
         response = self._client._send_request("GET", url)
-        logger.debug(f"Pipeline run {run_id} state: {response.get('state')}, result: {response.get('result')}")
+        logger.debug(
+            f"Pipeline run {run_id} state: {response.get('state')}, result: {response.get('result')}"
+        )
         return PipelineRun(**response)
 
-    def get_build_by_id(self, project_id: str, build_id: int) -> Dict[str, Any]:
+    def get_build_by_id(self, project_id: str, build_id: int) -> dict[str, Any]:
         """
         Retrieve build details by build ID using the Azure DevOps Build API.
 
@@ -153,6 +157,7 @@ class BuildOperations:
         """
         # Import here to avoid circular imports
         from ..pipelines.logs import LogOperations
+
         logs_ops = LogOperations(self._client)
 
         start_time = time.time()

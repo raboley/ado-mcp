@@ -1,9 +1,25 @@
 import logging
-from typing import List, Optional
-from ado.errors import AdoAuthenticationError
-from ado.models import Project, Pipeline, CreatePipelineRequest, ConfigurationType, PipelineConfiguration, Repository, ServiceConnection, PipelineRun, PipelinePreviewRequest, PreviewRun, TimelineResponse, StepFailure, FailureSummary, LogCollection, PipelineOutcome
+
+from ado.models import (
+    ConfigurationType,
+    CreatePipelineRequest,
+    FailureSummary,
+    LogCollection,
+    Pipeline,
+    PipelineConfiguration,
+    PipelineOutcome,
+    PipelinePreviewRequest,
+    PipelineRun,
+    PreviewRun,
+    Project,
+    Repository,
+    ServiceConnection,
+    StepFailure,
+    TimelineResponse,
+)
 
 logger = logging.getLogger(__name__)
+
 
 def register_ado_tools(mcp_instance, client_container):
     """
@@ -23,7 +39,7 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             bool: True if authentication is successful, False otherwise.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return False
@@ -37,14 +53,14 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             list[Project]: A list of Project objects.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return []
         return ado_client_instance.list_projects()
 
     @mcp_instance.tool
-    def list_pipelines(project_id: str) -> List[Pipeline]:
+    def list_pipelines(project_id: str) -> list[Pipeline]:
         """
         Lists all pipelines in a given Azure DevOps project.
 
@@ -54,7 +70,7 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             List[Pipeline]: A list of Pipeline objects.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return []
@@ -64,14 +80,14 @@ def register_ado_tools(mcp_instance, client_container):
 
     @mcp_instance.tool
     def create_pipeline(
-        project_id: str, 
-        name: str, 
+        project_id: str,
+        name: str,
         yaml_path: str,
         repository_name: str,
         service_connection_id: str,
-        configuration_type: str = "yaml", 
+        configuration_type: str = "yaml",
         folder: str = None,
-        repository_type: str = "gitHub"
+        repository_type: str = "gitHub",
     ) -> Pipeline:
         """
         Creates a new YAML pipeline in a given Azure DevOps project.
@@ -89,37 +105,31 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             Pipeline: The created pipeline object.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return None
-        
+
         try:
             config_type = ConfigurationType(configuration_type)
         except ValueError:
             logger.error(f"Invalid configuration type: {configuration_type}")
             config_type = ConfigurationType.YAML
-        
+
         # Create the repository configuration
         repository = Repository(
             fullName=repository_name,
             connection=ServiceConnection(id=service_connection_id),
-            type=repository_type
+            type=repository_type,
         )
-        
+
         # Create the pipeline configuration
         configuration = PipelineConfiguration(
-            type=config_type,
-            path=yaml_path,
-            repository=repository
+            type=config_type, path=yaml_path, repository=repository
         )
-        
-        request = CreatePipelineRequest(
-            name=name,
-            folder=folder,
-            configuration=configuration
-        )
-        
+
+        request = CreatePipelineRequest(name=name, folder=folder, configuration=configuration)
+
         return ado_client_instance.create_pipeline(project_id, request)
 
     @mcp_instance.tool
@@ -133,11 +143,11 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             list: A list of service connection objects.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return []
-        
+
         connections = ado_client_instance.list_service_connections(project_id)
         logger.info(f"Retrieved {len(connections)} service connections for project {project_id}")
         return connections
@@ -154,15 +164,17 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             bool: True if deletion was successful, False otherwise.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return False
-        
+
         try:
             result = ado_client_instance.delete_pipeline(project_id, pipeline_id)
             if result:
-                logger.info(f"Successfully deleted pipeline {pipeline_id} from project {project_id}")
+                logger.info(
+                    f"Successfully deleted pipeline {pipeline_id} from project {project_id}"
+                )
             else:
                 logger.warning(f"Failed to delete pipeline {pipeline_id} from project {project_id}")
             return result
@@ -182,7 +194,7 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             dict: A dictionary representing the pipeline details.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return {}
@@ -192,30 +204,30 @@ def register_ado_tools(mcp_instance, client_container):
     def get_build_by_id(project_id: str, build_id: int) -> dict:
         """
         🔍 MAP BUILD ID TO PIPELINE: Retrieves build details and extracts pipeline information.
-        
+
         ⚡ USE THIS WHEN: User provides an Azure DevOps URL with buildId parameter
-        
+
         CRITICAL: buildId in URLs is actually a RUN ID, not a pipeline ID!
         This tool maps run_id → pipeline_id so you can use other pipeline tools.
-        
+
         Example: URL has buildId=324 → use this tool → get pipeline_id=84
         Then use pipeline_id=84 with other tools like get_pipeline_failure_summary.
-        
+
         Args:
             project_id (str): The project UUID (get from list_projects if needed)
             build_id (int): The buildId from Azure DevOps URL (this is actually a run_id)
-            
+
         Returns:
             dict: Build details with definition.id (pipeline_id) and definition.name
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return {}
         return ado_client_instance.get_build_by_id(project_id, build_id)
 
     @mcp_instance.tool
-    def run_pipeline(project_id: str, pipeline_id: int) -> Optional[PipelineRun]:
+    def run_pipeline(project_id: str, pipeline_id: int) -> PipelineRun | None:
         """
         Triggers a run for a specific pipeline in an Azure DevOps project.
 
@@ -226,14 +238,14 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             Optional[PipelineRun]: A PipelineRun object representing the pipeline run details, or None if client unavailable.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return None
         return ado_client_instance.run_pipeline(project_id, pipeline_id)
 
     @mcp_instance.tool
-    def get_pipeline_run(project_id: str, pipeline_id: int, run_id: int) -> Optional[PipelineRun]:
+    def get_pipeline_run(project_id: str, pipeline_id: int, run_id: int) -> PipelineRun | None:
         """
         Retrieves details for a specific pipeline run in an Azure DevOps project.
 
@@ -245,7 +257,7 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             Optional[PipelineRun]: A PipelineRun object representing the pipeline run details, or None if client unavailable.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return None
@@ -253,13 +265,13 @@ def register_ado_tools(mcp_instance, client_container):
 
     @mcp_instance.tool
     def preview_pipeline(
-        project_id: str, 
+        project_id: str,
         pipeline_id: int,
-        yaml_override: Optional[str] = None,
-        variables: Optional[dict] = None,
-        template_parameters: Optional[dict] = None,
-        stages_to_skip: Optional[List[str]] = None
-    ) -> Optional[PreviewRun]:
+        yaml_override: str | None = None,
+        variables: dict | None = None,
+        template_parameters: dict | None = None,
+        stages_to_skip: list[str] | None = None,
+    ) -> PreviewRun | None:
         """
         Previews a pipeline without executing it, returning the final YAML and other preview information.
 
@@ -274,41 +286,39 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             Optional[PreviewRun]: A PreviewRun object representing the pipeline preview details, or None if client unavailable.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return None
-        
+
         # Build the preview request
         request = PipelinePreviewRequest(
             previewRun=True,
             yamlOverride=yaml_override,
             variables=variables,
             templateParameters=template_parameters,
-            stagesToSkip=stages_to_skip
+            stagesToSkip=stages_to_skip,
         )
-        
+
         return ado_client_instance.preview_pipeline(project_id, pipeline_id, request)
 
     @mcp_instance.tool
     def get_pipeline_failure_summary(
-        project_id: str, 
-        pipeline_id: int, 
-        run_id: int
-    ) -> Optional[FailureSummary]:
+        project_id: str, pipeline_id: int, run_id: int
+    ) -> FailureSummary | None:
         """
         🔥 ANALYZE FAILED BUILDS: Get comprehensive failure analysis with root causes.
-        
+
         ⚡ USE THIS WHEN: User wants to know why a build failed
-        
+
         This tool provides intelligent failure analysis:
         - Root cause tasks (actual failing steps)
-        - Hierarchy failures (jobs that failed due to child failures)  
+        - Hierarchy failures (jobs that failed due to child failures)
         - Categorized error information
         - Log content for failing steps
-        
+
         IMPORTANT: Use get_build_by_id first if you only have a buildId from URL!
-        
+
         Args:
             project_id (str): The project UUID
             pipeline_id (int): Pipeline definition ID (NOT the buildId from URL!)
@@ -317,20 +327,17 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             FailureSummary: Analysis with root_cause_tasks, hierarchy_failures, total_failed_steps
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return None
-        
+
         return ado_client_instance.get_pipeline_failure_summary(project_id, pipeline_id, run_id)
 
     @mcp_instance.tool
     def get_failed_step_logs(
-        project_id: str, 
-        pipeline_id: int, 
-        run_id: int,
-        step_name: Optional[str] = None
-    ) -> Optional[List[StepFailure]]:
+        project_id: str, pipeline_id: int, run_id: int, step_name: str | None = None
+    ) -> list[StepFailure] | None:
         """
         Gets detailed log information for failed steps, optionally filtered by step name.
 
@@ -343,19 +350,17 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             Optional[List[StepFailure]]: List of failed steps with their log content, or None if client unavailable.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return None
-        
+
         return ado_client_instance.get_failed_step_logs(project_id, pipeline_id, run_id, step_name)
 
     @mcp_instance.tool
     def get_pipeline_timeline(
-        project_id: str, 
-        pipeline_id: int, 
-        run_id: int
-    ) -> Optional[TimelineResponse]:
+        project_id: str, pipeline_id: int, run_id: int
+    ) -> TimelineResponse | None:
         """
         Gets the build timeline for a pipeline run, showing status of all stages, jobs, and tasks.
 
@@ -367,19 +372,15 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             Optional[TimelineResponse]: Timeline showing status of all pipeline components, or None if client unavailable.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return None
-        
+
         return ado_client_instance.get_pipeline_timeline(project_id, pipeline_id, run_id)
 
     @mcp_instance.tool
-    def list_pipeline_logs(
-        project_id: str, 
-        pipeline_id: int, 
-        run_id: int
-    ) -> Optional[LogCollection]:
+    def list_pipeline_logs(project_id: str, pipeline_id: int, run_id: int) -> LogCollection | None:
         """
         Lists all logs for a specific pipeline run.
 
@@ -391,20 +392,17 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             Optional[LogCollection]: Collection of log entries for the pipeline run, or None if client unavailable.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return None
-        
+
         return ado_client_instance.list_pipeline_logs(project_id, pipeline_id, run_id)
 
     @mcp_instance.tool
     def get_log_content_by_id(
-        project_id: str, 
-        pipeline_id: int, 
-        run_id: int,
-        log_id: int
-    ) -> Optional[str]:
+        project_id: str, pipeline_id: int, run_id: int, log_id: int
+    ) -> str | None:
         """
         Gets the content of a specific log from a pipeline run.
 
@@ -417,43 +415,43 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             Optional[str]: The log content as a string, or None if client unavailable.
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return None
-        
+
         return ado_client_instance.get_log_content_by_id(project_id, pipeline_id, run_id, log_id)
 
     @mcp_instance.tool
     def run_pipeline_and_get_outcome(
-        project_id: str, 
-        pipeline_id: int,
-        timeout_seconds: int = 300
-    ) -> Optional[PipelineOutcome]:
+        project_id: str, pipeline_id: int, timeout_seconds: int = 300
+    ) -> PipelineOutcome | None:
         """
         🚀 RUN PIPELINE & WAIT: Execute pipeline and get complete outcome analysis.
-        
+
         ⚡ USE THIS WHEN: User wants to run a pipeline and see results immediately
-        
+
         This is the most comprehensive execution tool that:
         1. Starts the pipeline
         2. Waits for completion (up to timeout)
         3. Returns success/failure with detailed analysis
         4. Includes failure summary and logs if it fails
-        
+
         Perfect for: "Run the pipeline and tell me what happens"
-        
+
         Args:
-            project_id (str): The project UUID  
+            project_id (str): The project UUID
             pipeline_id (int): Pipeline definition ID (use find_pipeline_by_name if needed)
             timeout_seconds (int): Max wait time (default: 300s = 5 minutes)
-            
+
         Returns:
             PipelineOutcome: Complete results with pipeline_run, success flag, failure_summary, execution_time
         """
-        ado_client_instance = client_container.get('client')
+        ado_client_instance = client_container.get("client")
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return None
-        
-        return ado_client_instance.run_pipeline_and_get_outcome(project_id, pipeline_id, timeout_seconds)
+
+        return ado_client_instance.run_pipeline_and_get_outcome(
+            project_id, pipeline_id, timeout_seconds
+        )
