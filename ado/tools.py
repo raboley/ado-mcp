@@ -1,7 +1,7 @@
 import logging
 from typing import List
 from ado.errors import AdoAuthenticationError
-from ado.models import Project, Pipeline, CreatePipelineRequest, ConfigurationType, PipelineConfiguration
+from ado.models import Project, Pipeline, CreatePipelineRequest, ConfigurationType, PipelineConfiguration, Repository, ServiceConnection
 
 logger = logging.getLogger(__name__)
 
@@ -63,15 +63,28 @@ def register_ado_tools(mcp_instance, client_container):
         return pipelines_response
 
     @mcp_instance.tool
-    def create_pipeline(project_id: str, name: str, configuration_type: str = "yaml", folder: str = None) -> Pipeline:
+    def create_pipeline(
+        project_id: str, 
+        name: str, 
+        yaml_path: str,
+        repository_name: str,
+        service_connection_id: str,
+        configuration_type: str = "yaml", 
+        folder: str = None,
+        repository_type: str = "gitHub"
+    ) -> Pipeline:
         """
-        Creates a new pipeline in a given Azure DevOps project.
+        Creates a new YAML pipeline in a given Azure DevOps project.
 
         Args:
             project_id (str): The ID of the project.
             name (str): The name of the pipeline.
+            yaml_path (str): The path to the YAML file in the repository.
+            repository_name (str): The full name of the repository (e.g., "owner/repo").
+            service_connection_id (str): The ID of the service connection to the repository.
             configuration_type (str): The type of configuration (yaml, designerJson, etc.). Defaults to "yaml".
             folder (str, optional): The folder to create the pipeline in.
+            repository_type (str): The type of repository (gitHub, azureReposGit, etc.). Defaults to "gitHub".
 
         Returns:
             Pipeline: The created pipeline object.
@@ -87,13 +100,47 @@ def register_ado_tools(mcp_instance, client_container):
             logger.error(f"Invalid configuration type: {configuration_type}")
             config_type = ConfigurationType.YAML
         
+        # Create the repository configuration
+        repository = Repository(
+            fullName=repository_name,
+            connection=ServiceConnection(id=service_connection_id),
+            type=repository_type
+        )
+        
+        # Create the pipeline configuration
+        configuration = PipelineConfiguration(
+            type=config_type,
+            path=yaml_path,
+            repository=repository
+        )
+        
         request = CreatePipelineRequest(
             name=name,
             folder=folder,
-            configuration=PipelineConfiguration(type=config_type)
+            configuration=configuration
         )
         
         return ado_client_instance.create_pipeline(project_id, request)
+
+    @mcp_instance.tool
+    def list_service_connections(project_id: str) -> list:
+        """
+        Lists service connections for a given Azure DevOps project.
+
+        Args:
+            project_id (str): The ID of the project.
+
+        Returns:
+            list: A list of service connection objects.
+        """
+        ado_client_instance = client_container.get('client')
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return []
+        
+        connections = ado_client_instance.list_service_connections(project_id)
+        logger.info(f"Retrieved {len(connections)} service connections for project {project_id}")
+        return connections
 
     @mcp_instance.tool
     def get_pipeline(project_id: str, pipeline_id: int) -> dict:

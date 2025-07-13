@@ -25,11 +25,27 @@ class ConfigurationType(str, Enum):
     DESIGNER_HYPHEN_JSON = "designerHyphenJson"
     UNKNOWN = "unknown"
 
+class ServiceConnection(BaseModel):
+    """
+    Represents a service connection.
+    """
+    id: str
+
+class Repository(BaseModel):
+    """
+    Represents a repository configuration for pipelines.
+    """
+    fullName: str
+    connection: ServiceConnection
+    type: str
+
 class PipelineConfiguration(BaseModel):
     """
     Represents pipeline configuration.
     """
     type: ConfigurationType
+    path: Optional[str] = None
+    repository: Optional[Repository] = None
 
 class ReferenceLinks(BaseModel):
     """

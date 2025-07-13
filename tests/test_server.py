@@ -94,25 +94,85 @@ async def test_create_pipeline_creates_valid_pipeline(mcp_client: Client):
     if not project_id:
         pytest.skip("ado-mcp project not found. Please create it first.")
     
+    # Get service connections first
+    connections_result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
+    connections = connections_result.data
+    if not connections:
+        pytest.skip("No service connections found to test pipeline creation.")
+    
+    # Find GitHub service connection
+    github_connection_id = None
+    for connection in connections:
+        if connection["type"] == "GitHub":
+            github_connection_id = connection["id"]
+            break
+    
+    if not github_connection_id:
+        pytest.skip("No GitHub service connection found.")
+    
     # Create a test pipeline
     pipeline_name = f"test-pipeline-{int(__import__('time').time())}"
     result = await mcp_client.call_tool("create_pipeline", {
         "project_id": project_id,
         "name": pipeline_name,
-        "configuration_type": "yaml"
+        "yaml_path": "tests/ado/fixtures/fast.test.pipeline.yml",
+        "repository_name": "raboley/ado-mcp",
+        "service_connection_id": github_connection_id,
+        "configuration_type": "yaml",
+        "folder": "/test"
     })
     
     pipeline = result.data
-    assert isinstance(pipeline, dict), f"Created pipeline should be dict, got: {type(pipeline)}"
-    assert "id" in pipeline, f"Created pipeline should have id field, got keys: {pipeline.keys()}"
-    assert "name" in pipeline, f"Created pipeline should have name field, got keys: {pipeline.keys()}"
-    assert pipeline["name"] == pipeline_name, f"Pipeline name should be {pipeline_name}, got: {pipeline['name']}"
-    assert isinstance(pipeline["id"], int), f"Pipeline id should be int, got: {type(pipeline['id'])}"
+    
+    # Handle both Pydantic model and dict responses
+    if hasattr(pipeline, 'id'):  # Pydantic model
+        pipeline_id = pipeline.id
+        pipeline_name_returned = pipeline.name
+        assert isinstance(pipeline_id, int), f"Pipeline id should be int, got: {type(pipeline_id)}"
+        assert isinstance(pipeline_name_returned, str), f"Pipeline name should be str, got: {type(pipeline_name_returned)}"
+        assert pipeline_name_returned == pipeline_name, f"Pipeline name should be {pipeline_name}, got: {pipeline_name_returned}"
+    else:  # Dict response
+        assert isinstance(pipeline, dict), f"Created pipeline should be dict, got: {type(pipeline)}"
+        assert "id" in pipeline, f"Created pipeline should have id field, got keys: {pipeline.keys()}"
+        assert "name" in pipeline, f"Created pipeline should have name field, got keys: {pipeline.keys()}"
+        pipeline_id = pipeline["id"]
+        pipeline_name_returned = pipeline["name"]
+        assert pipeline_name_returned == pipeline_name, f"Pipeline name should be {pipeline_name}, got: {pipeline_name_returned}"
+        assert isinstance(pipeline_id, int), f"Pipeline id should be int, got: {type(pipeline_id)}"
     
     # Verify the pipeline appears in the list
     pipelines_list = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
     pipeline_ids = [p["id"] for p in pipelines_list.data]
-    assert pipeline["id"] in pipeline_ids, f"Created pipeline {pipeline['id']} should appear in pipelines list"
+    assert pipeline_id in pipeline_ids, f"Created pipeline {pipeline_id} should appear in pipelines list"
+
+@requires_ado_creds
+async def test_list_service_connections_returns_valid_list(mcp_client: Client):
+    """Tests that the list_service_connections tool returns a valid list."""
+    projects_result = await mcp_client.call_tool("list_projects")
+    projects = projects_result.data
+    if not projects:
+        pytest.skip("No projects found to test service connections listing.")
+    
+    # Use the ado-mcp project
+    project_id = None
+    for project in projects:
+        if project["name"] == "ado-mcp":
+            project_id = project["id"]
+            break
+    
+    if not project_id:
+        pytest.skip("ado-mcp project not found.")
+    
+    result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
+    connections = result.data
+    
+    print(f"Connections type: {type(connections)}")
+    print(f"Connections content: {connections}")
+    if connections:
+        print(f"First connection type: {type(connections[0])}")
+        print(f"First connection content: {connections[0]}")
+    
+    assert isinstance(connections, list), f"Expected list, got {type(connections)}"
 
 @requires_ado_creds
 async def test_get_pipeline_returns_valid_details(mcp_client: Client):

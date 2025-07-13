@@ -204,6 +204,30 @@ class AdoClient:
         
         return Pipeline(**response)
 
+    def list_service_connections(self, project_id: str) -> List[dict]:
+        """
+        Lists service connections for a given project.
+
+        Args:
+            project_id (str): The ID of the project.
+
+        Returns:
+            List[dict]: A list of service connection objects.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        url = f"{self.organization_url}/{project_id}/_apis/serviceendpoint/endpoints?api-version=7.2-preview.4"
+        logger.info(f"Fetching service connections for project {project_id}")
+        response = self._send_request("GET", url)
+        connections_data = response.get("value", [])
+        logger.info(f"Retrieved {len(connections_data)} service connections for project {project_id}")
+        
+        if connections_data:
+            logger.debug(f"First service connection: {connections_data[0]}")
+        
+        return connections_data
+
     def get_pipeline(self, project_id: str, pipeline_id: int) -> dict:
         """
         Retrieves details for a specific pipeline.
