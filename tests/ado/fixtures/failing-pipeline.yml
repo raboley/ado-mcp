@@ -1,0 +1,43 @@
+# Pipeline designed to fail for testing log retrieval
+name: Failing Test Pipeline
+
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Build
+    displayName: 'Build Stage'
+    jobs:
+      - job: BuildJob
+        displayName: 'Build Job'
+        steps:
+          - script: echo "Starting build process..."
+            displayName: 'Start Build'
+          
+          - script: |
+              echo "Building application..."
+              echo "This step will succeed"
+              exit 0
+            displayName: 'Build Application'
+          
+          - script: |
+              echo "Running tests..."
+              echo "ERROR: Test failed - Unable to connect to database"
+              echo "ERROR: Connection string is invalid"
+              exit 1
+            displayName: 'Run Tests'
+            
+          - script: echo "This step should not run due to previous failure"
+            displayName: 'Post Build (Should Not Run)'
+
+  - stage: Deploy
+    displayName: 'Deploy Stage'
+    dependsOn: Build
+    jobs:
+      - job: DeployJob
+        displayName: 'Deploy Job'  
+        steps:
+          - script: echo "This should not run due to build failure"
+            displayName: 'Deploy Application'
