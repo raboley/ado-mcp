@@ -10,7 +10,7 @@ env:
   AZURE_DEVOPS_EXT_PAT: $(security find-generic-password -w -a ado-token)
   PYPI_TOKEN: $(security find-generic-password -w -a pypi)
   ADO_ORGANIZATION_URL: 'https://dev.azure.com/RussellBoley'
-  ADO_PROJECT_NAME: "Learning"
+  ADO_PROJECT_NAME: "ado-mcp"
   PYTHONPATH: "."
 
 tasks:
@@ -38,6 +38,7 @@ tasks:
     desc: Run a single test (use TEST_NAME variable)
     cmds:
       - uv run pytest {{.TEST_NAME}} -v -s
+
 
   coverage:
     desc: Generate code coverage report
@@ -77,6 +78,45 @@ tasks:
     desc: test your ado token
     cmds:
       - curl -s -u ":$AZURE_DEVOPS_EXT_PAT" "$ADO_ORGANIZATION_URL/_apis/ConnectionData?api-version=7.1-preview" | jq .
+
+  install-azure-cli:
+    desc: Install Azure CLI if not present
+    cmds:
+      - |
+        echo "Installing Azure CLI..."
+        brew install azure-cli
+    status:
+      - command -v az
+
+  install-azdo-extension:
+    desc: Install Azure DevOps CLI extension
+    deps:
+      - task: install-azure-cli
+    cmds:
+      - |
+        echo "Installing Azure DevOps CLI extension..."
+        az extension add --name azure-devops
+    status:
+      - az extension list --query "[?name=='azure-devops']" -o tsv | grep -q azure-devops
+
+  setup-ado-cli:
+    desc: Setup Azure DevOps CLI authentication
+    deps:
+      - task: install-azdo-extension
+    cmds:
+      - |
+        echo "Setting up Azure DevOps CLI authentication..."
+        echo "Using PAT from keychain..."
+        TOKEN=$(security find-generic-password -w -a ado-token)
+        if [ -z "$TOKEN" ]; then
+          echo "❌ Failed to retrieve token from keychain"
+          exit 1
+        fi
+        echo "$TOKEN" | az devops login --organization "{{.ADO_ORGANIZATION_URL}}"
+        az devops configure --defaults organization="{{.ADO_ORGANIZATION_URL}}" project="{{.ADO_PROJECT_NAME}}"
+        echo "✅ Azure DevOps CLI setup complete!"
+    status:
+      - az devops project list --organization "{{.ADO_ORGANIZATION_URL}}" &> /dev/null
 
   setup-env:
     desc: "Create .env file with credentials if it doesn't exist"

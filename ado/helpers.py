@@ -217,7 +217,7 @@ def register_helper_tools(mcp_instance, client_container):
         return result
 
     @mcp_instance.tool
-    def find_pipeline_by_name(
+    def find_pipeline_by_id_and_name(
         pipeline_name: str, project_id: str, exact_match: bool = False
     ) -> dict:
         """

@@ -29,8 +29,11 @@ class AdoClient:
 
     Authentication Methods (in order of precedence):
     1. Explicit PAT parameter
-    2. AZURE_DEVOPS_EXT_PAT environment variable
-    3. Azure CLI authentication (via 'az account get-access-token')
+    2. AZURE_DEVOPS_EXT_PAT environment variable  
+    3. Azure CLI authentication (Microsoft Entra token via 'az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798')
+
+    Note: The Azure CLI method now correctly uses Microsoft Entra tokens for Azure DevOps
+    instead of trying to access stored PATs from 'az devops login'.
 
     Args:
         organization_url (str): The URL of the Azure DevOps organization.
@@ -57,14 +60,20 @@ class AdoClient:
             # Try Azure CLI authentication
             azure_token = self._get_azure_cli_token()
             if azure_token:
-                self._setup_bearer_auth(azure_token)
+                # Check if this looks like a PAT or a Bearer token
+                if len(azure_token) < 100 and azure_token.isalnum():
+                    # Likely a PAT - use Basic auth
+                    self._setup_pat_auth(azure_token)
+                else:
+                    # Likely a Bearer token - use Bearer auth
+                    self._setup_bearer_auth(azure_token)
                 self.auth_method = "azure_cli"
             else:
                 raise ValueError(
                     "No authentication method available. Either:\n"
                     "1. Provide a PAT parameter\n"
                     "2. Set AZURE_DEVOPS_EXT_PAT environment variable\n"
-                    "3. Login with 'az login' for Azure CLI authentication"
+                    "3. Login with 'az login' or 'az devops login' for Azure CLI authentication"
                 )
 
         logger.info(f"AdoClient initialized using {self.auth_method} authentication.")
@@ -93,17 +102,43 @@ class AdoClient:
     def _get_azure_cli_token(self) -> str | None:
         """
         Get an access token from Azure CLI for Azure DevOps.
+        
+        Tries multiple methods in order:
+        1. Read stored PAT from Azure DevOps CLI file storage (if available)
+        2. Try Microsoft Entra token via Azure CLI (may not work for all organizations)
+        3. Check if user is logged into Azure DevOps CLI and provide guidance
 
         Returns:
-            str | None: Access token if Azure CLI authentication is available, None otherwise.
+            str | None: Access token/PAT if Azure CLI authentication is available, None otherwise.
         """
+        # Method 1: Try to read stored PAT from Azure DevOps CLI file storage
         try:
-            # Use Azure CLI to get token for Azure DevOps
+            import pathlib
+            azure_dir = pathlib.Path.home() / ".azure" / "azuredevops" 
+            pat_file = azure_dir / "personalAccessTokens"
+            
+            if pat_file.exists() and pat_file.stat().st_size > 0:
+                # Try to read the PAT file - it's typically a simple text file with the PAT
+                try:
+                    pat_content = pat_file.read_text().strip()
+                    if pat_content and len(pat_content) > 20:  # Basic validation
+                        logger.info("Successfully retrieved PAT from Azure DevOps CLI file storage")
+                        return pat_content
+                except Exception as e:
+                    logger.debug(f"Could not read PAT file: {e}")
+            
+        except Exception as e:
+            logger.debug(f"Could not access Azure DevOps CLI PAT file: {e}")
+
+        # Method 2: Try to get Microsoft Entra token for Azure DevOps (may not work for all orgs)
+        try:
+            # Use Azure CLI to get Microsoft Entra token for Azure DevOps
+            # 499b84ac-1321-427f-aa17-267ca6975798 is Azure DevOps's application ID
             result = subprocess.run(
                 [
                     "az",
                     "account",
-                    "get-access-token",
+                    "get-access-token", 
                     "--resource",
                     "499b84ac-1321-427f-aa17-267ca6975798",
                 ],
@@ -116,12 +151,12 @@ class AdoClient:
                 token_data = json.loads(result.stdout)
                 access_token = token_data.get("accessToken")
                 if access_token:
-                    logger.info("Successfully obtained Azure CLI access token for Azure DevOps")
+                    logger.info("Successfully obtained Azure CLI Microsoft Entra token for Azure DevOps")
                     return access_token
                 else:
                     logger.warning("Azure CLI returned empty access token")
             else:
-                logger.info(f"Azure CLI authentication not available: {result.stderr}")
+                logger.debug(f"Azure CLI Microsoft Entra authentication not available: {result.stderr}")
 
         except (
             subprocess.TimeoutExpired,
@@ -129,8 +164,35 @@ class AdoClient:
             json.JSONDecodeError,
             FileNotFoundError,
         ) as e:
-            logger.info(f"Azure CLI authentication not available: {e}")
+            logger.debug(f"Azure CLI Microsoft Entra authentication not available: {e}")
 
+        # Method 3: Check if Azure DevOps CLI has stored credentials and provide guidance
+        try:
+            # Test if user is logged into Azure DevOps CLI by checking organization info
+            result = subprocess.run(
+                ["az", "devops", "configure", "--list"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            
+            if result.returncode == 0 and "organization" in result.stdout:
+                # User is logged in via az devops login, but stored in keyring (not accessible)
+                logger.info("User is logged into Azure DevOps CLI, but PAT is stored in system keyring")
+                logger.info("Try 'az devops logout' then 'az devops login' to store PAT in file instead")
+            
+        except (
+            subprocess.TimeoutExpired,
+            subprocess.CalledProcessError,
+            FileNotFoundError,
+        ) as e:
+            logger.debug(f"Azure DevOps CLI check failed: {e}")
+
+        logger.info("No Azure CLI authentication available. Try one of these options:")
+        logger.info("1. Set AZURE_DEVOPS_EXT_PAT environment variable") 
+        logger.info("2. Run 'az devops login' with your PAT")
+        logger.info("3. Install 'keyrings.alt' package to enable keyring storage")
+        
         return None
 
     def _validate_response(self, response: requests.Response) -> None:

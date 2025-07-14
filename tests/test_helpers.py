@@ -87,7 +87,7 @@ async def test_find_pipeline_by_name_exact_match(mcp_client: Client):
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
 
     result = await mcp_client.call_tool(
-        "find_pipeline_by_name",
+        "find_pipeline_by_id_and_name",
         {"pipeline_name": "log-test-complex", "project_id": project_id, "exact_match": True},
     )
 
@@ -122,7 +122,7 @@ async def test_find_pipeline_by_name_fuzzy_match(mcp_client: Client):
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
 
     result = await mcp_client.call_tool(
-        "find_pipeline_by_name",
+        "find_pipeline_by_id_and_name",
         {
             "pipeline_name": "test-complex",  # Partial name
             "project_id": project_id,

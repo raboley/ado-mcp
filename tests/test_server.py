@@ -1,4 +1,5 @@
 import os
+import time
 
 import pytest
 from fastmcp.client import Client
@@ -6,6 +7,8 @@ from fastmcp.exceptions import ToolError
 
 from server import mcp
 from tests.ado.test_client import requires_ado_creds
+from ado.cache import ado_cache
+from tests.utils.telemetry import telemetry_setup, analyze_spans, clear_spans
 
 # Mark all tests in this module as asyncio
 pytestmark = pytest.mark.asyncio
@@ -1542,3 +1545,227 @@ async def test_get_build_by_id_tool_registration(mcp_client: Client):
     assert "build_id" in required, "build_id should be required"
 
     print("✓ get_build_by_id tool properly registered with correct schema")
+
+
+# ========== MCP CACHING TESTS ==========
+
+@pytest.fixture
+async def fresh_cache():
+    """Ensure cache is cleared before each test."""
+    ado_cache.clear_all()
+    yield
+    ado_cache.clear_all()
+
+
+@requires_ado_creds
+async def test_list_available_projects_mcp_caching(mcp_client: Client, telemetry_setup, fresh_cache):
+    """Test that list_available_projects MCP tool uses caching effectively."""
+    memory_exporter = telemetry_setup
+    
+    # First call - should hit API
+    result1 = await mcp_client.call_tool("list_available_projects")
+    analyzer1 = analyze_spans(memory_exporter)
+    
+    # Should have made an API call
+    assert analyzer1.was_data_fetched_from_api("projects")
+    assert analyzer1.count_api_calls("list_projects") == 1
+    assert result1.data is not None
+    assert len(result1.data) > 0
+    
+    clear_spans(memory_exporter)
+    
+    # Second call - should use cache
+    result2 = await mcp_client.call_tool("list_available_projects")
+    analyzer2 = analyze_spans(memory_exporter)
+    
+    # Should have used cache, no new API calls
+    assert analyzer2.was_data_fetched_from_cache("projects")
+    assert analyzer2.count_api_calls("list_projects") == 0
+    
+    # Data should be consistent
+    assert result1.data == result2.data
+    print(f"✓ MCP list_available_projects: First call={analyzer1.count_api_calls()} API calls, second call={analyzer2.count_api_calls()} API calls")
+
+
+@requires_ado_creds
+async def test_list_available_pipelines_mcp_caching(mcp_client: Client, telemetry_setup, fresh_cache):
+    """Test that list_available_pipelines MCP tool uses caching effectively."""
+    memory_exporter = telemetry_setup
+    
+    # Get a project first
+    projects_result = await mcp_client.call_tool("list_available_projects")
+    if not projects_result.data:
+        pytest.skip("No projects available for testing")
+    
+    project_name = projects_result.data[0]
+    clear_spans(memory_exporter)
+    
+    # First pipeline call - should hit API
+    result1 = await mcp_client.call_tool("list_available_pipelines", {"project_name": project_name})
+    analyzer1 = analyze_spans(memory_exporter)
+    
+    # Should have made an API call for pipelines
+    assert analyzer1.count_api_calls("list_pipelines") == 1
+    
+    clear_spans(memory_exporter)
+    
+    # Second pipeline call - should use cache
+    result2 = await mcp_client.call_tool("list_available_pipelines", {"project_name": project_name})
+    analyzer2 = analyze_spans(memory_exporter)
+    
+    # Should have used cache, no new API calls
+    assert analyzer2.was_data_fetched_from_cache("pipelines")
+    assert analyzer2.count_api_calls("list_pipelines") == 0
+    
+    # Data should be consistent
+    assert result1.data == result2.data
+    print(f"✓ MCP list_available_pipelines: First call={analyzer1.count_api_calls()} API calls, second call={analyzer2.count_api_calls()} API calls")
+
+
+@requires_ado_creds
+async def test_find_project_by_name_mcp_caching(mcp_client: Client, telemetry_setup, fresh_cache):
+    """Test that find_project_by_name MCP tool uses cached data effectively."""
+    memory_exporter = telemetry_setup
+    
+    # Prime the cache
+    projects_result = await mcp_client.call_tool("list_available_projects")
+    if not projects_result.data:
+        pytest.skip("No projects available for testing")
+    
+    project_name = projects_result.data[0]
+    clear_spans(memory_exporter)
+    
+    # Find project by name - should use cached data
+    result = await mcp_client.call_tool("find_project_by_name", {"name": project_name})
+    analyzer = analyze_spans(memory_exporter)
+    
+    # Should have cache hits, no API calls
+    assert analyzer.count_cache_hits() > 0
+    assert analyzer.count_api_calls("list_projects") == 0
+    assert result.data is not None
+    assert result.data["name"] == project_name
+    print(f"✓ MCP find_project_by_name: {analyzer.count_cache_hits()} cache hits, {analyzer.count_api_calls()} API calls")
+
+
+@requires_ado_creds
+async def test_find_pipeline_by_name_mcp_caching(mcp_client: Client, telemetry_setup, fresh_cache):
+    """Test that find_pipeline_by_name MCP tool uses cached data effectively."""
+    memory_exporter = telemetry_setup
+    
+    # Get projects and pipelines
+    projects_result = await mcp_client.call_tool("list_available_projects")
+    if not projects_result.data:
+        pytest.skip("No projects available for testing")
+    
+    # Find a project with pipelines
+    project_name = None
+    pipeline_name = None
+    
+    for proj_name in projects_result.data:
+        pipelines_result = await mcp_client.call_tool("list_available_pipelines", {"project_name": proj_name})
+        if pipelines_result.data:
+            project_name = proj_name
+            pipeline_name = pipelines_result.data[0]
+            break
+    
+    if not pipeline_name:
+        pytest.skip("No pipelines found in any project")
+    
+    clear_spans(memory_exporter)
+    
+    # Find pipeline by name - should use cached data
+    result = await mcp_client.call_tool("find_pipeline_by_name", {
+        "project_name": project_name,
+        "pipeline_name": pipeline_name
+    })
+    analyzer = analyze_spans(memory_exporter)
+    
+    # Should have cache hits, no API calls for cached operations
+    assert analyzer.count_cache_hits() > 0
+    assert result.data is not None
+    assert result.data["pipeline"]["name"] == pipeline_name
+    assert result.data["project"]["name"] == project_name
+    print(f"✓ MCP find_pipeline_by_name: {analyzer.count_cache_hits()} cache hits")
+
+
+@requires_ado_creds  
+async def test_mcp_cache_expiration_behavior(mcp_client: Client, telemetry_setup, fresh_cache):
+    """Test that MCP tools properly handle cache expiration."""
+    memory_exporter = telemetry_setup
+    
+    # Temporarily reduce cache TTL for testing
+    original_ttl = ado_cache.PROJECT_TTL
+    ado_cache.PROJECT_TTL = 2  # 2 seconds for testing
+    
+    try:
+        # First call
+        result1 = await mcp_client.call_tool("list_available_projects")
+        clear_spans(memory_exporter)
+        
+        # Second call immediately - should use cache
+        result2 = await mcp_client.call_tool("list_available_projects")
+        analyzer_cached = analyze_spans(memory_exporter)
+        assert analyzer_cached.was_data_fetched_from_cache("projects")
+        
+        # Wait for cache to expire
+        time.sleep(2.5)
+        clear_spans(memory_exporter)
+        
+        # Third call after expiration - should hit API again
+        result3 = await mcp_client.call_tool("list_available_projects")
+        analyzer_expired = analyze_spans(memory_exporter)
+        assert analyzer_expired.was_data_fetched_from_api("projects")
+        
+        # Data should still be consistent
+        assert result1.data == result3.data
+        print(f"✓ MCP cache expiration: Cached call used cache, expired call hit API")
+        
+    finally:
+        # Restore original TTL
+        ado_cache.PROJECT_TTL = original_ttl
+
+
+@requires_ado_creds
+async def test_name_based_pipeline_operations_caching(mcp_client: Client, telemetry_setup, fresh_cache):
+    """Test that name-based pipeline operations use cached data effectively."""
+    memory_exporter = telemetry_setup
+    
+    # Get projects and pipelines to prime cache
+    projects_result = await mcp_client.call_tool("list_available_projects")
+    if not projects_result.data:
+        pytest.skip("No projects available for testing")
+    
+    # Find a project with pipelines
+    project_name = None
+    pipeline_name = None
+    
+    for proj_name in projects_result.data:
+        pipelines_result = await mcp_client.call_tool("list_available_pipelines", {"project_name": proj_name})
+        if pipelines_result.data:
+            project_name = proj_name
+            pipeline_name = pipelines_result.data[0]
+            break
+    
+    if not pipeline_name:
+        pytest.skip("No pipelines found in any project")
+    
+    clear_spans(memory_exporter)
+    
+    # Test run_pipeline_by_name (just check the lookup part, don't actually run)
+    # We can't test actual execution easily, but we can test the name resolution uses cache
+    try:
+        result = await mcp_client.call_tool("run_pipeline_by_name", {
+            "project_name": project_name,
+            "pipeline_name": pipeline_name
+        })
+        # If it succeeds great, if it fails due to permissions etc, that's also fine
+        # The important thing is that we should see cache operations
+    except Exception:
+        # Expected - might not have permissions to run pipelines
+        pass
+    
+    analyzer = analyze_spans(memory_exporter)
+    
+    # Should have cache operations (hits or misses), indicating cache was used for lookups
+    assert analyzer.has_cache_operations()
+    print(f"✓ MCP name-based operations: Used cache for name resolution")

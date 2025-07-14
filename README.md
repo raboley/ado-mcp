@@ -58,6 +58,18 @@ This project uses [FastMCP 2.0](https://gofastmcp.com/getting-started/installati
     task coverage
     ```
 
+-   **Setup Azure DevOps CLI** (for Azure DevOps CLI commands):
+    ```bash
+    task setup-ado-cli
+    ```
+    This will:
+    - Install Azure CLI if needed
+    - Install Azure DevOps CLI extension if needed
+    - Login to Azure DevOps CLI using your PAT (from AZURE_DEVOPS_EXT_PAT)
+    - Configure default organization and project
+    
+    **Note**: This is for `az devops` commands and does NOT enable the Azure CLI authentication test, which requires full Azure authentication (`az login`).
+
 ## Usage
 
 -   **Run the MCP Server**:
