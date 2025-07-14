@@ -102,7 +102,7 @@ tasks:
       - task: build
     cmds:
       - |
-        echo "Publishing ado-mcp-raboley version $(python -c 'import ado; print(ado.__version__)')"
+        echo "Publishing ado-mcp-raboley version $(uv run python -c 'import ado; print(ado.__version__)')"
         uv publish --token $PYPI_TOKEN
 
   publish-test:
@@ -111,7 +111,7 @@ tasks:
       - task: build
     cmds:
       - |
-        echo "Publishing ado-mcp-raboley version $(python -c 'import ado; print(ado.__version__)') to Test PyPI"
+        echo "Publishing ado-mcp-raboley version $(uv run python -c 'import ado; print(ado.__version__)') to Test PyPI"
         uv publish --publish-url https://test.pypi.org/legacy/ --token $PYPI_TOKEN
 
   version:
