@@ -25,7 +25,7 @@ class AdoClient:
 
     Authentication Methods (in order of precedence):
     1. Explicit PAT parameter
-    2. AZURE_DEVOPS_EXT_PAT environment variable  
+    2. AZURE_DEVOPS_EXT_PAT environment variable
     3. Azure CLI authentication (via 'az account get-access-token')
 
     Args:
@@ -41,7 +41,7 @@ class AdoClient:
         """Initialize the Azure DevOps client."""
         self.organization_url = organization_url
         self.auth_method = "unknown"
-        
+
         # Try authentication methods in order of precedence
         if pat:
             self._setup_pat_auth(pat)
@@ -58,7 +58,7 @@ class AdoClient:
             else:
                 raise ValueError(
                     "No authentication method available. Either:\n"
-                    "1. Provide a PAT parameter\n" 
+                    "1. Provide a PAT parameter\n"
                     "2. Set AZURE_DEVOPS_EXT_PAT environment variable\n"
                     "3. Login with 'az login' for Azure CLI authentication"
                 )
@@ -88,19 +88,25 @@ class AdoClient:
     def _get_azure_cli_token(self) -> str | None:
         """
         Get an access token from Azure CLI for Azure DevOps.
-        
+
         Returns:
             str | None: Access token if Azure CLI authentication is available, None otherwise.
         """
         try:
             # Use Azure CLI to get token for Azure DevOps
             result = subprocess.run(
-                ["az", "account", "get-access-token", "--resource", "499b84ac-1321-427f-aa17-267ca6975798"],
+                [
+                    "az",
+                    "account",
+                    "get-access-token",
+                    "--resource",
+                    "499b84ac-1321-427f-aa17-267ca6975798",
+                ],
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=10,
             )
-            
+
             if result.returncode == 0:
                 token_data = json.loads(result.stdout)
                 access_token = token_data.get("accessToken")
@@ -111,10 +117,15 @@ class AdoClient:
                     logger.warning("Azure CLI returned empty access token")
             else:
                 logger.info(f"Azure CLI authentication not available: {result.stderr}")
-                
-        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError) as e:
+
+        except (
+            subprocess.TimeoutExpired,
+            subprocess.CalledProcessError,
+            json.JSONDecodeError,
+            FileNotFoundError,
+        ) as e:
             logger.info(f"Azure CLI authentication not available: {e}")
-        
+
         return None
 
     def _validate_response(self, response: requests.Response) -> None:
@@ -324,14 +335,18 @@ class AdoClient:
         self, project_id: str, pipeline_id: int, timeout_seconds: int = 300, max_lines: int = 100
     ):
         """Run pipeline and get complete outcome."""
-        return self._builds.run_pipeline_and_get_outcome(project_id, pipeline_id, timeout_seconds, max_lines)
+        return self._builds.run_pipeline_and_get_outcome(
+            project_id, pipeline_id, timeout_seconds, max_lines
+        )
 
     # Log Operations
     def list_pipeline_logs(self, project_id: str, pipeline_id: int, run_id: int):
         """List pipeline logs."""
         return self._logs.list_pipeline_logs(project_id, pipeline_id, run_id)
 
-    def get_log_content_by_id(self, project_id: str, pipeline_id: int, run_id: int, log_id: int, max_lines: int = 100):
+    def get_log_content_by_id(
+        self, project_id: str, pipeline_id: int, run_id: int, log_id: int, max_lines: int = 100
+    ):
         """Get log content by ID."""
         return self._logs.get_log_content_by_id(project_id, pipeline_id, run_id, log_id, max_lines)
 
@@ -339,10 +354,16 @@ class AdoClient:
         """Get pipeline timeline."""
         return self._logs.get_pipeline_timeline(project_id, pipeline_id, run_id)
 
-    def get_pipeline_failure_summary(self, project_id: str, pipeline_id: int, run_id: int, max_lines: int = 100):
+    def get_pipeline_failure_summary(
+        self, project_id: str, pipeline_id: int, run_id: int, max_lines: int = 100
+    ):
         """Get pipeline failure summary."""
         return self._logs.get_pipeline_failure_summary(project_id, pipeline_id, run_id, max_lines)
 
-    def get_failed_step_logs(self, project_id: str, pipeline_id: int, run_id: int, step_name=None, max_lines: int = 100):
+    def get_failed_step_logs(
+        self, project_id: str, pipeline_id: int, run_id: int, step_name=None, max_lines: int = 100
+    ):
         """Get failed step logs."""
-        return self._logs.get_failed_step_logs(project_id, pipeline_id, run_id, step_name, max_lines)
+        return self._logs.get_failed_step_logs(
+            project_id, pipeline_id, run_id, step_name, max_lines
+        )

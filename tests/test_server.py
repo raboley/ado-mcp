@@ -1095,17 +1095,29 @@ async def test_get_log_content_by_id_with_line_limit(mcp_client: Client):
         "get_log_content_by_id",
         {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id, "log_id": log_id},
     )
-    
+
     # Test with 10 lines
     result_limited = await mcp_client.call_tool(
         "get_log_content_by_id",
-        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id, "log_id": log_id, "max_lines": 10},
+        {
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
+            "run_id": run_id,
+            "log_id": log_id,
+            "max_lines": 10,
+        },
     )
-    
+
     # Test with 0 lines (should return all)
     result_all = await mcp_client.call_tool(
         "get_log_content_by_id",
-        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id, "log_id": log_id, "max_lines": 0},
+        {
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
+            "run_id": run_id,
+            "log_id": log_id,
+            "max_lines": 0,
+        },
     )
 
     default_content = result_default.data
@@ -1122,16 +1134,24 @@ async def test_get_log_content_by_id_with_line_limit(mcp_client: Client):
     limited_lines = limited_content.splitlines()
     all_lines = all_content.splitlines()
 
-    assert len(limited_lines) <= 10, f"Limited content should have max 10 lines, got {len(limited_lines)}"
-    assert len(default_lines) <= 100, f"Default content should have max 100 lines, got {len(default_lines)}"
-    assert len(all_lines) >= len(default_lines), "All content should have at least as many lines as default"
-    
+    assert len(limited_lines) <= 10, (
+        f"Limited content should have max 10 lines, got {len(limited_lines)}"
+    )
+    assert len(default_lines) <= 100, (
+        f"Default content should have max 100 lines, got {len(default_lines)}"
+    )
+    assert len(all_lines) >= len(default_lines), (
+        "All content should have at least as many lines as default"
+    )
+
     # Verify that limited content is from the end of the log
     if len(all_lines) > 10:
         expected_limited_lines = all_lines[-10:]
         assert limited_lines == expected_limited_lines, "Limited lines should be the last 10 lines"
 
-    print(f"✓ Line limiting test: All={len(all_lines)}, Default={len(default_lines)}, Limited={len(limited_lines)} lines")
+    print(
+        f"✓ Line limiting test: All={len(all_lines)}, Default={len(default_lines)}, Limited={len(limited_lines)} lines"
+    )
 
 
 @requires_ado_creds
@@ -1146,7 +1166,7 @@ async def test_get_pipeline_failure_summary_with_line_limit(mcp_client: Client):
         "get_pipeline_failure_summary",
         {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id},
     )
-    
+
     # Test with 5 lines
     result_limited = await mcp_client.call_tool(
         "get_pipeline_failure_summary",
@@ -1166,12 +1186,12 @@ async def test_get_pipeline_failure_summary_with_line_limit(mcp_client: Client):
     # Compare log content lengths for the first root cause task that has log content
     default_task = None
     limited_task = None
-    
+
     for task in default_summary["root_cause_tasks"]:
         if task.get("log_content"):
             default_task = task
             break
-    
+
     for task in limited_summary["root_cause_tasks"]:
         if task.get("log_content"):
             limited_task = task
@@ -1180,11 +1200,17 @@ async def test_get_pipeline_failure_summary_with_line_limit(mcp_client: Client):
     if default_task and limited_task:
         default_log_lines = default_task["log_content"].splitlines()
         limited_log_lines = limited_task["log_content"].splitlines()
-        
-        assert len(limited_log_lines) <= 5, f"Limited log should have max 5 lines, got {len(limited_log_lines)}"
-        assert len(default_log_lines) <= 100, f"Default log should have max 100 lines, got {len(default_log_lines)}"
-        
-        print(f"✓ Failure summary line limiting: Default={len(default_log_lines)}, Limited={len(limited_log_lines)} lines")
+
+        assert len(limited_log_lines) <= 5, (
+            f"Limited log should have max 5 lines, got {len(limited_log_lines)}"
+        )
+        assert len(default_log_lines) <= 100, (
+            f"Default log should have max 100 lines, got {len(default_log_lines)}"
+        )
+
+        print(
+            f"✓ Failure summary line limiting: Default={len(default_log_lines)}, Limited={len(limited_log_lines)} lines"
+        )
 
 
 @requires_ado_creds
@@ -1199,7 +1225,7 @@ async def test_get_failed_step_logs_with_line_limit(mcp_client: Client):
         "get_failed_step_logs",
         {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id},
     )
-    
+
     # Test with 3 lines
     result_limited = await mcp_client.call_tool(
         "get_failed_step_logs",
@@ -1217,12 +1243,12 @@ async def test_get_failed_step_logs_with_line_limit(mcp_client: Client):
     # Find steps with log content and compare
     default_step_with_log = None
     limited_step_with_log = None
-    
+
     for step in default_steps:
         if step.get("log_content"):
             default_step_with_log = step
             break
-    
+
     for step in limited_steps:
         if step.get("log_content"):
             limited_step_with_log = step
@@ -1231,11 +1257,17 @@ async def test_get_failed_step_logs_with_line_limit(mcp_client: Client):
     if default_step_with_log and limited_step_with_log:
         default_log_lines = default_step_with_log["log_content"].splitlines()
         limited_log_lines = limited_step_with_log["log_content"].splitlines()
-        
-        assert len(limited_log_lines) <= 3, f"Limited log should have max 3 lines, got {len(limited_log_lines)}"
-        assert len(default_log_lines) <= 100, f"Default log should have max 100 lines, got {len(default_log_lines)}"
-        
-        print(f"✓ Failed step logs line limiting: Default={len(default_log_lines)}, Limited={len(limited_log_lines)} lines")
+
+        assert len(limited_log_lines) <= 3, (
+            f"Limited log should have max 3 lines, got {len(limited_log_lines)}"
+        )
+        assert len(default_log_lines) <= 100, (
+            f"Default log should have max 100 lines, got {len(default_log_lines)}"
+        )
+
+        print(
+            f"✓ Failed step logs line limiting: Default={len(default_log_lines)}, Limited={len(limited_log_lines)} lines"
+        )
 
 
 async def test_logs_tools_no_client(mcp_client_with_unset_ado_env: Client):

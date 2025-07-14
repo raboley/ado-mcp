@@ -72,9 +72,9 @@ class LogOperations:
             signed_url = response["signedContent"]["url"]
             content_response = requests.get(signed_url)
             content_response.raise_for_status()
-            
+
             full_content = content_response.text
-            
+
             # Apply line limiting if max_lines is positive
             if max_lines > 0:
                 lines = full_content.splitlines()
@@ -215,7 +215,12 @@ class LogOperations:
         )
 
     def get_failed_step_logs(
-        self, project_id: str, pipeline_id: int, run_id: int, step_name: str | None = None, max_lines: int = 100
+        self,
+        project_id: str,
+        pipeline_id: int,
+        run_id: int,
+        step_name: str | None = None,
+        max_lines: int = 100,
     ) -> list[StepFailure]:
         """
         Get detailed log information for failed steps, optionally filtered by step name.
@@ -240,7 +245,9 @@ class LogOperations:
         )
 
         # Get the failure summary which already has logs
-        failure_summary = self.get_pipeline_failure_summary(project_id, pipeline_id, run_id, max_lines)
+        failure_summary = self.get_pipeline_failure_summary(
+            project_id, pipeline_id, run_id, max_lines
+        )
 
         # Combine root cause tasks and hierarchy failures
         all_failures = failure_summary.root_cause_tasks + failure_summary.hierarchy_failures

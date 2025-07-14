@@ -334,11 +334,17 @@ def register_ado_tools(mcp_instance, client_container):
             logger.error("ADO client is not available.")
             return None
 
-        return ado_client_instance.get_pipeline_failure_summary(project_id, pipeline_id, run_id, max_lines)
+        return ado_client_instance.get_pipeline_failure_summary(
+            project_id, pipeline_id, run_id, max_lines
+        )
 
     @mcp_instance.tool
     def get_failed_step_logs(
-        project_id: str, pipeline_id: int, run_id: int, step_name: str | None = None, max_lines: int = 100
+        project_id: str,
+        pipeline_id: int,
+        run_id: int,
+        step_name: str | None = None,
+        max_lines: int = 100,
     ) -> list[StepFailure] | None:
         """
         Gets detailed log information for failed steps, optionally filtered by step name.
@@ -359,7 +365,9 @@ def register_ado_tools(mcp_instance, client_container):
             logger.error("ADO client is not available.")
             return None
 
-        return ado_client_instance.get_failed_step_logs(project_id, pipeline_id, run_id, step_name, max_lines)
+        return ado_client_instance.get_failed_step_logs(
+            project_id, pipeline_id, run_id, step_name, max_lines
+        )
 
     @mcp_instance.tool
     def get_pipeline_timeline(
@@ -426,7 +434,9 @@ def register_ado_tools(mcp_instance, client_container):
             logger.error("ADO client is not available.")
             return None
 
-        return ado_client_instance.get_log_content_by_id(project_id, pipeline_id, run_id, log_id, max_lines)
+        return ado_client_instance.get_log_content_by_id(
+            project_id, pipeline_id, run_id, log_id, max_lines
+        )
 
     @mcp_instance.tool
     def run_pipeline_and_get_outcome(
