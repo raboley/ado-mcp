@@ -1,19 +1,19 @@
 """
-Tests for the Azure DevOps caching and lookup functionality.
+Integration tests for the Azure DevOps caching functionality.
 
 Tests cover:
 - Cache TTL and expiration
 - Name-to-ID mapping with fuzzy matching
-- Integration with the MCP tools
 - Performance improvements from caching
+
+These are basic unit tests for cache functionality.
+See test_caching_e2e.py for full end-to-end tests with observability.
 """
 
 import pytest
 import time
-from unittest.mock import Mock, patch
 
 from ado.cache import AdoCache, ado_cache
-from ado.lookups import AdoLookups
 from ado.models import Project, Pipeline
 from tests.ado.test_client import requires_ado_creds
 
@@ -170,106 +170,7 @@ class TestAdoCache:
         assert self.cache.get_stats()["total_entries"] == 1
 
 
-class TestAdoLookups:
-    """Test the lookup functionality."""
-    
-    def setup_method(self):
-        """Set up mock client for each test."""
-        self.mock_client = Mock()
-        self.lookups = AdoLookups(self.mock_client)
-        
-        # Clear the global cache
-        ado_cache.clear_all()
-    
-    def test_ensure_projects_cached(self):
-        """Test that projects are fetched and cached when needed."""
-        projects = [
-            Project(
-                id="proj1", 
-                name="Test Project", 
-                description="Test",
-                url="https://dev.azure.com/org/_apis/projects/proj1",
-                state="wellFormed",
-                revision=1,
-                visibility="private",
-                lastUpdateTime="2024-01-01T00:00:00Z"
-            )
-        ]
-        self.mock_client.list_projects.return_value = projects
-        
-        # First call should fetch from client
-        result = self.lookups.ensure_projects_cached()
-        assert len(result) == 1
-        assert self.mock_client.list_projects.called
-        
-        # Second call should use cache
-        self.mock_client.reset_mock()
-        result = self.lookups.ensure_projects_cached()
-        assert len(result) == 1
-        assert not self.mock_client.list_projects.called  # Should not call again
-    
-    def test_find_project_integration(self):
-        """Test project finding with client integration."""
-        projects = [
-            Project(
-                id="proj1", 
-                name="ado-mcp", 
-                description="Azure DevOps MCP Project",
-                url="https://dev.azure.com/org/_apis/projects/proj1",
-                state="wellFormed",
-                revision=1,
-                visibility="private",
-                lastUpdateTime="2024-01-01T00:00:00Z"
-            )
-        ]
-        self.mock_client.list_projects.return_value = projects
-        
-        # Test finding project
-        project = self.lookups.find_project("ado-mcp")
-        assert project is not None
-        assert project.id == "proj1"
-        
-        # Test getting just the ID
-        project_id = self.lookups.get_project_id("ado-mcp")
-        assert project_id == "proj1"
-    
-    def test_find_pipeline_integration(self):
-        """Test pipeline finding with client integration."""
-        projects = [
-            Project(
-                id="proj1", 
-                name="ado-mcp", 
-                description="Azure DevOps MCP Project",
-                url="https://dev.azure.com/org/_apis/projects/proj1",
-                state="wellFormed",
-                revision=1,
-                visibility="private",
-                lastUpdateTime="2024-01-01T00:00:00Z"
-            )
-        ]
-        pipelines = [
-            Pipeline(
-                id=1, 
-                name="CI", 
-                folder="\\",
-                revision=1,
-                url="https://dev.azure.com/org/_apis/pipelines/1"
-            )
-        ]
-        
-        self.mock_client.list_projects.return_value = projects
-        self.mock_client.list_pipelines.return_value = pipelines
-        
-        # Test finding pipeline
-        result = self.lookups.find_pipeline("ado-mcp", "CI")
-        assert result is not None
-        project, pipeline = result
-        assert project.id == "proj1"
-        assert pipeline.id == 1
-        
-        # Test getting IDs
-        ids = self.lookups.get_pipeline_ids("ado-mcp", "CI")
-        assert ids == ("proj1", 1)
+# Mocked tests removed - see test_caching_e2e.py for end-to-end tests with observability
 
 
 @requires_ado_creds

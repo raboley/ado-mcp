@@ -3,10 +3,12 @@
 import logging
 
 import requests
+from opentelemetry import trace
 
 from ..models import CreatePipelineRequest, Pipeline, PipelinePreviewRequest, PreviewRun
 
 logger = logging.getLogger(__name__)
+tracer = trace.get_tracer(__name__)
 
 
 class PipelineOperations:
@@ -29,25 +31,32 @@ class PipelineOperations:
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
-        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines?api-version=7.2-preview.1"
-        logger.info(f"Fetching pipelines for project {project_id} from: {url}")
-        response = self._client._send_request("GET", url)
-        pipelines_data = response.get("value", [])
-        logger.info(f"Retrieved {len(pipelines_data)} pipelines for project {project_id}")
+        with tracer.start_as_current_span("ado_list_pipelines") as span:
+            span.set_attribute("ado.operation", "list_pipelines")
+            span.set_attribute("ado.project_id", project_id)
+            
+            url = f"{self._client.organization_url}/{project_id}/_apis/pipelines?api-version=7.2-preview.1"
+            logger.info(f"Fetching pipelines for project {project_id} from: {url}")
+            response = self._client._send_request("GET", url)
+            pipelines_data = response.get("value", [])
+            
+            span.set_attribute("ado.pipelines_count", len(pipelines_data))
+            logger.info(f"Retrieved {len(pipelines_data)} pipelines for project {project_id}")
 
-        if pipelines_data:
-            logger.debug(f"First pipeline data: {pipelines_data[0]}")
+            if pipelines_data:
+                logger.debug(f"First pipeline data: {pipelines_data[0]}")
 
-        pipelines = []
-        for pipeline_data in pipelines_data:
-            try:
-                pipeline = Pipeline(**pipeline_data)
-                pipelines.append(pipeline)
-                logger.debug(f"Parsed pipeline: {pipeline.name} (ID: {pipeline.id})")
-            except Exception as e:
-                logger.error(f"Failed to parse pipeline data: {pipeline_data}. Error: {e}")
+            pipelines = []
+            for pipeline_data in pipelines_data:
+                try:
+                    pipeline = Pipeline(**pipeline_data)
+                    pipelines.append(pipeline)
+                    logger.debug(f"Parsed pipeline: {pipeline.name} (ID: {pipeline.id})")
+                except Exception as e:
+                    logger.error(f"Failed to parse pipeline data: {pipeline_data}. Error: {e}")
+                    span.record_exception(e)
 
-        return pipelines
+            return pipelines
 
     def create_pipeline(self, project_id: str, request: CreatePipelineRequest) -> Pipeline:
         """

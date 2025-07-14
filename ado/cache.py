@@ -16,9 +16,13 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
 from difflib import get_close_matches
 
+from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
+
 from .models import Project, Pipeline
 
 logger = logging.getLogger(__name__)
+tracer = trace.get_tracer(__name__)
 
 
 @dataclass
@@ -66,13 +70,24 @@ class AdoCache:
     
     def _get(self, key: str) -> Optional[Any]:
         """Get a cache entry if it exists and is valid."""
-        if self._is_valid(key):
-            return self._cache[key].data
-        elif key in self._cache:
-            # Remove expired entry
-            del self._cache[key]
-            logger.debug(f"Removed expired cache entry: {key}")
-        return None
+        with tracer.start_as_current_span("cache_get") as span:
+            span.set_attribute("cache.key", key)
+            
+            if self._is_valid(key):
+                span.set_attribute("cache.hit", True)
+                logger.debug(f"Cache hit for key: {key}")
+                return self._cache[key].data
+            elif key in self._cache:
+                # Remove expired entry
+                del self._cache[key]
+                logger.debug(f"Removed expired cache entry: {key}")
+                span.set_attribute("cache.hit", False)
+                span.set_attribute("cache.expired", True)
+            else:
+                span.set_attribute("cache.hit", False)
+                span.set_attribute("cache.expired", False)
+                logger.debug(f"Cache miss for key: {key}")
+            return None
     
     # Project caching
     def get_projects(self) -> Optional[List[Project]]:

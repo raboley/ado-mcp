@@ -8,6 +8,8 @@ from base64 import b64encode
 from typing import Any
 
 import requests
+from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
 
 from .errors import AdoAuthenticationError
 from .models import Project
@@ -15,6 +17,7 @@ from .pipelines import BuildOperations, LogOperations, PipelineOperations
 from .lookups import AdoLookups
 
 logger = logging.getLogger(__name__)
+tracer = trace.get_tracer(__name__)
 
 
 class AdoClient:
@@ -240,25 +243,32 @@ class AdoClient:
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
-        url = f"{self.organization_url}/_apis/projects?api-version=7.1-preview.4"
-        logger.info("Fetching list of projects")
-        response = self._send_request("GET", url)
-        projects_data = response.get("value", [])
-        logger.info(f"Retrieved {len(projects_data)} projects")
+        with tracer.start_as_current_span("ado_list_projects") as span:
+            span.set_attribute("ado.operation", "list_projects")
+            span.set_attribute("ado.organization_url", self.organization_url)
+            
+            url = f"{self.organization_url}/_apis/projects?api-version=7.1-preview.4"
+            logger.info("Fetching list of projects")
+            response = self._send_request("GET", url)
+            projects_data = response.get("value", [])
+            
+            span.set_attribute("ado.projects_count", len(projects_data))
+            logger.info(f"Retrieved {len(projects_data)} projects")
 
-        if projects_data:
-            logger.debug(f"First project data: {projects_data[0]}")
+            if projects_data:
+                logger.debug(f"First project data: {projects_data[0]}")
 
-        projects = []
-        for project_data in projects_data:
-            try:
-                project = Project(**project_data)
-                projects.append(project)
-                logger.debug(f"Parsed project: {project.name} (ID: {project.id})")
-            except Exception as e:
-                logger.error(f"Failed to parse project data: {project_data}. Error: {e}")
+            projects = []
+            for project_data in projects_data:
+                try:
+                    project = Project(**project_data)
+                    projects.append(project)
+                    logger.debug(f"Parsed project: {project.name} (ID: {project.id})")
+                except Exception as e:
+                    logger.error(f"Failed to parse project data: {project_data}. Error: {e}")
+                    span.record_exception(e)
 
-        return projects
+            return projects
 
     def list_service_connections(self, project_id: str) -> list[dict[str, Any]]:
         """

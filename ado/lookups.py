@@ -8,10 +8,13 @@ automatically handling name-to-ID mapping with intelligent caching.
 import logging
 from typing import Optional, Tuple, List
 
+from opentelemetry import trace
+
 from .cache import ado_cache
 from .models import Project, Pipeline, FailureSummary, PipelineRun, PipelineOutcome
 
 logger = logging.getLogger(__name__)
+tracer = trace.get_tracer(__name__)
 
 
 class AdoLookups:
@@ -31,12 +34,19 @@ class AdoLookups:
     # Project lookups
     def ensure_projects_cached(self) -> List[Project]:
         """Ensure projects are cached, fetching if needed."""
-        projects = ado_cache.get_projects()
-        if projects is None:
-            logger.info("Projects not cached, fetching from API...")
-            projects = self.client.list_projects()
-            ado_cache.set_projects(projects)
-        return projects
+        with tracer.start_as_current_span("ensure_projects_cached") as span:
+            projects = ado_cache.get_projects()
+            if projects is None:
+                span.set_attribute("cache.source", "api")
+                logger.info("Projects not cached, fetching from API...")
+                projects = self.client.list_projects()
+                ado_cache.set_projects(projects)
+            else:
+                span.set_attribute("cache.source", "cache")
+                logger.info("Projects loaded from cache")
+            
+            span.set_attribute("projects.count", len(projects))
+            return projects
     
     def find_project(self, name: str) -> Optional[Project]:
         """
@@ -59,12 +69,20 @@ class AdoLookups:
     # Pipeline lookups
     def ensure_pipelines_cached(self, project_id: str) -> List[Pipeline]:
         """Ensure pipelines are cached for a project, fetching if needed."""
-        pipelines = ado_cache.get_pipelines(project_id)
-        if pipelines is None:
-            logger.info(f"Pipelines not cached for project {project_id}, fetching from API...")
-            pipelines = self.client.list_pipelines(project_id)
-            ado_cache.set_pipelines(project_id, pipelines)
-        return pipelines
+        with tracer.start_as_current_span("ensure_pipelines_cached") as span:
+            span.set_attribute("project_id", project_id)
+            pipelines = ado_cache.get_pipelines(project_id)
+            if pipelines is None:
+                span.set_attribute("cache.source", "api")
+                logger.info(f"Pipelines not cached for project {project_id}, fetching from API...")
+                pipelines = self.client.list_pipelines(project_id)
+                ado_cache.set_pipelines(project_id, pipelines)
+            else:
+                span.set_attribute("cache.source", "cache")
+                logger.info(f"Pipelines loaded from cache for project {project_id}")
+            
+            span.set_attribute("pipelines.count", len(pipelines))
+            return pipelines
     
     def find_pipeline(self, project_name: str, pipeline_name: str) -> Optional[Tuple[Project, Pipeline]]:
         """
