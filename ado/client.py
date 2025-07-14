@@ -321,28 +321,28 @@ class AdoClient:
         )
 
     def run_pipeline_and_get_outcome(
-        self, project_id: str, pipeline_id: int, timeout_seconds: int = 300
+        self, project_id: str, pipeline_id: int, timeout_seconds: int = 300, max_lines: int = 100
     ):
         """Run pipeline and get complete outcome."""
-        return self._builds.run_pipeline_and_get_outcome(project_id, pipeline_id, timeout_seconds)
+        return self._builds.run_pipeline_and_get_outcome(project_id, pipeline_id, timeout_seconds, max_lines)
 
     # Log Operations
     def list_pipeline_logs(self, project_id: str, pipeline_id: int, run_id: int):
         """List pipeline logs."""
         return self._logs.list_pipeline_logs(project_id, pipeline_id, run_id)
 
-    def get_log_content_by_id(self, project_id: str, pipeline_id: int, run_id: int, log_id: int):
+    def get_log_content_by_id(self, project_id: str, pipeline_id: int, run_id: int, log_id: int, max_lines: int = 100):
         """Get log content by ID."""
-        return self._logs.get_log_content_by_id(project_id, pipeline_id, run_id, log_id)
+        return self._logs.get_log_content_by_id(project_id, pipeline_id, run_id, log_id, max_lines)
 
     def get_pipeline_timeline(self, project_id: str, pipeline_id: int, run_id: int):
         """Get pipeline timeline."""
         return self._logs.get_pipeline_timeline(project_id, pipeline_id, run_id)
 
-    def get_pipeline_failure_summary(self, project_id: str, pipeline_id: int, run_id: int):
+    def get_pipeline_failure_summary(self, project_id: str, pipeline_id: int, run_id: int, max_lines: int = 100):
         """Get pipeline failure summary."""
-        return self._logs.get_pipeline_failure_summary(project_id, pipeline_id, run_id)
+        return self._logs.get_pipeline_failure_summary(project_id, pipeline_id, run_id, max_lines)
 
-    def get_failed_step_logs(self, project_id: str, pipeline_id: int, run_id: int, step_name=None):
+    def get_failed_step_logs(self, project_id: str, pipeline_id: int, run_id: int, step_name=None, max_lines: int = 100):
         """Get failed step logs."""
-        return self._logs.get_failed_step_logs(project_id, pipeline_id, run_id, step_name)
+        return self._logs.get_failed_step_logs(project_id, pipeline_id, run_id, step_name, max_lines)

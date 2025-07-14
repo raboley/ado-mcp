@@ -304,7 +304,7 @@ def register_ado_tools(mcp_instance, client_container):
 
     @mcp_instance.tool
     def get_pipeline_failure_summary(
-        project_id: str, pipeline_id: int, run_id: int
+        project_id: str, pipeline_id: int, run_id: int, max_lines: int = 100
     ) -> FailureSummary | None:
         """
         🔥 ANALYZE FAILED BUILDS: Get comprehensive failure analysis with root causes.
@@ -315,7 +315,7 @@ def register_ado_tools(mcp_instance, client_container):
         - Root cause tasks (actual failing steps)
         - Hierarchy failures (jobs that failed due to child failures)
         - Categorized error information
-        - Log content for failing steps
+        - Log content for failing steps (limited to last max_lines by default)
 
         IMPORTANT: Use get_build_by_id first if you only have a buildId from URL!
 
@@ -323,6 +323,8 @@ def register_ado_tools(mcp_instance, client_container):
             project_id (str): The project UUID
             pipeline_id (int): Pipeline definition ID (NOT the buildId from URL!)
             run_id (int): The run/build ID (buildId from URL)
+            max_lines (int): Maximum number of lines to return from the end of each log (default: 100).
+                           Set to 0 or negative to return all lines.
 
         Returns:
             FailureSummary: Analysis with root_cause_tasks, hierarchy_failures, total_failed_steps
@@ -332,11 +334,11 @@ def register_ado_tools(mcp_instance, client_container):
             logger.error("ADO client is not available.")
             return None
 
-        return ado_client_instance.get_pipeline_failure_summary(project_id, pipeline_id, run_id)
+        return ado_client_instance.get_pipeline_failure_summary(project_id, pipeline_id, run_id, max_lines)
 
     @mcp_instance.tool
     def get_failed_step_logs(
-        project_id: str, pipeline_id: int, run_id: int, step_name: str | None = None
+        project_id: str, pipeline_id: int, run_id: int, step_name: str | None = None, max_lines: int = 100
     ) -> list[StepFailure] | None:
         """
         Gets detailed log information for failed steps, optionally filtered by step name.
@@ -346,6 +348,8 @@ def register_ado_tools(mcp_instance, client_container):
             pipeline_id (int): The ID of the pipeline.
             run_id (int): The ID of the pipeline run.
             step_name (Optional[str]): Filter to specific step name (case-insensitive partial match).
+            max_lines (int): Maximum number of lines to return from the end of each log (default: 100).
+                           Set to 0 or negative to return all lines.
 
         Returns:
             Optional[List[StepFailure]]: List of failed steps with their log content, or None if client unavailable.
@@ -355,7 +359,7 @@ def register_ado_tools(mcp_instance, client_container):
             logger.error("ADO client is not available.")
             return None
 
-        return ado_client_instance.get_failed_step_logs(project_id, pipeline_id, run_id, step_name)
+        return ado_client_instance.get_failed_step_logs(project_id, pipeline_id, run_id, step_name, max_lines)
 
     @mcp_instance.tool
     def get_pipeline_timeline(
@@ -401,7 +405,7 @@ def register_ado_tools(mcp_instance, client_container):
 
     @mcp_instance.tool
     def get_log_content_by_id(
-        project_id: str, pipeline_id: int, run_id: int, log_id: int
+        project_id: str, pipeline_id: int, run_id: int, log_id: int, max_lines: int = 100
     ) -> str | None:
         """
         Gets the content of a specific log from a pipeline run.
@@ -411,6 +415,8 @@ def register_ado_tools(mcp_instance, client_container):
             pipeline_id (int): The ID of the pipeline.
             run_id (int): The ID of the pipeline run.
             log_id (int): The ID of the specific log.
+            max_lines (int): Maximum number of lines to return from the end of the log (default: 100).
+                           Set to 0 or negative to return all lines.
 
         Returns:
             Optional[str]: The log content as a string, or None if client unavailable.
@@ -420,11 +426,11 @@ def register_ado_tools(mcp_instance, client_container):
             logger.error("ADO client is not available.")
             return None
 
-        return ado_client_instance.get_log_content_by_id(project_id, pipeline_id, run_id, log_id)
+        return ado_client_instance.get_log_content_by_id(project_id, pipeline_id, run_id, log_id, max_lines)
 
     @mcp_instance.tool
     def run_pipeline_and_get_outcome(
-        project_id: str, pipeline_id: int, timeout_seconds: int = 300
+        project_id: str, pipeline_id: int, timeout_seconds: int = 300, max_lines: int = 100
     ) -> PipelineOutcome | None:
         """
         🚀 RUN PIPELINE & WAIT: Execute pipeline and get complete outcome analysis.
@@ -435,7 +441,7 @@ def register_ado_tools(mcp_instance, client_container):
         1. Starts the pipeline
         2. Waits for completion (up to timeout)
         3. Returns success/failure with detailed analysis
-        4. Includes failure summary and logs if it fails
+        4. Includes failure summary and logs if it fails (limited to last max_lines by default)
 
         Perfect for: "Run the pipeline and tell me what happens"
 
@@ -443,6 +449,8 @@ def register_ado_tools(mcp_instance, client_container):
             project_id (str): The project UUID
             pipeline_id (int): Pipeline definition ID (use find_pipeline_by_name if needed)
             timeout_seconds (int): Max wait time (default: 300s = 5 minutes)
+            max_lines (int): Maximum number of lines to return from the end of each log (default: 100).
+                           Set to 0 or negative to return all lines.
 
         Returns:
             PipelineOutcome: Complete results with pipeline_run, success flag, failure_summary, execution_time
@@ -453,5 +461,5 @@ def register_ado_tools(mcp_instance, client_container):
             return None
 
         return ado_client_instance.run_pipeline_and_get_outcome(
-            project_id, pipeline_id, timeout_seconds
+            project_id, pipeline_id, timeout_seconds, max_lines
         )

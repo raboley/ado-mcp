@@ -133,7 +133,7 @@ class BuildOperations:
             time.sleep(poll_interval_seconds)
 
     def run_pipeline_and_get_outcome(
-        self, project_id: str, pipeline_id: int, timeout_seconds: int = 300
+        self, project_id: str, pipeline_id: int, timeout_seconds: int = 300, max_lines: int = 100
     ) -> PipelineOutcome:
         """
         Run a pipeline, wait for completion, and return the outcome with failure details if applicable.
@@ -147,6 +147,8 @@ class BuildOperations:
             project_id (str): The ID of the project.
             pipeline_id (int): The ID of the pipeline.
             timeout_seconds (int): Maximum time to wait for completion (default: 300).
+            max_lines (int): Maximum number of lines to return from the end of each log (default: 100).
+                           Set to 0 or negative to return all lines.
 
         Returns:
             PipelineOutcome: Complete outcome including run details and failure summary if failed.
@@ -187,7 +189,7 @@ class BuildOperations:
         if not success and final_run.is_completed():
             try:
                 failure_summary = logs_ops.get_pipeline_failure_summary(
-                    project_id, pipeline_id, run_id
+                    project_id, pipeline_id, run_id, max_lines
                 )
                 logger.info(f"Retrieved failure summary for failed pipeline run {run_id}")
             except Exception as e:

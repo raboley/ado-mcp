@@ -1082,6 +1082,162 @@ async def test_get_log_content_by_id(mcp_client: Client):
     print(f"✓ Retrieved log content: {len(log_content)} characters")
 
 
+@requires_ado_creds
+async def test_get_log_content_by_id_with_line_limit(mcp_client: Client):
+    """Tests getting log content with line limiting."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 83  # log-test-failing pipeline
+    run_id = 323  # Known failed run
+    log_id = 8  # Known log ID for the failed "Run Tests" step
+
+    # Test with default 100 lines
+    result_default = await mcp_client.call_tool(
+        "get_log_content_by_id",
+        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id, "log_id": log_id},
+    )
+    
+    # Test with 10 lines
+    result_limited = await mcp_client.call_tool(
+        "get_log_content_by_id",
+        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id, "log_id": log_id, "max_lines": 10},
+    )
+    
+    # Test with 0 lines (should return all)
+    result_all = await mcp_client.call_tool(
+        "get_log_content_by_id",
+        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id, "log_id": log_id, "max_lines": 0},
+    )
+
+    default_content = result_default.data
+    limited_content = result_limited.data
+    all_content = result_all.data
+
+    # Verify all results are strings
+    assert isinstance(default_content, str), "Default content should be a string"
+    assert isinstance(limited_content, str), "Limited content should be a string"
+    assert isinstance(all_content, str), "All content should be a string"
+
+    # Verify line limiting works
+    default_lines = default_content.splitlines()
+    limited_lines = limited_content.splitlines()
+    all_lines = all_content.splitlines()
+
+    assert len(limited_lines) <= 10, f"Limited content should have max 10 lines, got {len(limited_lines)}"
+    assert len(default_lines) <= 100, f"Default content should have max 100 lines, got {len(default_lines)}"
+    assert len(all_lines) >= len(default_lines), "All content should have at least as many lines as default"
+    
+    # Verify that limited content is from the end of the log
+    if len(all_lines) > 10:
+        expected_limited_lines = all_lines[-10:]
+        assert limited_lines == expected_limited_lines, "Limited lines should be the last 10 lines"
+
+    print(f"✓ Line limiting test: All={len(all_lines)}, Default={len(default_lines)}, Limited={len(limited_lines)} lines")
+
+
+@requires_ado_creds
+async def test_get_pipeline_failure_summary_with_line_limit(mcp_client: Client):
+    """Tests getting pipeline failure summary with line limiting."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 83  # log-test-failing pipeline
+    run_id = 323  # Known failed run
+
+    # Test with default 100 lines
+    result_default = await mcp_client.call_tool(
+        "get_pipeline_failure_summary",
+        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id},
+    )
+    
+    # Test with 5 lines
+    result_limited = await mcp_client.call_tool(
+        "get_pipeline_failure_summary",
+        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id, "max_lines": 5},
+    )
+
+    default_summary = result_default.data
+    limited_summary = result_limited.data
+
+    assert default_summary is not None, "Default summary should not be None"
+    assert limited_summary is not None, "Limited summary should not be None"
+
+    # Check that both have root cause tasks
+    assert len(default_summary["root_cause_tasks"]) > 0, "Should have root cause tasks"
+    assert len(limited_summary["root_cause_tasks"]) > 0, "Should have root cause tasks"
+
+    # Compare log content lengths for the first root cause task that has log content
+    default_task = None
+    limited_task = None
+    
+    for task in default_summary["root_cause_tasks"]:
+        if task.get("log_content"):
+            default_task = task
+            break
+    
+    for task in limited_summary["root_cause_tasks"]:
+        if task.get("log_content"):
+            limited_task = task
+            break
+
+    if default_task and limited_task:
+        default_log_lines = default_task["log_content"].splitlines()
+        limited_log_lines = limited_task["log_content"].splitlines()
+        
+        assert len(limited_log_lines) <= 5, f"Limited log should have max 5 lines, got {len(limited_log_lines)}"
+        assert len(default_log_lines) <= 100, f"Default log should have max 100 lines, got {len(default_log_lines)}"
+        
+        print(f"✓ Failure summary line limiting: Default={len(default_log_lines)}, Limited={len(limited_log_lines)} lines")
+
+
+@requires_ado_creds
+async def test_get_failed_step_logs_with_line_limit(mcp_client: Client):
+    """Tests getting failed step logs with line limiting."""
+    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    pipeline_id = 83  # log-test-failing pipeline
+    run_id = 323  # Known failed run
+
+    # Test with default 100 lines
+    result_default = await mcp_client.call_tool(
+        "get_failed_step_logs",
+        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id},
+    )
+    
+    # Test with 3 lines
+    result_limited = await mcp_client.call_tool(
+        "get_failed_step_logs",
+        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id, "max_lines": 3},
+    )
+
+    default_steps = result_default.data
+    limited_steps = result_limited.data
+
+    assert default_steps is not None, "Default steps should not be None"
+    assert limited_steps is not None, "Limited steps should not be None"
+    assert len(default_steps) > 0, "Should have failed steps"
+    assert len(limited_steps) > 0, "Should have failed steps"
+
+    # Find steps with log content and compare
+    default_step_with_log = None
+    limited_step_with_log = None
+    
+    for step in default_steps:
+        if step.get("log_content"):
+            default_step_with_log = step
+            break
+    
+    for step in limited_steps:
+        if step.get("log_content"):
+            limited_step_with_log = step
+            break
+
+    if default_step_with_log and limited_step_with_log:
+        default_log_lines = default_step_with_log["log_content"].splitlines()
+        limited_log_lines = limited_step_with_log["log_content"].splitlines()
+        
+        assert len(limited_log_lines) <= 3, f"Limited log should have max 3 lines, got {len(limited_log_lines)}"
+        assert len(default_log_lines) <= 100, f"Default log should have max 100 lines, got {len(default_log_lines)}"
+        
+        print(f"✓ Failed step logs line limiting: Default={len(default_log_lines)}, Limited={len(limited_log_lines)} lines")
+
+
 async def test_logs_tools_no_client(mcp_client_with_unset_ado_env: Client):
     """Tests that logs tools return None when client is not available."""
     # Test failure summary

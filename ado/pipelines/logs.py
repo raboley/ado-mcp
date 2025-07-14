@@ -43,7 +43,7 @@ class LogOperations:
         return LogCollection(**response)
 
     def get_log_content_by_id(
-        self, project_id: str, pipeline_id: int, run_id: int, log_id: int
+        self, project_id: str, pipeline_id: int, run_id: int, log_id: int, max_lines: int = 100
     ) -> str:
         """
         Get the content of a specific log from a pipeline run.
@@ -53,9 +53,11 @@ class LogOperations:
             pipeline_id (int): The ID of the pipeline.
             run_id (int): The ID of the pipeline run.
             log_id (int): The ID of the specific log.
+            max_lines (int): Maximum number of lines to return from the end of the log (default: 100).
+                           Set to 0 or negative to return all lines.
 
         Returns:
-            str: The log content as a string.
+            str: The log content as a string, limited to the last max_lines.
 
         Raises:
             requests.exceptions.RequestException: For network-related errors.
@@ -70,10 +72,31 @@ class LogOperations:
             signed_url = response["signedContent"]["url"]
             content_response = requests.get(signed_url)
             content_response.raise_for_status()
-            logger.info(
-                f"Retrieved log content ({len(content_response.text)} characters) for log {log_id}"
-            )
-            return content_response.text
+            
+            full_content = content_response.text
+            
+            # Apply line limiting if max_lines is positive
+            if max_lines > 0:
+                lines = full_content.splitlines()
+                if len(lines) > max_lines:
+                    limited_lines = lines[-max_lines:]  # Get last max_lines
+                    limited_content = "\n".join(limited_lines)
+                    logger.info(
+                        f"Retrieved log content for log {log_id}: {len(lines)} total lines, "
+                        f"showing last {max_lines} lines ({len(limited_content)} characters)"
+                    )
+                    return limited_content
+                else:
+                    logger.info(
+                        f"Retrieved log content for log {log_id}: {len(lines)} lines "
+                        f"({len(full_content)} characters) - under limit"
+                    )
+                    return full_content
+            else:
+                logger.info(
+                    f"Retrieved full log content for log {log_id} ({len(full_content)} characters)"
+                )
+                return full_content
 
         logger.warning(f"No signed content URL found for log {log_id}")
         return ""
@@ -105,7 +128,7 @@ class LogOperations:
         return TimelineResponse(**response)
 
     def get_pipeline_failure_summary(
-        self, project_id: str, pipeline_id: int, run_id: int
+        self, project_id: str, pipeline_id: int, run_id: int, max_lines: int = 100
     ) -> FailureSummary:
         """
         Get a comprehensive summary of pipeline failures, including root causes and affected components.
@@ -114,6 +137,8 @@ class LogOperations:
             project_id (str): The ID of the project.
             pipeline_id (int): The ID of the pipeline.
             run_id (int): The ID of the pipeline run.
+            max_lines (int): Maximum number of lines to return from the end of each log (default: 100).
+                           Set to 0 or negative to return all lines.
 
         Returns:
             FailureSummary: Detailed summary of failures with log content for root causes.
@@ -158,7 +183,7 @@ class LogOperations:
             if record.type == "Task" and step_failure.log_id:
                 try:
                     step_failure.log_content = self.get_log_content_by_id(
-                        project_id, pipeline_id, run_id, step_failure.log_id
+                        project_id, pipeline_id, run_id, step_failure.log_id, max_lines
                     )
                 except Exception as e:
                     logger.warning(f"Failed to get log content for step {record.name}: {e}")
@@ -190,7 +215,7 @@ class LogOperations:
         )
 
     def get_failed_step_logs(
-        self, project_id: str, pipeline_id: int, run_id: int, step_name: str | None = None
+        self, project_id: str, pipeline_id: int, run_id: int, step_name: str | None = None, max_lines: int = 100
     ) -> list[StepFailure]:
         """
         Get detailed log information for failed steps, optionally filtered by step name.
@@ -200,6 +225,8 @@ class LogOperations:
             pipeline_id (int): The ID of the pipeline.
             run_id (int): The ID of the pipeline run.
             step_name (Optional[str]): Filter to specific step name (case-insensitive partial match).
+            max_lines (int): Maximum number of lines to return from the end of each log (default: 100).
+                           Set to 0 or negative to return all lines.
 
         Returns:
             List[StepFailure]: List of failed steps with their log content.
@@ -213,7 +240,7 @@ class LogOperations:
         )
 
         # Get the failure summary which already has logs
-        failure_summary = self.get_pipeline_failure_summary(project_id, pipeline_id, run_id)
+        failure_summary = self.get_pipeline_failure_summary(project_id, pipeline_id, run_id, max_lines)
 
         # Combine root cause tasks and hierarchy failures
         all_failures = failure_summary.root_cause_tasks + failure_summary.hierarchy_failures
