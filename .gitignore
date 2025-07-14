@@ -267,3 +267,4 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/jetbrains+all,python
+/pytest-results.xml

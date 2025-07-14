@@ -3,12 +3,12 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ado-mcp"
-version = "0.1.0"
+name = "ado-mcp-raboley"
+version = "0.0.1"
 description = "An MCP server for Azure DevOps pipelines."
 readme = "README.md"
 requires-python = ">=3.12"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Russell Boley", email="countrypeaches@gmail.com"}
 ]
@@ -21,7 +21,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Build Tools",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -58,7 +57,7 @@ dev = [
 
 [tool.setuptools]
 py-modules = ["server"]
-packages = ["ado"]
+packages = ["ado", "ado.pipelines"]
 
 [tool.setuptools.package-data]
 ado = ["py.typed"]

@@ -1,7 +1,9 @@
 """Azure DevOps client with core functionality and pipeline operations."""
 
+import json
 import logging
 import os
+import subprocess
 from base64 import b64encode
 from typing import Any
 
@@ -21,38 +23,99 @@ class AdoClient:
     Handles authentication and provides methods for making API requests.
     Pipeline operations are organized into separate modules for better maintainability.
 
+    Authentication Methods (in order of precedence):
+    1. Explicit PAT parameter
+    2. AZURE_DEVOPS_EXT_PAT environment variable  
+    3. Azure CLI authentication (via 'az account get-access-token')
+
     Args:
         organization_url (str): The URL of the Azure DevOps organization.
         pat (str, optional): A Personal Access Token for authentication.
-            If not provided, it will be read from the `AZURE_DEVOPS_EXT_PAT`
-            environment variable.
+            If not provided, will try environment variable and Azure CLI.
 
     Raises:
-        ValueError: If the Personal Access Token is not provided or found
-            in the environment variables.
+        ValueError: If no authentication method is available.
     """
 
     def __init__(self, organization_url: str, pat: str = None):
         """Initialize the Azure DevOps client."""
         self.organization_url = organization_url
-        if not pat:
-            pat = os.environ.get("AZURE_DEVOPS_EXT_PAT")
-        if not pat:
-            raise ValueError(
-                "Personal Access Token (PAT) not provided or found in environment variables."
-            )
+        self.auth_method = "unknown"
+        
+        # Try authentication methods in order of precedence
+        if pat:
+            self._setup_pat_auth(pat)
+            self.auth_method = "explicit_pat"
+        elif os.environ.get("AZURE_DEVOPS_EXT_PAT"):
+            self._setup_pat_auth(os.environ.get("AZURE_DEVOPS_EXT_PAT"))
+            self.auth_method = "env_pat"
+        else:
+            # Try Azure CLI authentication
+            azure_token = self._get_azure_cli_token()
+            if azure_token:
+                self._setup_bearer_auth(azure_token)
+                self.auth_method = "azure_cli"
+            else:
+                raise ValueError(
+                    "No authentication method available. Either:\n"
+                    "1. Provide a PAT parameter\n" 
+                    "2. Set AZURE_DEVOPS_EXT_PAT environment variable\n"
+                    "3. Login with 'az login' for Azure CLI authentication"
+                )
 
-        encoded_pat = b64encode(f":{pat}".encode("ascii")).decode("ascii")
-        self.headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Basic {encoded_pat}",
-        }
-        logger.info("AdoClient initialized.")
+        logger.info(f"AdoClient initialized using {self.auth_method} authentication.")
 
         # Initialize operation modules
         self._pipelines = PipelineOperations(self)
         self._builds = BuildOperations(self)
         self._logs = LogOperations(self)
+
+    def _setup_pat_auth(self, pat: str) -> None:
+        """Set up PAT-based authentication headers."""
+        encoded_pat = b64encode(f":{pat}".encode("ascii")).decode("ascii")
+        self.headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Basic {encoded_pat}",
+        }
+
+    def _setup_bearer_auth(self, token: str) -> None:
+        """Set up Bearer token authentication headers."""
+        self.headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}",
+        }
+
+    def _get_azure_cli_token(self) -> str | None:
+        """
+        Get an access token from Azure CLI for Azure DevOps.
+        
+        Returns:
+            str | None: Access token if Azure CLI authentication is available, None otherwise.
+        """
+        try:
+            # Use Azure CLI to get token for Azure DevOps
+            result = subprocess.run(
+                ["az", "account", "get-access-token", "--resource", "499b84ac-1321-427f-aa17-267ca6975798"],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.returncode == 0:
+                token_data = json.loads(result.stdout)
+                access_token = token_data.get("accessToken")
+                if access_token:
+                    logger.info("Successfully obtained Azure CLI access token for Azure DevOps")
+                    return access_token
+                else:
+                    logger.warning("Azure CLI returned empty access token")
+            else:
+                logger.info(f"Azure CLI authentication not available: {result.stderr}")
+                
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError) as e:
+            logger.info(f"Azure CLI authentication not available: {e}")
+        
+        return None
 
     def _validate_response(self, response: requests.Response) -> None:
         """

@@ -9,12 +9,42 @@ This project uses [FastMCP 2.0](https://gofastmcp.com/getting-started/installati
     task install
     ```
 
-2.  **Set up Environment Variables**:
-    This project requires a `.env` file with your Azure DevOps credentials. You can create one by running:
+2.  **Set up Authentication**:
+    The MCP server supports multiple authentication methods (in order of precedence):
+
+    ### Option 1: Personal Access Token (PAT)
+    
+    **Environment Variable Method:**
     ```bash
     task setup-env
     ```
-    This will create a `.env` file with your Personal Access Token (PAT) and other necessary variables.
+    This creates a `.env` file with your Personal Access Token (PAT) and other necessary variables.
+
+    **Direct Configuration:**
+    ```bash
+    export AZURE_DEVOPS_EXT_PAT="your-personal-access-token"
+    export ADO_ORGANIZATION_URL="https://dev.azure.com/YourOrg"
+    ```
+
+    ### Option 2: Azure CLI Authentication (Recommended)
+    
+    If you already use Azure CLI, you can authenticate using your existing session:
+    
+    ```bash
+    # Login to Azure (if not already logged in)
+    az login
+    
+    # The MCP server will automatically use your Azure CLI credentials
+    task run
+    ```
+    
+    **Benefits of Azure CLI authentication:**
+    - No need to manage Personal Access Tokens
+    - Uses your existing Azure credentials 
+    - More secure than storing PATs
+    - Automatically refreshes tokens
+    
+    **Note:** Azure CLI authentication requires the user to be logged in with an account that has access to the Azure DevOps organization.
 
 ## Testing
 

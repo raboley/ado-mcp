@@ -2,6 +2,7 @@ version: '3'
 
 env:
   AZURE_DEVOPS_EXT_PAT: $(security find-generic-password -w -a ado-token)
+  PYPI_TOKEN: $(security find-generic-password -w -a pypi)
   ADO_ORGANIZATION_URL: 'https://dev.azure.com/RussellBoley'
   ADO_PROJECT_NAME: "Learning"
   PYTHONPATH: "."
@@ -79,3 +80,33 @@ tasks:
       - echo "ADO_PROJECT_NAME={{.ADO_PROJECT_NAME}}" >> .env
     status:
       - test -f .env
+
+  build:
+    desc: Build the package for distribution
+    cmds:
+      - rm -rf dist/
+      - uv build
+    generates:
+      - dist/*.whl
+      - dist/*.tar.gz
+
+  publish:
+    desc: Publish package to PyPI
+    deps:
+      - task: build
+    cmds:
+      - |
+        echo "Publishing ado-mcp-raboley version $(python -c 'import ado; print(ado.__version__)')"
+        uv publish --token $PYPI_TOKEN
+
+  publish-test:
+    desc: Publish package to Test PyPI
+    deps:
+      - task: test
+      - task: format-check
+      - task: typecheck
+      - task: build
+    cmds:
+      - |
+        echo "Publishing ado-mcp-raboley version $(python -c 'import ado; print(ado.__version__)') to Test PyPI"
+        uv publish --publish-url https://test.pypi.org/legacy/ --token $PYPI_TOKEN
