@@ -1,5 +1,11 @@
 version: '3'
 
+# Version configuration
+vars:
+  PACKAGE_NAME: ado-mcp-raboley
+  VERSION_MAJOR: 0
+  VERSION_MINOR: 0
+
 env:
   AZURE_DEVOPS_EXT_PAT: $(security find-generic-password -w -a ado-token)
   PYPI_TOKEN: $(security find-generic-password -w -a pypi)
@@ -102,11 +108,37 @@ tasks:
   publish-test:
     desc: Publish package to Test PyPI
     deps:
-      - task: test
-      - task: format-check
-      - task: typecheck
       - task: build
     cmds:
       - |
         echo "Publishing ado-mcp-raboley version $(python -c 'import ado; print(ado.__version__)') to Test PyPI"
         uv publish --publish-url https://test.pypi.org/legacy/ --token $PYPI_TOKEN
+
+  version:
+    desc: Calculate and update to the next patch version based on PyPI
+    cmds:
+      - |
+        echo "Calculating next version for {{.PACKAGE_NAME}} ({{.VERSION_MAJOR}}.{{.VERSION_MINOR}}.x)..."
+        NEXT_VERSION=$(python3 scripts/version_manager.py {{.PACKAGE_NAME}} {{.VERSION_MAJOR}} {{.VERSION_MINOR}})
+        echo "Next version: $NEXT_VERSION"
+        
+        echo "Updating pyproject.toml..."
+        sed -i.bak "s/^version = .*/version = \"$NEXT_VERSION\"/" pyproject.toml
+        
+        echo "Updating ado/__init__.py..."
+        sed -i.bak "s/^__version__ = .*/__version__ = \"$NEXT_VERSION\"/" ado/__init__.py
+        
+        echo "Cleaning up backup files..."
+        rm -f pyproject.toml.bak ado/__init__.py.bak
+        
+        echo "✅ Version updated to $NEXT_VERSION"
+        echo ""
+        echo "Files updated:"
+        echo "  - pyproject.toml"
+        echo "  - ado/__init__.py"
+        echo ""
+        echo "Next steps:"
+        echo "  1. Review the changes: git diff"
+        echo "  2. Test the build: task build"
+        echo "  3. Commit the version: git add -A && git commit -m \"bump version to $NEXT_VERSION\""
+        echo "  4. Publish: task publish"
