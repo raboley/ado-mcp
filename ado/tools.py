@@ -473,3 +473,220 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.run_pipeline_and_get_outcome(
             project_id, pipeline_id, timeout_seconds, max_lines
         )
+
+    # 🚀 NAME-BASED TOOLS - USER-FRIENDLY INTERFACES
+    
+    @mcp_instance.tool
+    def find_project_by_name(name: str) -> Project | None:
+        """
+        🔍 FIND PROJECT BY NAME: Find a project using its name with fuzzy matching.
+        
+        ⚡ USE THIS WHEN: User provides a project name instead of project ID
+        
+        This tool provides intelligent name matching:
+        - Exact name matching first
+        - Fuzzy matching for typos (e.g., "MyProj" matches "MyProject")
+        - Case-insensitive search
+        - Cached results for fast repeated lookups
+        
+        Perfect for: "Find the Learning project" or "Get info about my main project"
+        
+        Args:
+            name (str): Project name to search for (fuzzy matching enabled)
+            
+        Returns:
+            Project: Project object if found, None if not found
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+        
+        return ado_client_instance.find_project_by_name(name)
+    
+    @mcp_instance.tool
+    def find_pipeline_by_name(project_name: str, pipeline_name: str) -> dict | None:
+        """
+        🔍 FIND PIPELINE BY NAME: Find a pipeline using project and pipeline names.
+        
+        ⚡ USE THIS WHEN: User provides names instead of IDs
+        
+        This tool provides intelligent name matching for both project and pipeline:
+        - Fuzzy matching for both names
+        - Automatic caching for fast lookups
+        - Returns both project and pipeline info
+        
+        Perfect for: "Find the CI pipeline in Learning project"
+        
+        Args:
+            project_name (str): Project name (fuzzy matching enabled)
+            pipeline_name (str): Pipeline name (fuzzy matching enabled)
+            
+        Returns:
+            dict: Contains project and pipeline info if found, None otherwise
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+        
+        result = ado_client_instance.find_pipeline_by_name(project_name, pipeline_name)
+        if result:
+            project, pipeline = result
+            return {
+                "project": project,
+                "pipeline": pipeline,
+                "project_id": project.id,
+                "pipeline_id": pipeline.id
+            }
+        return None
+    
+    @mcp_instance.tool
+    def run_pipeline_by_name(project_name: str, pipeline_name: str) -> PipelineRun | None:
+        """
+        🚀 RUN PIPELINE BY NAME: Execute a pipeline using natural names.
+        
+        ⚡ USE THIS WHEN: User wants to run a pipeline but only knows names
+        
+        Much easier than finding IDs first! This tool:
+        - Finds project and pipeline by name automatically
+        - Handles fuzzy matching for typos
+        - Uses intelligent caching for fast lookups
+        - Starts the pipeline execution
+        
+        Perfect for: "Run the CI pipeline in Learning project"
+        
+        Args:
+            project_name (str): Project name (fuzzy matching enabled)
+            pipeline_name (str): Pipeline name (fuzzy matching enabled)
+            
+        Returns:
+            PipelineRun: Pipeline run details if successful, None otherwise
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+        
+        return ado_client_instance.run_pipeline_by_name(project_name, pipeline_name)
+    
+    @mcp_instance.tool
+    def get_pipeline_failure_summary_by_name(
+        project_name: str, pipeline_name: str, run_id: int, max_lines: int = 100
+    ) -> FailureSummary | None:
+        """
+        🔥 ANALYZE FAILURES BY NAME: Get failure analysis using natural names.
+        
+        ⚡ USE THIS WHEN: User wants to debug a failed pipeline using names
+        
+        This combines the power of failure analysis with name-based lookup:
+        - Finds project and pipeline by name automatically
+        - Provides comprehensive failure analysis
+        - Includes log content for failing steps
+        - Much easier than managing IDs
+        
+        Perfect for: "Why did the CI pipeline fail in Learning project?"
+        
+        Args:
+            project_name (str): Project name (fuzzy matching enabled)
+            pipeline_name (str): Pipeline name (fuzzy matching enabled)
+            run_id (int): Pipeline run ID (from pipeline URL or previous run)
+            max_lines (int): Maximum log lines to return (default: 100)
+            
+        Returns:
+            FailureSummary: Detailed failure analysis if found, None otherwise
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+        
+        return ado_client_instance.get_pipeline_failure_summary_by_name(
+            project_name, pipeline_name, run_id, max_lines
+        )
+    
+    @mcp_instance.tool
+    def run_pipeline_and_get_outcome_by_name(
+        project_name: str, 
+        pipeline_name: str, 
+        timeout_seconds: int = 300, 
+        max_lines: int = 100
+    ) -> PipelineOutcome | None:
+        """
+        🚀 RUN & ANALYZE BY NAME: Execute pipeline by name and get complete results.
+        
+        ⚡ USE THIS WHEN: User wants to run a pipeline and see results using names
+        
+        The ultimate user-friendly pipeline execution tool:
+        - Finds project and pipeline by name automatically
+        - Starts pipeline execution
+        - Waits for completion (up to timeout)
+        - Returns success/failure with detailed analysis
+        - Includes failure logs if it fails
+        
+        Perfect for: "Run the CI pipeline in Learning and tell me what happens"
+        
+        Args:
+            project_name (str): Project name (fuzzy matching enabled)
+            pipeline_name (str): Pipeline name (fuzzy matching enabled)
+            timeout_seconds (int): Max wait time (default: 300s = 5 minutes)
+            max_lines (int): Maximum log lines to return (default: 100)
+            
+        Returns:
+            PipelineOutcome: Complete execution results, None if not found
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+        
+        return ado_client_instance.run_pipeline_and_get_outcome_by_name(
+            project_name, pipeline_name, timeout_seconds, max_lines
+        )
+    
+    @mcp_instance.tool
+    def list_available_projects() -> list[str]:
+        """
+        📋 LIST PROJECT NAMES: Get all available project names for easy reference.
+        
+        ⚡ USE THIS WHEN: User wants to see what projects are available
+        
+        Returns a simple list of project names that can be used with other name-based tools.
+        Uses intelligent caching so repeated calls are fast.
+        
+        Perfect for: "What projects are available?" or "Show me all projects"
+        
+        Returns:
+            list[str]: List of project names available in the organization
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return []
+        
+        return ado_client_instance.list_available_projects()
+    
+    @mcp_instance.tool  
+    def list_available_pipelines(project_name: str) -> list[str]:
+        """
+        📋 LIST PIPELINE NAMES: Get all pipeline names for a project.
+        
+        ⚡ USE THIS WHEN: User wants to see what pipelines are available in a project
+        
+        Returns a simple list of pipeline names for the specified project.
+        Uses intelligent caching and name matching for the project.
+        
+        Perfect for: "What pipelines are in Learning project?"
+        
+        Args:
+            project_name (str): Project name (fuzzy matching enabled)
+            
+        Returns:
+            list[str]: List of pipeline names in the project, empty list if project not found
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return []
+        
+        return ado_client_instance.list_available_pipelines(project_name)

@@ -12,6 +12,7 @@ import requests
 from .errors import AdoAuthenticationError
 from .models import Project
 from .pipelines import BuildOperations, LogOperations, PipelineOperations
+from .lookups import AdoLookups
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ class AdoClient:
         self._pipelines = PipelineOperations(self)
         self._builds = BuildOperations(self)
         self._logs = LogOperations(self)
+        self._lookups = AdoLookups(self)
 
     def _setup_pat_auth(self, pat: str) -> None:
         """Set up PAT-based authentication headers."""
@@ -367,3 +369,40 @@ class AdoClient:
         return self._logs.get_failed_step_logs(
             project_id, pipeline_id, run_id, step_name, max_lines
         )
+
+    # Name-based lookup operations
+    def find_project_by_name(self, name: str):
+        """Find project by name with fuzzy matching."""
+        return self._lookups.find_project(name)
+
+    def find_pipeline_by_name(self, project_name: str, pipeline_name: str):
+        """Find pipeline by project and pipeline names."""
+        return self._lookups.find_pipeline(project_name, pipeline_name)
+
+    def run_pipeline_by_name(self, project_name: str, pipeline_name: str):
+        """Run pipeline by project and pipeline names."""
+        return self._lookups.run_pipeline_by_name(project_name, pipeline_name)
+
+    def get_pipeline_failure_summary_by_name(
+        self, project_name: str, pipeline_name: str, run_id: int, max_lines: int = 100
+    ):
+        """Get pipeline failure summary by names."""
+        return self._lookups.get_pipeline_failure_summary_by_name(
+            project_name, pipeline_name, run_id, max_lines
+        )
+
+    def run_pipeline_and_get_outcome_by_name(
+        self, project_name: str, pipeline_name: str, timeout_seconds: int = 300, max_lines: int = 100
+    ):
+        """Run pipeline by name and get outcome."""
+        return self._lookups.run_pipeline_and_get_outcome_by_name(
+            project_name, pipeline_name, timeout_seconds, max_lines
+        )
+
+    def list_available_projects(self):
+        """Get list of available project names."""
+        return self._lookups.list_available_projects()
+
+    def list_available_pipelines(self, project_name: str):
+        """Get list of available pipeline names for a project."""
+        return self._lookups.list_available_pipelines(project_name)
