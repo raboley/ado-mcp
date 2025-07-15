@@ -10,6 +10,7 @@ Client Module
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 Models
 ------
@@ -18,6 +19,7 @@ Models
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 Pipeline Operations
 -------------------
@@ -26,6 +28,7 @@ Pipeline Operations
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 Pipeline Management
 ~~~~~~~~~~~~~~~~~~~
@@ -34,6 +37,7 @@ Pipeline Management
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 Build Operations
 ~~~~~~~~~~~~~~~~
@@ -42,6 +46,7 @@ Build Operations
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 Log Operations
 ~~~~~~~~~~~~~~
@@ -50,6 +55,7 @@ Log Operations
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 Lookups and Search
 ------------------
@@ -58,6 +64,7 @@ Lookups and Search
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 Caching
 -------
@@ -66,6 +73,7 @@ Caching
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 Tools
 -----
@@ -74,6 +82,7 @@ Tools
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 Server
 ------
@@ -82,6 +91,7 @@ Server
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 Errors
 ------
@@ -90,3 +100,4 @@ Errors
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:

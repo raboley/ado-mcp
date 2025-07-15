@@ -73,6 +73,23 @@ API Reference
 
    ado
 
+.. toctree::
+   :hidden:
+
+   _autosummary/ado.cache
+   _autosummary/ado.client
+   _autosummary/ado.errors
+   _autosummary/ado.helpers
+   _autosummary/ado.lookups
+   _autosummary/ado.models
+   _autosummary/ado.pipelines
+   _autosummary/ado.pipelines.builds
+   _autosummary/ado.pipelines.logs
+   _autosummary/ado.pipelines.pipelines
+   _autosummary/ado.resources
+   _autosummary/ado.rst
+   _autosummary/ado.tools
+
 Indices and tables
 ==================
 
