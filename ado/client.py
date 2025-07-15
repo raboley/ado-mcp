@@ -4,17 +4,22 @@ import json
 import logging
 import os
 import subprocess
+import uuid
 from base64 import b64encode
-from typing import Any
+from typing import Any, Optional
 
 import requests
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
-from .errors import AdoAuthenticationError
+from .config import AdoMcpConfig
+from .errors import AdoAuthenticationError, AdoRateLimitError, AdoNetworkError, AdoTimeoutError
 from .models import Project
 from .pipelines import BuildOperations, LogOperations, PipelineOperations
 from .lookups import AdoLookups
+from .retry import RetryManager
+from .telemetry import get_telemetry_manager, initialize_telemetry
+from .auth import AuthManager
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -44,45 +49,69 @@ class AdoClient:
         ValueError: If no authentication method is available.
     """
 
-    def __init__(self, organization_url: str, pat: str = None):
+    def __init__(self, organization_url: str = None, pat: str = None, config: AdoMcpConfig = None):
         """Initialize the Azure DevOps client."""
-        self.organization_url = organization_url
-        self.auth_method = "unknown"
-
-        # Try authentication methods in order of precedence
-        if pat:
-            self._setup_pat_auth(pat)
-            self.auth_method = "explicit_pat"
-        elif os.environ.get("AZURE_DEVOPS_EXT_PAT"):
-            self._setup_pat_auth(os.environ.get("AZURE_DEVOPS_EXT_PAT"))
-            self.auth_method = "env_pat"
-        else:
-            # Try Azure CLI authentication
-            azure_token = self._get_azure_cli_token()
-            if azure_token:
-                # Check if this looks like a PAT or a Bearer token
-                if len(azure_token) < 100 and azure_token.isalnum():
-                    # Likely a PAT - use Basic auth
-                    self._setup_pat_auth(azure_token)
-                else:
-                    # Likely a Bearer token - use Bearer auth
-                    self._setup_bearer_auth(azure_token)
-                self.auth_method = "azure_cli"
-            else:
-                raise ValueError(
-                    "No authentication method available. Either:\n"
-                    "1. Provide a PAT parameter\n"
-                    "2. Set AZURE_DEVOPS_EXT_PAT environment variable\n"
-                    "3. Login with 'az login' or 'az devops login' for Azure CLI authentication"
-                )
-
-        logger.info(f"AdoClient initialized using {self.auth_method} authentication.")
+        # Initialize configuration
+        self.config = config or AdoMcpConfig()
+        self.organization_url = organization_url or self.config.organization_url
+        
+        if not self.organization_url:
+            raise ValueError(
+                "Organization URL is required. Either provide it as a parameter or set ADO_ORGANIZATION_URL environment variable."
+            )
+        
+        # Initialize telemetry if enabled
+        self.telemetry = get_telemetry_manager()
+        if not self.telemetry and self.config.telemetry.enabled:
+            self.telemetry = initialize_telemetry(self.config.telemetry)
+        
+        # Initialize retry manager
+        self.retry_manager = RetryManager(self.config.retry)
+        
+        # Generate correlation ID for this client instance
+        self.correlation_id = str(uuid.uuid4())
+        
+        # Initialize authentication manager
+        self.auth_manager = AuthManager(self.config.auth)
+        self.auth_manager.setup_default_providers(pat)
+        
+        # Get authentication headers
+        try:
+            self.headers = self.auth_manager.get_auth_headers()
+            self.auth_method = self._get_compatible_auth_method()
+        except AdoAuthenticationError as e:
+            if self.telemetry:
+                self.telemetry.record_auth_attempt("none", False)
+            # Convert to ValueError for backward compatibility
+            raise ValueError(str(e)) from e
+        
+        logger.info(f"AdoClient initialized using {self.auth_method} authentication with correlation_id={self.correlation_id}")
+        
+        # Record authentication attempt
+        if self.telemetry:
+            self.telemetry.record_auth_attempt(self.auth_method, True)
+            self.telemetry.add_correlation_id(self.correlation_id)
 
         # Initialize operation modules
         self._pipelines = PipelineOperations(self)
         self._builds = BuildOperations(self)
         self._logs = LogOperations(self)
         self._lookups = AdoLookups(self)
+    
+    def _get_compatible_auth_method(self) -> str:
+        """Get authentication method name compatible with existing tests."""
+        actual_method = self.auth_manager.get_auth_method()
+        
+        # Map new method names to old ones for compatibility
+        method_mapping = {
+            "pat": "explicit_pat",
+            "env_pat": "env_pat",
+            "azure_cli_file": "azure_cli",
+            "azure_cli_entra": "azure_cli",
+            "interactive": "interactive"
+        }
+        
+        return method_mapping.get(actual_method, actual_method)
 
     def _setup_pat_auth(self, pat: str) -> None:
         """Set up PAT-based authentication headers."""
@@ -195,6 +224,23 @@ class AdoClient:
         
         return None
 
+    def refresh_authentication(self):
+        """Refresh authentication credentials."""
+        try:
+            self.auth_manager.invalidate_cache()
+            self.headers = self.auth_manager.get_auth_headers()
+            self.auth_method = self._get_compatible_auth_method()
+            
+            if self.telemetry:
+                self.telemetry.record_auth_attempt(self.auth_method, True)
+            
+            logger.info(f"Authentication refreshed using {self.auth_method}")
+            
+        except AdoAuthenticationError as e:
+            if self.telemetry:
+                self.telemetry.record_auth_attempt("none", False)
+            raise e
+
     def _validate_response(self, response: requests.Response) -> None:
         """
         Check if the response indicates an authentication failure.
@@ -217,7 +263,13 @@ class AdoClient:
             )
             raise AdoAuthenticationError(
                 "Authentication failed. The response contained a sign-in page, "
-                "which likely means the Personal Access Token (PAT) is invalid or expired."
+                "which likely means the Personal Access Token (PAT) is invalid or expired.",
+                context={
+                    "correlation_id": self.correlation_id,
+                    "url": str(response.url),
+                    "status_code": response.status_code,
+                    "auth_method": self.auth_method,
+                }
             )
 
         # Check for anonymous user in connectionData response (specific to auth check)
@@ -232,7 +284,13 @@ class AdoClient:
                     )
                     raise AdoAuthenticationError(
                         "Authentication failed. The response contained a sign-in page, "
-                        "which likely means the Personal Access Token (PAT) is invalid or expired."
+                        "which likely means the Personal Access Token (PAT) is invalid or expired.",
+                        context={
+                            "correlation_id": self.correlation_id,
+                            "url": str(response.url),
+                            "user_id": authenticated_user.get('id'),
+                            "auth_method": self.auth_method,
+                        }
                     )
             except (ValueError, KeyError):
                 # If we can't parse JSON or find expected fields, continue normal processing
@@ -240,11 +298,11 @@ class AdoClient:
 
     def _send_request(self, method: str, url: str, **kwargs) -> dict[str, Any]:
         """
-        Send an authenticated request to the Azure DevOps API.
+        Send an authenticated request to the Azure DevOps API with retry logic.
 
         This method handles common request logic, including adding authentication
-        headers, validating the response, and raising appropriate exceptions
-        for HTTP or network errors.
+        headers, validating the response, retry logic, and raising appropriate
+        exceptions for HTTP or network errors.
 
         Args:
             method (str): The HTTP method (e.g., 'GET', 'POST').
@@ -256,17 +314,84 @@ class AdoClient:
             response has no content.
 
         Raises:
-            requests.exceptions.HTTPError: For HTTP-related errors (e.g., 404, 500).
-            requests.exceptions.RequestException: For other network-related errors.
+            AdoRateLimitError: For rate limiting (429) errors.
+            AdoNetworkError: For network-related errors.
+            AdoTimeoutError: For timeout errors.
+            requests.exceptions.HTTPError: For other HTTP-related errors.
         """
-        try:
-            response = requests.request(method, url, headers=self.headers, **kwargs)
-            self._validate_response(response)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.HTTPError as http_err:
-            logger.error(f"HTTP Error: {http_err} - Response Body: {http_err.response.text}")
-            raise
+        # Set up request with timeout
+        kwargs.setdefault('timeout', self.config.request_timeout_seconds)
+        
+        @self.retry_manager.retry_on_failure
+        def make_request():
+            try:
+                response = requests.request(method, url, headers=self.headers, **kwargs)
+                self._validate_response(response)
+                
+                # Handle rate limiting
+                if response.status_code == 429:
+                    retry_after = response.headers.get('Retry-After')
+                    if retry_after:
+                        try:
+                            retry_after = int(retry_after)
+                        except ValueError:
+                            retry_after = None
+                    
+                    raise AdoRateLimitError(
+                        f"Rate limit exceeded for {method} {url}",
+                        retry_after=retry_after,
+                        context={
+                            "correlation_id": self.correlation_id,
+                            "method": method,
+                            "url": url,
+                            "status_code": response.status_code,
+                        }
+                    )
+                
+                response.raise_for_status()
+                return response.json() if response.content else None
+                
+            except requests.exceptions.HTTPError as e:
+                # Log HTTP errors for backward compatibility
+                logger.error(f"HTTP Error: {e} - Response Body: {e.response.text[:500] if e.response else 'No response'}")
+                # For backward compatibility, let all HTTP errors through as HTTPError
+                # The retry logic will handle whether to retry or not
+                raise e
+            except requests.exceptions.Timeout as e:
+                raise AdoTimeoutError(
+                    f"Request timeout for {method} {url}",
+                    timeout_seconds=self.config.request_timeout_seconds,
+                    context={
+                        "correlation_id": self.correlation_id,
+                        "method": method,
+                        "url": url,
+                    },
+                    original_exception=e
+                )
+            except requests.exceptions.RequestException as e:
+                if hasattr(e, 'response') and e.response is not None:
+                    # Log response details for debugging
+                    logger.error(
+                        f"HTTP Error: {e} - Status: {e.response.status_code} - "
+                        f"Response Body: {e.response.text[:500]}..."
+                    )
+                    
+                    # Let rate limit errors be handled above
+                    if e.response.status_code == 429:
+                        raise
+                
+                raise AdoNetworkError(
+                    f"Network error for {method} {url}: {str(e)}",
+                    context={
+                        "correlation_id": self.correlation_id,
+                        "method": method,
+                        "url": url,
+                        "error_type": type(e).__name__,
+                    },
+                    original_exception=e
+                )
+        
+        return make_request()
 
     def check_authentication(self) -> bool:
         """
@@ -282,18 +407,51 @@ class AdoClient:
             AdoAuthenticationError: If authentication fails due to invalid credentials.
             requests.exceptions.RequestException: For other network-related errors.
         """
+        operation_name = "check_authentication"
+        
         try:
             url = f"{self.organization_url}/_apis/connectionData?api-version=7.1-preview.1"
             logger.debug("Testing authentication with ConnectionData endpoint")
-            self._send_request("GET", url)
+            
+            # Use telemetry context if available
+            if self.telemetry:
+                with self.telemetry.trace_api_call(
+                    operation_name,
+                    **{
+                        "ado.url": url,
+                        "ado.auth_method": self.auth_method,
+                        "correlation_id": self.correlation_id,
+                    }
+                ):
+                    self._send_request("GET", url)
+            else:
+                self._send_request("GET", url)
+            
             logger.info("✅ Authentication successful")
+            
+            if self.telemetry:
+                self.telemetry.record_auth_attempt(self.auth_method, True)
+            
             return True
+            
         except AdoAuthenticationError:
             logger.error("❌ Authentication failed - invalid or expired PAT")
+            if self.telemetry:
+                self.telemetry.record_auth_attempt(self.auth_method, False)
             raise
         except Exception as e:
             logger.error(f"Authentication check failed with an exception: {e}")
-            raise AdoAuthenticationError(f"Authentication check failed: {e}") from e
+            if self.telemetry:
+                self.telemetry.record_auth_attempt(self.auth_method, False)
+            raise AdoAuthenticationError(
+                f"Authentication check failed: {e}",
+                context={
+                    "correlation_id": self.correlation_id,
+                    "auth_method": self.auth_method,
+                    "error_type": type(e).__name__,
+                },
+                original_exception=e
+            ) from e
 
     def list_projects(self) -> list[Project]:
         """
@@ -305,32 +463,48 @@ class AdoClient:
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
-        with tracer.start_as_current_span("ado_list_projects") as span:
-            span.set_attribute("ado.operation", "list_projects")
-            span.set_attribute("ado.organization_url", self.organization_url)
-            
-            url = f"{self.organization_url}/_apis/projects?api-version=7.1-preview.4"
-            logger.info("Fetching list of projects")
-            response = self._send_request("GET", url)
-            projects_data = response.get("value", [])
-            
-            span.set_attribute("ado.projects_count", len(projects_data))
-            logger.info(f"Retrieved {len(projects_data)} projects")
+        operation_name = "list_projects"
+        url = f"{self.organization_url}/_apis/projects?api-version=7.1-preview.4"
+        
+        context_attrs = {
+            "ado.organization_url": self.organization_url,
+            "ado.url": url,
+            "correlation_id": self.correlation_id,
+        }
+        
+        if self.telemetry:
+            with self.telemetry.trace_api_call(operation_name, **context_attrs) as span:
+                return self._list_projects_impl(url, span)
+        else:
+            with tracer.start_as_current_span(f"ado_{operation_name}") as span:
+                span.set_attribute("ado.operation", operation_name)
+                for key, value in context_attrs.items():
+                    span.set_attribute(key, value)
+                return self._list_projects_impl(url, span)
+    
+    def _list_projects_impl(self, url: str, span) -> list[Project]:
+        """Implementation of list_projects with span context."""
+        logger.info("Fetching list of projects")
+        response = self._send_request("GET", url)
+        projects_data = response.get("value", [])
+        
+        span.set_attribute("ado.projects_count", len(projects_data))
+        logger.info(f"Retrieved {len(projects_data)} projects")
 
-            if projects_data:
-                logger.debug(f"First project data: {projects_data[0]}")
+        if projects_data:
+            logger.debug(f"First project data: {projects_data[0]}")
 
-            projects = []
-            for project_data in projects_data:
-                try:
-                    project = Project(**project_data)
-                    projects.append(project)
-                    logger.debug(f"Parsed project: {project.name} (ID: {project.id})")
-                except Exception as e:
-                    logger.error(f"Failed to parse project data: {project_data}. Error: {e}")
-                    span.record_exception(e)
+        projects = []
+        for project_data in projects_data:
+            try:
+                project = Project(**project_data)
+                projects.append(project)
+                logger.debug(f"Parsed project: {project.name} (ID: {project.id})")
+            except Exception as e:
+                logger.error(f"Failed to parse project data: {project_data}. Error: {e}")
+                span.record_exception(e)
 
-            return projects
+        return projects
 
     def list_service_connections(self, project_id: str) -> list[dict[str, Any]]:
         """
