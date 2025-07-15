@@ -2,6 +2,8 @@
 
 An MCP (Model Context Protocol) server that provides Azure DevOps integration for AI assistants and development tools. Enables your AI assistant to list projects, run pipelines, analyze failures, view logs, and troubleshoot builds directly from your chat interface.
 
+📚 **[Full Documentation](https://ado-mcp.readthedocs.io/)** | 🚀 **[Quick Start](#prerequisites)** | 🛠️ **[API Reference](https://ado-mcp.readthedocs.io/en/latest/api.html)**
+
 ## Prerequisites
 
 You'll need these installed before setting up the MCP server:
@@ -524,6 +526,17 @@ If you want to contribute to this project or run it from source:
     ```bash
     task inspect
     ```
+
+## Documentation
+
+-   **View documentation locally**:
+    ```bash
+    task docs-serve
+    ```
+    
+    This automatically builds the docs and serves them at http://localhost:8000
+
+The documentation is built with [Sphinx](https://www.sphinx-doc.org/) and hosted on [Read the Docs](https://ado-mcp.readthedocs.io/).
 
 ## Working with Azure DevOps URLs
 

@@ -1,0 +1,6 @@
+# Additional requirements for building docs on Read the Docs
+# These dependencies are needed for importing modules during doc generation
+
+opentelemetry-api>=1.20.0
+opentelemetry-sdk>=1.20.0
+opentelemetry-instrumentation-requests>=0.41b0

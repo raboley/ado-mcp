@@ -41,7 +41,7 @@ ado-mcp = "server:main"
 Homepage = "https://github.com/raboley/ado-mcp"
 Repository = "https://github.com/raboley/ado-mcp"
 Issues = "https://github.com/raboley/ado-mcp/issues"
-Documentation = "https://github.com/raboley/ado-mcp#readme"
+Documentation = "https://ado-mcp.readthedocs.io/"
 
 [project.optional-dependencies]
 dev = [
@@ -53,6 +53,16 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.0.0",
     "types-requests>=2.30.0",
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-instrumentation-requests>=0.41b0",
+]
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=2.0.0",
+    "sphinx-autodoc-typehints>=1.25.0",
+    "myst-parser>=2.0.0",
+    "sphinx-autobuild>=2024.2.0",
     "opentelemetry-api>=1.20.0",
     "opentelemetry-sdk>=1.20.0",
     "opentelemetry-instrumentation-requests>=0.41b0",

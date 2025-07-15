@@ -74,6 +74,44 @@ tasks:
     cmds:
       - fastmcp dev server.py
 
+  docs-install:
+    cmds:
+      - uv sync --extra docs
+    sources:
+      - pyproject.toml
+    generates:
+      - .venv/lib/python*/site-packages/sphinx*
+
+  docs-build:
+    deps:
+      - task: docs-install
+    cmds:
+      - uv run sphinx-build -b html docs docs/_build/html
+    sources:
+      - docs/**/*
+      - ado/**/*.py
+      - server.py
+    generates:
+      - docs/_build/html/index.html
+
+  docs-serve:
+    desc: Build and serve documentation locally at http://localhost:8000
+    deps:
+      - task: docs-build
+    cmds:
+      - echo "📚 Documentation available at http://localhost:8000"
+      - uv run python -m http.server 8000 -d docs/_build/html
+
+  docs-clean:
+    cmds:
+      - rm -rf docs/_build docs/_autosummary
+
+  docs-watch:
+    deps:
+      - task: docs-install
+    cmds:
+      - uv run sphinx-autobuild docs docs/_build/html --host 0.0.0.0 --port 8000
+
   auth-test:
     desc: test your ado token
     cmds:
