@@ -6,6 +6,10 @@ name: GitHub Resources Test Pipeline
 trigger: none  # Manual trigger only for testing
 
 parameters:
+  - name: toolingBranch
+    displayName: 'Tooling Branch/Tag'
+    type: string
+    default: 'main'
   - name: taskfileVersion
     displayName: 'Taskfile Version'
     type: string
@@ -22,7 +26,7 @@ resources:
       type: github
       name: raboley/tooling
       endpoint: raboley
-      ref: refs/heads/main
+      ref: refs/heads/${{ parameters.toolingBranch }}
 
 variables:
   - name: testVariable

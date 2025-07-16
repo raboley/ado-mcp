@@ -1,0 +1,53 @@
+name: Simple GitHub Resources Test
+
+trigger: none  # Manual trigger only for testing
+
+parameters:
+  - name: testBranch
+    displayName: 'Test Branch'
+    type: string
+    default: 'main'
+  - name: testVariable
+    displayName: 'Test Variable'
+    type: string
+    default: 'default-value'
+
+# Simple resources that can be controlled by the MCP client
+resources:
+  repositories:
+    - repository: self
+      type: github
+      name: raboley/ado-mcp
+      endpoint: raboley
+      ref: refs/heads/${{ parameters.testBranch }}
+
+variables:
+  - name: pipelineVariable
+    value: ${{ parameters.testVariable }}
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - checkout: self
+  
+  - script: |
+      echo "=== Simple GitHub Resources Test ==="
+      echo "Test Branch: ${{ parameters.testBranch }}"
+      echo "Test Variable: ${{ parameters.testVariable }}"
+      echo "Pipeline Variable: $(pipelineVariable)"
+      echo ""
+      echo "=== Repository Information ==="
+      echo "Repository: $(Build.Repository.Name)"
+      echo "Branch: $(Build.SourceBranch)"
+      echo "Commit: $(Build.SourceVersion)"
+      echo ""
+      echo "=== Working Directory ==="
+      ls -la
+      echo ""
+      echo "=== Git Information ==="
+      git log --oneline -1 || echo "No git history"
+      git branch -a || echo "No branches info"
+      echo ""
+      echo "✅ GitHub Resources Test Completed Successfully"
+    displayName: 'GitHub Resources Test'
