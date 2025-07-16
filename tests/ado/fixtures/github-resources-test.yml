@@ -1,0 +1,121 @@
+name: GitHub Resources Test Pipeline
+
+# This pipeline demonstrates using GitHub resources to pull templates from different branches/tags
+# and shows how the MCP client can control branch selection dynamically
+
+trigger: none  # Manual trigger only for testing
+
+parameters:
+  - name: taskfileVersion
+    displayName: 'Taskfile Version'
+    type: string
+    default: 'latest'
+  - name: installPath
+    displayName: 'Installation Path'
+    type: string
+    default: './bin'
+
+# Define resources that can be controlled by the MCP client
+resources:
+  repositories:
+    - repository: tooling
+      type: github
+      name: raboley/tooling
+      endpoint: raboley
+      ref: refs/heads/main
+
+variables:
+  - name: testVariable
+    value: 'default-value'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: ResourcesTest
+    displayName: 'Test GitHub Resources'
+    jobs:
+      - job: InstallTaskfile
+        displayName: 'Install Taskfile from GitHub Resources'
+        steps:
+          - checkout: self
+          - checkout: tooling
+          
+          - script: |
+              echo "=== GitHub Resources Test ==="
+              echo "Tooling Branch/Tag: ${{ parameters.toolingBranch }}"
+              echo "Taskfile Version: ${{ parameters.taskfileVersion }}"
+              echo "Install Path: ${{ parameters.installPath }}"
+              echo "Test Variable: $(testVariable)"
+              echo ""
+              echo "=== Repository Structure ==="
+              echo "Self repository (ado-mcp):"
+              ls -la $(Build.SourcesDirectory)
+              echo ""
+              echo "Tooling repository:"
+              ls -la $(Build.SourcesDirectory)/tooling
+              echo ""
+              echo "ADO templates directory:"
+              ls -la $(Build.SourcesDirectory)/tooling/.ado/steps/ || echo "No .ado/steps directory found"
+            displayName: 'Show Repository Structure'
+            
+          - template: tooling/.ado/steps/install.taskfile.yml
+            parameters:
+              version: ${{ parameters.taskfileVersion }}
+              installPath: ${{ parameters.installPath }}
+              
+          - script: |
+              echo "=== Taskfile Installation Verification ==="
+              echo "Checking installation path: ${{ parameters.installPath }}"
+              ls -la ${{ parameters.installPath }}/ || echo "Installation path not found"
+              echo ""
+              echo "Taskfile version:"
+              ${{ parameters.installPath }}/task --version || echo "Taskfile not found or not executable"
+              echo ""
+              echo "PATH contents:"
+              echo $PATH
+            displayName: 'Verify Taskfile Installation'
+            
+          - script: |
+              echo "=== Test Variable Values ==="
+              echo "testVariable: $(testVariable)"
+              echo "Parameters passed:"
+              echo "  toolingBranch: ${{ parameters.toolingBranch }}"
+              echo "  taskfileVersion: ${{ parameters.taskfileVersion }}"
+              echo "  installPath: ${{ parameters.installPath }}"
+              echo ""
+              echo "=== Git Information ==="
+              echo "Main repository commit:"
+              git log --oneline -1 || echo "No git history"
+              echo ""
+              echo "Tooling repository commit:"
+              cd $(Build.SourcesDirectory)/tooling
+              git log --oneline -1 || echo "No git history"
+              git branch -a || echo "No branches info"
+              git tag --list | head -5 || echo "No tags"
+            displayName: 'Show Git and Variable Info'
+            
+      - job: TestResourcesWithDifferentBranches
+        displayName: 'Test Resource Branch Resolution'
+        steps:
+          - checkout: self
+          - checkout: tooling
+          
+          - script: |
+              echo "=== Resource Branch Resolution Test ==="
+              echo "This job tests that resources can be pulled from different branches"
+              echo "Current tooling branch/tag: ${{ parameters.toolingBranch }}"
+              echo ""
+              cd $(Build.SourcesDirectory)/tooling
+              echo "Current commit:"
+              git log --oneline -1
+              echo ""
+              echo "All available branches:"
+              git branch -r
+              echo ""
+              echo "Available tags (first 10):"
+              git tag --list | head -10
+              echo ""
+              echo "File timestamp of template:"
+              stat $(Build.SourcesDirectory)/tooling/.ado/steps/install.taskfile.yml || echo "Template not found"
+            displayName: 'Verify Branch/Tag Selection'
