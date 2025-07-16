@@ -554,9 +554,9 @@ class AdoClient:
         return self._pipelines.preview_pipeline(project_id, pipeline_id, request)
 
     # Build Operations
-    def run_pipeline(self, project_id: str, pipeline_id: int):
+    def run_pipeline(self, project_id: str, pipeline_id: int, request=None):
         """Run a pipeline."""
-        return self._builds.run_pipeline(project_id, pipeline_id)
+        return self._builds.run_pipeline(project_id, pipeline_id, request)
 
     def get_pipeline_run(self, project_id: str, pipeline_id: int, run_id: int):
         """Get pipeline run details."""
@@ -580,11 +580,11 @@ class AdoClient:
         )
 
     def run_pipeline_and_get_outcome(
-        self, project_id: str, pipeline_id: int, timeout_seconds: int = 300, max_lines: int = 100
+        self, project_id: str, pipeline_id: int, request=None, timeout_seconds: int = 300, max_lines: int = 100
     ):
         """Run pipeline and get complete outcome."""
         return self._builds.run_pipeline_and_get_outcome(
-            project_id, pipeline_id, timeout_seconds, max_lines
+            project_id, pipeline_id, request, timeout_seconds, max_lines
         )
 
     # Log Operations
@@ -625,9 +625,9 @@ class AdoClient:
         """Find pipeline by project and pipeline names."""
         return self._lookups.find_pipeline(project_name, pipeline_name)
 
-    def run_pipeline_by_name(self, project_name: str, pipeline_name: str):
+    def run_pipeline_by_name(self, project_name: str, pipeline_name: str, request=None):
         """Run pipeline by project and pipeline names."""
-        return self._lookups.run_pipeline_by_name(project_name, pipeline_name)
+        return self._lookups.run_pipeline_by_name(project_name, pipeline_name, request)
 
     def get_pipeline_failure_summary_by_name(
         self, project_name: str, pipeline_name: str, run_id: int, max_lines: int = 100
@@ -638,11 +638,11 @@ class AdoClient:
         )
 
     def run_pipeline_and_get_outcome_by_name(
-        self, project_name: str, pipeline_name: str, timeout_seconds: int = 300, max_lines: int = 100
+        self, project_name: str, pipeline_name: str, request=None, timeout_seconds: int = 300, max_lines: int = 100
     ):
         """Run pipeline by name and get outcome."""
         return self._lookups.run_pipeline_and_get_outcome_by_name(
-            project_name, pipeline_name, timeout_seconds, max_lines
+            project_name, pipeline_name, request, timeout_seconds, max_lines
         )
 
     def list_available_projects(self):

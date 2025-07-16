@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Dict, List, Optional, Union
 
 from ado.models import (
     ConfigurationType,
@@ -13,9 +14,11 @@ from ado.models import (
     PreviewRun,
     Project,
     Repository,
+    RunResourcesParameters,
     ServiceConnection,
     StepFailure,
     TimelineResponse,
+    Variable,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,12 +49,12 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.check_authentication()
 
     @mcp_instance.tool
-    def list_projects() -> list[Project]:
+    def list_projects() -> List[Project]:
         """
         Lists all projects in the Azure DevOps organization.
 
         Returns:
-            list[Project]: A list of Project objects.
+            List[Project]: A list of Project objects.
         """
         ado_client_instance = client_container.get("client")
         if not ado_client_instance:
@@ -60,7 +63,7 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.list_projects()
 
     @mcp_instance.tool
-    def list_pipelines(project_id: str) -> list[Pipeline]:
+    def list_pipelines(project_id: str) -> List[Pipeline]:
         """
         Lists all pipelines in a given Azure DevOps project.
 
@@ -227,13 +230,58 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.get_build_by_id(project_id, build_id)
 
     @mcp_instance.tool
-    def run_pipeline(project_id: str, pipeline_id: int) -> PipelineRun | None:
+    def run_pipeline(
+        project_id: str,
+        pipeline_id: int,
+        variables: Optional[Dict[str, Variable]] = None,
+        template_parameters: Optional[Dict[str, Any]] = None,
+        branch: Optional[str] = None,
+        stages_to_skip: Optional[List[str]] = None,
+        resources: Optional[RunResourcesParameters] = None,
+    ) -> Optional[PipelineRun]:
         """
         Triggers a run for a specific pipeline in an Azure DevOps project.
 
         Args:
             project_id (str): The ID of the project.
             pipeline_id (int): The ID of the pipeline.
+            variables (Dict[str, Variable]): Runtime variables to pass to the pipeline 
+                             Example: {"myVar": {"value": "myValue", "isSecret": false}}
+            template_parameters (dict): Template parameters if the pipeline uses templates (e.g., {"environment": "prod"})
+            branch (str): Branch to run the pipeline from (e.g., "refs/heads/main" or "refs/heads/feature/my-branch")
+            stages_to_skip (list): List of stage names to skip during execution
+            resources (RunResourcesParameters): 🔧 DYNAMIC REPOSITORY RESOURCES - Override YAML-defined repository branches
+                             
+                             IMPORTANT: Use proper Azure DevOps API schema structure!
+                             
+                             📋 YAML Example:
+                             resources:
+                               repositories:
+                                 - repository: tooling
+                                   type: github
+                                   name: raboley/tooling
+                                   ref: refs/heads/main
+                             
+                             📋 MCP Command Example (proper schema):
+                             resources: {
+                               "repositories": {
+                                 "tooling": {
+                                   "refName": "refs/heads/stable/0.0.1"
+                                 }
+                               }
+                             }
+                             
+                             Available resource types:
+                             - repositories: {"repoName": {"refName": "refs/heads/branch", "version": "commit-hash"}}
+                             - builds: {"buildName": {"version": "build-version"}}
+                             - containers: {"containerName": {"version": "tag"}}
+                             - packages: {"packageName": {"version": "package-version"}}
+                             - pipelines: {"pipelineName": {"version": "pipeline-version"}}
+                             
+                             Common use cases:
+                             - Override external repo branch: {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}
+                             - Override self repo branch: {"repositories": {"self": {"refName": "refs/heads/feature/my-branch"}}}
+                             - Override multiple repos: {"repositories": {"tooling": {"refName": "refs/heads/v1.0"}, "self": {"refName": "refs/heads/main"}}}
 
         Returns:
             Optional[PipelineRun]: A PipelineRun object representing the pipeline run details, or None if client unavailable.
@@ -242,10 +290,23 @@ def register_ado_tools(mcp_instance, client_container):
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return None
-        return ado_client_instance.run_pipeline(project_id, pipeline_id)
+        
+        # Create request if any parameters are provided
+        request = None
+        if any([variables, template_parameters, branch, stages_to_skip, resources]):
+            from .models import PipelineRunRequest
+            request = PipelineRunRequest(
+                variables=variables,
+                templateParameters=template_parameters,
+                branch=branch,
+                stagesToSkip=stages_to_skip,
+                resources=resources
+            )
+        
+        return ado_client_instance.run_pipeline(project_id, pipeline_id, request)
 
     @mcp_instance.tool
-    def get_pipeline_run(project_id: str, pipeline_id: int, run_id: int) -> PipelineRun | None:
+    def get_pipeline_run(project_id: str, pipeline_id: int, run_id: int) -> Optional[PipelineRun]:
         """
         Retrieves details for a specific pipeline run in an Azure DevOps project.
 
@@ -267,11 +328,12 @@ def register_ado_tools(mcp_instance, client_container):
     def preview_pipeline(
         project_id: str,
         pipeline_id: int,
-        yaml_override: str | None = None,
-        variables: dict | None = None,
-        template_parameters: dict | None = None,
-        stages_to_skip: list[str] | None = None,
-    ) -> PreviewRun | None:
+        yaml_override: Optional[str] = None,
+        variables: Optional[Dict[str, Variable]] = None,
+        template_parameters: Optional[Dict[str, Any]] = None,
+        stages_to_skip: Optional[List[str]] = None,
+        resources: Optional[RunResourcesParameters] = None,
+    ) -> Optional[PreviewRun]:
         """
         Previews a pipeline without executing it, returning the final YAML and other preview information.
 
@@ -282,6 +344,7 @@ def register_ado_tools(mcp_instance, client_container):
             variables (Optional[dict]): Optional runtime variables for the preview.
             template_parameters (Optional[dict]): Optional template parameters for the preview.
             stages_to_skip (Optional[List[str]]): Optional list of stage names to skip during preview.
+            resources (Optional[dict]): Optional resources configuration for repository branches/tags.
 
         Returns:
             Optional[PreviewRun]: A PreviewRun object representing the pipeline preview details, or None if client unavailable.
@@ -298,6 +361,7 @@ def register_ado_tools(mcp_instance, client_container):
             variables=variables,
             templateParameters=template_parameters,
             stagesToSkip=stages_to_skip,
+            resources=resources,
         )
 
         return ado_client_instance.preview_pipeline(project_id, pipeline_id, request)
@@ -305,7 +369,7 @@ def register_ado_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def get_pipeline_failure_summary(
         project_id: str, pipeline_id: int, run_id: int, max_lines: int = 100
-    ) -> FailureSummary | None:
+    ) -> Optional[FailureSummary]:
         """
         🔥 ANALYZE FAILED BUILDS: Get comprehensive failure analysis with root causes.
 
@@ -343,9 +407,9 @@ def register_ado_tools(mcp_instance, client_container):
         project_id: str,
         pipeline_id: int,
         run_id: int,
-        step_name: str | None = None,
+        step_name: Optional[str] = None,
         max_lines: int = 100,
-    ) -> list[StepFailure] | None:
+    ) -> Optional[List[StepFailure]]:
         """
         Gets detailed log information for failed steps, optionally filtered by step name.
 
@@ -372,7 +436,7 @@ def register_ado_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def get_pipeline_timeline(
         project_id: str, pipeline_id: int, run_id: int
-    ) -> TimelineResponse | None:
+    ) -> Optional[TimelineResponse]:
         """
         Gets the build timeline for a pipeline run, showing status of all stages, jobs, and tasks.
 
@@ -392,7 +456,7 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.get_pipeline_timeline(project_id, pipeline_id, run_id)
 
     @mcp_instance.tool
-    def list_pipeline_logs(project_id: str, pipeline_id: int, run_id: int) -> LogCollection | None:
+    def list_pipeline_logs(project_id: str, pipeline_id: int, run_id: int) -> Optional[LogCollection]:
         """
         Lists all logs for a specific pipeline run.
 
@@ -414,7 +478,7 @@ def register_ado_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def get_log_content_by_id(
         project_id: str, pipeline_id: int, run_id: int, log_id: int, max_lines: int = 100
-    ) -> str | None:
+    ) -> Optional[str]:
         """
         Gets the content of a specific log from a pipeline run.
 
@@ -440,8 +504,16 @@ def register_ado_tools(mcp_instance, client_container):
 
     @mcp_instance.tool
     def run_pipeline_and_get_outcome(
-        project_id: str, pipeline_id: int, timeout_seconds: int = 300, max_lines: int = 100
-    ) -> PipelineOutcome | None:
+        project_id: str,
+        pipeline_id: int,
+        timeout_seconds: int = 300,
+        max_lines: int = 100,
+        variables: Optional[Dict[str, Variable]] = None,
+        template_parameters: Optional[Dict[str, Any]] = None,
+        branch: Optional[str] = None,
+        stages_to_skip: Optional[List[str]] = None,
+        resources: Optional[RunResourcesParameters] = None,
+    ) -> Optional[PipelineOutcome]:
         """
         🚀 RUN PIPELINE & WAIT: Execute pipeline and get complete outcome analysis.
 
@@ -461,6 +533,38 @@ def register_ado_tools(mcp_instance, client_container):
             timeout_seconds (int): Max wait time (default: 300s = 5 minutes)
             max_lines (int): Maximum number of lines to return from the end of each log (default: 100).
                            Set to 0 or negative to return all lines.
+            variables (Dict[str, Variable]): Runtime variables to pass to the pipeline 
+                             Example: {"myVar": {"value": "myValue", "isSecret": false}}
+            template_parameters (dict): Template parameters if the pipeline uses templates (e.g., {"environment": "prod"})
+            branch (str): Branch to run the pipeline from (e.g., "refs/heads/main" or "refs/heads/feature/my-branch")
+            stages_to_skip (list): List of stage names to skip during execution
+            resources (RunResourcesParameters): 🔧 DYNAMIC REPOSITORY RESOURCES - Override YAML-defined repository branches
+                             
+                             IMPORTANT: Pass as a dictionary/object, NOT a JSON string!
+                             
+                             📋 YAML Example:
+                             resources:
+                               repositories:
+                                 - repository: tooling
+                                   type: github
+                                   name: raboley/tooling
+                                   ref: refs/heads/main
+                             
+                             📋 MCP Command Example:
+                             resources: {
+                               "repositories": {
+                                 "tooling": {
+                                   "refName": "refs/heads/stable/0.0.1"
+                                 }
+                               }
+                             }
+                             
+                             ✅ CORRECT: Pass dictionary object
+                             ❌ WRONG: Pass JSON string like '{"repositories": ...}'
+                             
+                             Common use cases:
+                             - Override external repo branch: {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}
+                             - Override self repo branch: {"repositories": {"self": {"refName": "refs/heads/feature/my-branch"}}}
 
         Returns:
             PipelineOutcome: Complete results with pipeline_run, success flag, failure_summary, execution_time
@@ -470,14 +574,26 @@ def register_ado_tools(mcp_instance, client_container):
             logger.error("ADO client is not available.")
             return None
 
+        # Create request if any parameters are provided
+        request = None
+        if any([variables, template_parameters, branch, stages_to_skip, resources]):
+            from .models import PipelineRunRequest
+            request = PipelineRunRequest(
+                variables=variables,
+                templateParameters=template_parameters,
+                branch=branch,
+                stagesToSkip=stages_to_skip,
+                resources=resources
+            )
+
         return ado_client_instance.run_pipeline_and_get_outcome(
-            project_id, pipeline_id, timeout_seconds, max_lines
+            project_id, pipeline_id, request, timeout_seconds, max_lines
         )
 
     # 🚀 NAME-BASED TOOLS - USER-FRIENDLY INTERFACES
     
     @mcp_instance.tool
-    def find_project_by_name(name: str) -> Project | None:
+    def find_project_by_name(name: str) -> Optional[Project]:
         """
         🔍 FIND PROJECT BY NAME: Find a project using its name with fuzzy matching.
         
@@ -505,7 +621,7 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.find_project_by_name(name)
     
     @mcp_instance.tool
-    def find_pipeline_by_name(project_name: str, pipeline_name: str) -> dict | None:
+    def find_pipeline_by_name(project_name: str, pipeline_name: str) -> Optional[Dict]:
         """
         🔍 FIND PIPELINE BY NAME: Find a pipeline using project and pipeline names.
         
@@ -542,7 +658,15 @@ def register_ado_tools(mcp_instance, client_container):
         return None
     
     @mcp_instance.tool
-    def run_pipeline_by_name(project_name: str, pipeline_name: str) -> PipelineRun | None:
+    def run_pipeline_by_name(
+        project_name: str,
+        pipeline_name: str,
+        variables: Optional[Dict[str, Variable]] = None,
+        template_parameters: Optional[Dict[str, Any]] = None,
+        branch: Optional[str] = None,
+        stages_to_skip: Optional[List[str]] = None,
+        resources: Optional[RunResourcesParameters] = None,
+    ) -> Optional[PipelineRun]:
         """
         🚀 RUN PIPELINE BY NAME: Execute a pipeline using natural names.
         
@@ -559,6 +683,17 @@ def register_ado_tools(mcp_instance, client_container):
         Args:
             project_name (str): Project name (fuzzy matching enabled)
             pipeline_name (str): Pipeline name (fuzzy matching enabled)
+            variables (Dict[str, Variable]): Runtime variables to pass to the pipeline 
+                             Example: {"myVar": {"value": "myValue", "isSecret": false}}
+            template_parameters (dict): Template parameters if the pipeline uses templates (e.g., {"environment": "prod"})
+            branch (str): Branch to run the pipeline from (e.g., "refs/heads/main" or "refs/heads/feature/my-branch")
+            stages_to_skip (list): List of stage names to skip during execution
+            resources (RunResourcesParameters): 🔧 DYNAMIC REPOSITORY RESOURCES - Override YAML-defined repository branches
+                             
+                             IMPORTANT: Pass as a dictionary/object, NOT a JSON string!
+                             
+                             ✅ CORRECT: {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}
+                             ❌ WRONG: '{"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}'
             
         Returns:
             PipelineRun: Pipeline run details if successful, None otherwise
@@ -568,12 +703,24 @@ def register_ado_tools(mcp_instance, client_container):
             logger.error("ADO client is not available.")
             return None
         
-        return ado_client_instance.run_pipeline_by_name(project_name, pipeline_name)
+        # Create request if any parameters are provided
+        request = None
+        if any([variables, template_parameters, branch, stages_to_skip, resources]):
+            from .models import PipelineRunRequest
+            request = PipelineRunRequest(
+                variables=variables,
+                templateParameters=template_parameters,
+                branch=branch,
+                stagesToSkip=stages_to_skip,
+                resources=resources
+            )
+        
+        return ado_client_instance.run_pipeline_by_name(project_name, pipeline_name, request)
     
     @mcp_instance.tool
     def get_pipeline_failure_summary_by_name(
         project_name: str, pipeline_name: str, run_id: int, max_lines: int = 100
-    ) -> FailureSummary | None:
+    ) -> Optional[FailureSummary]:
         """
         🔥 ANALYZE FAILURES BY NAME: Get failure analysis using natural names.
         
@@ -610,8 +757,13 @@ def register_ado_tools(mcp_instance, client_container):
         project_name: str, 
         pipeline_name: str, 
         timeout_seconds: int = 300, 
-        max_lines: int = 100
-    ) -> PipelineOutcome | None:
+        max_lines: int = 100,
+        variables: Optional[Dict[str, Variable]] = None,
+        template_parameters: Optional[Dict[str, Any]] = None,
+        branch: Optional[str] = None,
+        stages_to_skip: Optional[List[str]] = None,
+        resources: Optional[RunResourcesParameters] = None,
+    ) -> Optional[PipelineOutcome]:
         """
         🚀 RUN & ANALYZE BY NAME: Execute pipeline by name and get complete results.
         
@@ -631,6 +783,17 @@ def register_ado_tools(mcp_instance, client_container):
             pipeline_name (str): Pipeline name (fuzzy matching enabled)
             timeout_seconds (int): Max wait time (default: 300s = 5 minutes)
             max_lines (int): Maximum log lines to return (default: 100)
+            variables (Dict[str, Variable]): Runtime variables to pass to the pipeline 
+                             Example: {"myVar": {"value": "myValue", "isSecret": false}}
+            template_parameters (dict): Template parameters if the pipeline uses templates (e.g., {"environment": "prod"})
+            branch (str): Branch to run the pipeline from (e.g., "refs/heads/main" or "refs/heads/feature/my-branch")
+            stages_to_skip (list): List of stage names to skip during execution
+            resources (RunResourcesParameters): 🔧 DYNAMIC REPOSITORY RESOURCES - Override YAML-defined repository branches
+                             
+                             IMPORTANT: Pass as a dictionary/object, NOT a JSON string!
+                             
+                             ✅ CORRECT: {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}
+                             ❌ WRONG: '{"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}'
             
         Returns:
             PipelineOutcome: Complete execution results, None if not found
@@ -640,12 +803,24 @@ def register_ado_tools(mcp_instance, client_container):
             logger.error("ADO client is not available.")
             return None
         
+        # Create request if any parameters are provided
+        request = None
+        if any([variables, template_parameters, branch, stages_to_skip, resources]):
+            from .models import PipelineRunRequest
+            request = PipelineRunRequest(
+                variables=variables,
+                templateParameters=template_parameters,
+                branch=branch,
+                stagesToSkip=stages_to_skip,
+                resources=resources
+            )
+        
         return ado_client_instance.run_pipeline_and_get_outcome_by_name(
-            project_name, pipeline_name, timeout_seconds, max_lines
+            project_name, pipeline_name, request, timeout_seconds, max_lines
         )
     
     @mcp_instance.tool
-    def list_available_projects() -> list[str]:
+    def list_available_projects() -> List[str]:
         """
         📋 LIST PROJECT NAMES: Get all available project names for easy reference.
         
@@ -657,7 +832,7 @@ def register_ado_tools(mcp_instance, client_container):
         Perfect for: "What projects are available?" or "Show me all projects"
         
         Returns:
-            list[str]: List of project names available in the organization
+            List[str]: List of project names available in the organization
         """
         ado_client_instance = client_container.get("client")
         if not ado_client_instance:
@@ -667,7 +842,7 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.list_available_projects()
     
     @mcp_instance.tool  
-    def list_available_pipelines(project_name: str) -> list[str]:
+    def list_available_pipelines(project_name: str) -> List[str]:
         """
         📋 LIST PIPELINE NAMES: Get all pipeline names for a project.
         
@@ -682,7 +857,7 @@ def register_ado_tools(mcp_instance, client_container):
             project_name (str): Project name (fuzzy matching enabled)
             
         Returns:
-            list[str]: List of pipeline names in the project, empty list if project not found
+            List[str]: List of pipeline names in the project, empty list if project not found
         """
         ado_client_instance = client_container.get("client")
         if not ado_client_instance:

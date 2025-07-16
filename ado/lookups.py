@@ -11,7 +11,7 @@ from typing import Optional, Tuple, List
 from opentelemetry import trace
 
 from .cache import ado_cache
-from .models import Project, Pipeline, FailureSummary, PipelineRun, PipelineOutcome
+from .models import Project, Pipeline, FailureSummary, PipelineRun, PipelineOutcome, PipelineRunRequest
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -126,13 +126,16 @@ class AdoLookups:
         return None
     
     # High-level operations using names
-    def run_pipeline_by_name(self, project_name: str, pipeline_name: str) -> Optional[PipelineRun]:
+    def run_pipeline_by_name(
+        self, project_name: str, pipeline_name: str, request: Optional[PipelineRunRequest] = None
+    ) -> Optional[PipelineRun]:
         """
         Run a pipeline by project and pipeline names.
         
         Args:
             project_name: Project name
             pipeline_name: Pipeline name
+            request: Optional request with variables, parameters, and branch
             
         Returns:
             PipelineRun object if successful, None otherwise
@@ -143,7 +146,7 @@ class AdoLookups:
         
         project_id, pipeline_id = ids
         logger.info(f"Running pipeline '{pipeline_name}' in project '{project_name}'")
-        return self.client.run_pipeline(project_id, pipeline_id)
+        return self.client.run_pipeline(project_id, pipeline_id, request)
     
     def get_pipeline_failure_summary_by_name(
         self, 
@@ -175,6 +178,7 @@ class AdoLookups:
         self,
         project_name: str,
         pipeline_name: str,
+        request: Optional[PipelineRunRequest] = None,
         timeout_seconds: int = 300,
         max_lines: int = 100
     ) -> Optional[PipelineOutcome]:
@@ -184,6 +188,7 @@ class AdoLookups:
         Args:
             project_name: Project name
             pipeline_name: Pipeline name
+            request: Optional request with variables, parameters, and branch
             timeout_seconds: Max wait time
             max_lines: Maximum log lines to return
             
@@ -196,7 +201,7 @@ class AdoLookups:
         
         project_id, pipeline_id = ids
         logger.info(f"Running pipeline '{pipeline_name}' in project '{project_name}' and waiting for outcome")
-        return self.client.run_pipeline_and_get_outcome(project_id, pipeline_id, timeout_seconds, max_lines)
+        return self.client.run_pipeline_and_get_outcome(project_id, pipeline_id, request, timeout_seconds, max_lines)
     
     # Utility functions
     def list_available_projects(self) -> List[str]:

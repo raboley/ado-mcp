@@ -4,7 +4,7 @@ import logging
 import time
 from typing import Any
 
-from ..models import PipelineOutcome, PipelineRun
+from ..models import PipelineOutcome, PipelineRun, PipelineRunRequest
 
 logger = logging.getLogger(__name__)
 
@@ -16,13 +16,16 @@ class BuildOperations:
         """Initialize with reference to core client."""
         self._client = client_core
 
-    def run_pipeline(self, project_id: str, pipeline_id: int) -> PipelineRun:
+    def run_pipeline(
+        self, project_id: str, pipeline_id: int, request: PipelineRunRequest | None = None
+    ) -> PipelineRun:
         """
         Trigger a run for a specific pipeline.
 
         Args:
             project_id (str): The ID of the project.
             pipeline_id (int): The ID of the pipeline.
+            request (Optional[PipelineRunRequest]): Optional request with variables, parameters, and branch.
 
         Returns:
             PipelineRun: A PipelineRun object representing the pipeline run details.
@@ -31,8 +34,33 @@ class BuildOperations:
             requests.exceptions.RequestException: For network-related errors.
         """
         url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs?api-version=7.2-preview.1"
+        
+        # Prepare request data
+        request_data = {}
+        if request:
+            request_dict = request.model_dump(exclude_none=True)
+            
+            # Handle branch separately as it needs to be in resources.repositories.self.refName
+            if request.branch:
+                # Start with existing resources or create empty dict
+                resources = request_dict.get("resources", {})
+                if "repositories" not in resources:
+                    resources["repositories"] = {}
+                # Set the self repository branch (for when running from a different branch)
+                resources["repositories"]["self"] = {"refName": request.branch}
+                request_data["resources"] = resources
+                # Remove branch from the dict as we've handled it
+                request_dict.pop("branch", None)
+            
+            # Add other fields (this will include resources if they were specified)
+            # The resources parameter should directly override YAML-defined resources
+            request_data.update(request_dict)
+        
         logger.info(f"Running pipeline {pipeline_id} in project {project_id}")
-        response = self._client._send_request("POST", url, json={})
+        if request_data:
+            logger.debug(f"Pipeline run request data: {request_data}")
+        
+        response = self._client._send_request("POST", url, json=request_data)
         logger.info(
             f"Pipeline run started: {response.get('id')} with state: {response.get('state')}"
         )
@@ -133,7 +161,12 @@ class BuildOperations:
             time.sleep(poll_interval_seconds)
 
     def run_pipeline_and_get_outcome(
-        self, project_id: str, pipeline_id: int, timeout_seconds: int = 300, max_lines: int = 100
+        self,
+        project_id: str,
+        pipeline_id: int,
+        request: PipelineRunRequest | None = None,
+        timeout_seconds: int = 300,
+        max_lines: int = 100,
     ) -> PipelineOutcome:
         """
         Run a pipeline, wait for completion, and return the outcome with failure details if applicable.
@@ -146,6 +179,7 @@ class BuildOperations:
         Args:
             project_id (str): The ID of the project.
             pipeline_id (int): The ID of the pipeline.
+            request (Optional[PipelineRunRequest]): Optional request with variables, parameters, and branch.
             timeout_seconds (int): Maximum time to wait for completion (default: 300).
             max_lines (int): Maximum number of lines to return from the end of each log (default: 100).
                            Set to 0 or negative to return all lines.
@@ -166,7 +200,7 @@ class BuildOperations:
         logger.info(f"Starting pipeline {pipeline_id} and waiting for outcome...")
 
         # Step 1: Start the pipeline
-        pipeline_run = self.run_pipeline(project_id, pipeline_id)
+        pipeline_run = self.run_pipeline(project_id, pipeline_id, request)
         run_id = pipeline_run.id
 
         # Step 2: Wait for completion
