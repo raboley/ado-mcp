@@ -41,7 +41,7 @@ stages:
           - checkout: self
           - checkout: tooling
           
-          - template: tooling/.ado/steps/install.taskfile.yml@tooling
+          - template: /.ado/steps/install.taskfile.yml@tooling
             parameters:
               version: ${{ parameters.taskfileVersion }}
               installPath: ${{ parameters.installPath }}
