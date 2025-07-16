@@ -3,10 +3,6 @@ name: Simple GitHub Resources Test
 trigger: none  # Manual trigger only for testing
 
 parameters:
-  - name: testBranch
-    displayName: 'Test Branch'
-    type: string
-    default: 'main'
   - name: testVariable
     displayName: 'Test Variable'
     type: string
@@ -19,7 +15,7 @@ resources:
       type: github
       name: raboley/ado-mcp
       endpoint: raboley
-      ref: refs/heads/${{ parameters.testBranch }}
+      ref: refs/heads/main
 
 variables:
   - name: pipelineVariable
@@ -33,7 +29,6 @@ steps:
   
   - script: |
       echo "=== Simple GitHub Resources Test ==="
-      echo "Test Branch: ${{ parameters.testBranch }}"
       echo "Test Variable: ${{ parameters.testVariable }}"
       echo "Pipeline Variable: $(pipelineVariable)"
       echo ""
