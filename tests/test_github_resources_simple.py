@@ -39,7 +39,6 @@ async def test_github_resources_basic_functionality(mcp_client: Client):
     }
     
     template_parameters = {
-        "toolingBranch": "main",
         "taskfileVersion": "latest", 
         "installPath": "./basic-test-bin"
     }
@@ -83,7 +82,6 @@ async def test_github_resources_with_different_versions(mcp_client: Client):
     }
     
     template_parameters = {
-        "toolingBranch": "main",
         "taskfileVersion": "v3.30.1",  # Specific version
         "installPath": "./version-test-bin"
     }
@@ -122,7 +120,6 @@ async def test_github_resources_name_based_execution(mcp_client: Client):
     }
     
     template_parameters = {
-        "toolingBranch": "main",
         "taskfileVersion": "latest",
         "installPath": "./name-based-test-bin"
     }
@@ -188,7 +185,6 @@ async def test_github_resources_demonstration(mcp_client: Client):
         }
         
         template_parameters = {
-            "toolingBranch": config["branch"],
             "taskfileVersion": config["version"],
             "installPath": config["path"]
         }
@@ -242,7 +238,6 @@ async def test_github_resources_template_parameter_validation(mcp_client: Client
     }
     
     template_parameters = {
-        "toolingBranch": "main",
         "taskfileVersion": "v3.28.0",
         "installPath": "./validation-test-bin"
     }

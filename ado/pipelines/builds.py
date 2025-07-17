@@ -40,6 +40,21 @@ class BuildOperations:
         if request:
             request_dict = request.model_dump(exclude_none=True)
             
+            # Handle variables: convert Union[str, Variable] to proper Azure DevOps format
+            if "variables" in request_dict and request_dict["variables"]:
+                processed_variables = {}
+                for key, value in request_dict["variables"].items():
+                    if isinstance(value, str):
+                        # Convert string to Variable object format for Azure DevOps API
+                        processed_variables[key] = {"value": value}
+                    elif isinstance(value, dict) and "value" in value:
+                        # Already in Variable object format
+                        processed_variables[key] = value
+                    else:
+                        # Fallback: treat as string value
+                        processed_variables[key] = {"value": str(value)}
+                request_dict["variables"] = processed_variables
+            
             # Handle branch separately as it needs to be in resources.repositories.self.refName
             if request.branch:
                 # Start with existing resources or create empty dict
@@ -58,7 +73,7 @@ class BuildOperations:
         
         logger.info(f"Running pipeline {pipeline_id} in project {project_id}")
         if request_data:
-            logger.debug(f"Pipeline run request data: {request_data}")
+            logger.info(f"Pipeline run request data: {request_data}")  # Changed to info to see in tests
         
         response = self._client._send_request("POST", url, json=request_data)
         logger.info(

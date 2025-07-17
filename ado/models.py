@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -353,7 +353,7 @@ class PipelineRunRequest(BaseModel):
 
     resources: Optional[RunResourcesParameters] = None
     templateParameters: Optional[Dict[str, Any]] = None
-    variables: Optional[Dict[str, Variable]] = None
+    variables: Optional[Dict[str, Any]] = None  # Accept any variable format
     stagesToSkip: Optional[List[str]] = None
     branch: Optional[str] = None  # Branch to run the pipeline from (e.g., "refs/heads/main")
 

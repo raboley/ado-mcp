@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Union
 
 from ado.models import (
     ConfigurationType,
@@ -233,7 +233,7 @@ def register_ado_tools(mcp_instance, client_container):
     def run_pipeline(
         project_id: str,
         pipeline_id: int,
-        variables: Optional[Dict[str, Variable]] = None,
+        variables: Optional[Dict[str, Any]] = None,
         template_parameters: Optional[Dict[str, Any]] = None,
         branch: Optional[str] = None,
         stages_to_skip: Optional[List[str]] = None,
@@ -245,8 +245,10 @@ def register_ado_tools(mcp_instance, client_container):
         Args:
             project_id (str): The ID of the project.
             pipeline_id (int): The ID of the pipeline.
-            variables (Dict[str, Variable]): Runtime variables to pass to the pipeline 
-                             Example: {"myVar": {"value": "myValue", "isSecret": false}}
+            variables (Dict[str, Union[str, Variable]]): Runtime variables to pass to the pipeline
+                             Accepts both simple strings and Variable objects:
+                             - String format: {"myVar": "myValue"}
+                             - Object format: {"myVar": {"value": "myValue", "isSecret": false}}
             template_parameters (dict): Template parameters if the pipeline uses templates (e.g., {"environment": "prod"})
             branch (str): Branch to run the pipeline from (e.g., "refs/heads/main" or "refs/heads/feature/my-branch")
             stages_to_skip (list): List of stage names to skip during execution
@@ -329,7 +331,7 @@ def register_ado_tools(mcp_instance, client_container):
         project_id: str,
         pipeline_id: int,
         yaml_override: Optional[str] = None,
-        variables: Optional[Dict[str, Variable]] = None,
+        variables: Optional[Dict[str, Any]] = None,
         template_parameters: Optional[Dict[str, Any]] = None,
         stages_to_skip: Optional[List[str]] = None,
         resources: Optional[RunResourcesParameters] = None,
@@ -354,14 +356,18 @@ def register_ado_tools(mcp_instance, client_container):
             logger.error("ADO client is not available.")
             return None
 
-        # Build the preview request
+        # Build the preview request - convert resources to dict if provided
+        resources_dict = None
+        if resources:
+            resources_dict = resources.dict(exclude_none=True) if hasattr(resources, 'dict') else resources
+        
         request = PipelinePreviewRequest(
             previewRun=True,
             yamlOverride=yaml_override,
             variables=variables,
             templateParameters=template_parameters,
             stagesToSkip=stages_to_skip,
-            resources=resources,
+            resources=resources_dict,
         )
 
         return ado_client_instance.preview_pipeline(project_id, pipeline_id, request)
@@ -508,7 +514,7 @@ def register_ado_tools(mcp_instance, client_container):
         pipeline_id: int,
         timeout_seconds: int = 300,
         max_lines: int = 100,
-        variables: Optional[Dict[str, Variable]] = None,
+        variables: Optional[Dict[str, Any]] = None,
         template_parameters: Optional[Dict[str, Any]] = None,
         branch: Optional[str] = None,
         stages_to_skip: Optional[List[str]] = None,
@@ -533,8 +539,10 @@ def register_ado_tools(mcp_instance, client_container):
             timeout_seconds (int): Max wait time (default: 300s = 5 minutes)
             max_lines (int): Maximum number of lines to return from the end of each log (default: 100).
                            Set to 0 or negative to return all lines.
-            variables (Dict[str, Variable]): Runtime variables to pass to the pipeline 
-                             Example: {"myVar": {"value": "myValue", "isSecret": false}}
+            variables (Dict[str, Union[str, Variable]]): Runtime variables to pass to the pipeline
+                             Accepts both simple strings and Variable objects:
+                             - String format: {"myVar": "myValue"}
+                             - Object format: {"myVar": {"value": "myValue", "isSecret": false}}
             template_parameters (dict): Template parameters if the pipeline uses templates (e.g., {"environment": "prod"})
             branch (str): Branch to run the pipeline from (e.g., "refs/heads/main" or "refs/heads/feature/my-branch")
             stages_to_skip (list): List of stage names to skip during execution
@@ -661,7 +669,7 @@ def register_ado_tools(mcp_instance, client_container):
     def run_pipeline_by_name(
         project_name: str,
         pipeline_name: str,
-        variables: Optional[Dict[str, Variable]] = None,
+        variables: Optional[Dict[str, Any]] = None,
         template_parameters: Optional[Dict[str, Any]] = None,
         branch: Optional[str] = None,
         stages_to_skip: Optional[List[str]] = None,
@@ -683,8 +691,10 @@ def register_ado_tools(mcp_instance, client_container):
         Args:
             project_name (str): Project name (fuzzy matching enabled)
             pipeline_name (str): Pipeline name (fuzzy matching enabled)
-            variables (Dict[str, Variable]): Runtime variables to pass to the pipeline 
-                             Example: {"myVar": {"value": "myValue", "isSecret": false}}
+            variables (Dict[str, Union[str, Variable]]): Runtime variables to pass to the pipeline
+                             Accepts both simple strings and Variable objects:
+                             - String format: {"myVar": "myValue"}
+                             - Object format: {"myVar": {"value": "myValue", "isSecret": false}}
             template_parameters (dict): Template parameters if the pipeline uses templates (e.g., {"environment": "prod"})
             branch (str): Branch to run the pipeline from (e.g., "refs/heads/main" or "refs/heads/feature/my-branch")
             stages_to_skip (list): List of stage names to skip during execution
@@ -758,7 +768,7 @@ def register_ado_tools(mcp_instance, client_container):
         pipeline_name: str, 
         timeout_seconds: int = 300, 
         max_lines: int = 100,
-        variables: Optional[Dict[str, Variable]] = None,
+        variables: Optional[Dict[str, Any]] = None,
         template_parameters: Optional[Dict[str, Any]] = None,
         branch: Optional[str] = None,
         stages_to_skip: Optional[List[str]] = None,
@@ -783,8 +793,10 @@ def register_ado_tools(mcp_instance, client_container):
             pipeline_name (str): Pipeline name (fuzzy matching enabled)
             timeout_seconds (int): Max wait time (default: 300s = 5 minutes)
             max_lines (int): Maximum log lines to return (default: 100)
-            variables (Dict[str, Variable]): Runtime variables to pass to the pipeline 
-                             Example: {"myVar": {"value": "myValue", "isSecret": false}}
+            variables (Dict[str, Union[str, Variable]]): Runtime variables to pass to the pipeline
+                             Accepts both simple strings and Variable objects:
+                             - String format: {"myVar": "myValue"}
+                             - Object format: {"myVar": {"value": "myValue", "isSecret": false}}
             template_parameters (dict): Template parameters if the pipeline uses templates (e.g., {"environment": "prod"})
             branch (str): Branch to run the pipeline from (e.g., "refs/heads/main" or "refs/heads/feature/my-branch")
             stages_to_skip (list): List of stage names to skip during execution

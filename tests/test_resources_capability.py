@@ -295,7 +295,6 @@ async def test_github_resources_concept_validation(mcp_client: Client):
     }
     
     template_parameters_simulation = {
-        "toolingBranch": "main",  # This would control which branch to use
         "taskfileVersion": "latest",  # This would control which version to download
         "installPath": "./bin"  # This would control where to install
     }

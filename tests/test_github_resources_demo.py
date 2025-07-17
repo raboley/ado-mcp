@@ -69,7 +69,6 @@ async def test_github_resources_integration_demo(mcp_client: Client):
                 }
             },
             "template_parameters": {
-                "toolingBranch": "main",
                 "taskfileVersion": "latest",
                 "installPath": "./bin/latest"
             },
@@ -89,7 +88,6 @@ async def test_github_resources_integration_demo(mcp_client: Client):
                 }
             },
             "template_parameters": {
-                "toolingBranch": "main",
                 "taskfileVersion": "v3.30.1",
                 "installPath": "./bin/v3.30.1"
             },
@@ -109,7 +107,6 @@ async def test_github_resources_integration_demo(mcp_client: Client):
                 }
             },
             "template_parameters": {
-                "toolingBranch": "main",
                 "taskfileVersion": "latest",
                 "installPath": "./bin/branch-demo"
             },
@@ -191,7 +188,7 @@ async def test_github_resources_integration_demo(mcp_client: Client):
     print("        }")
     print("    },")
     print("    'template_parameters': {")
-    print("        'toolingBranch': 'main',")
+    # print("        'toolingBranch': 'main',")  # Not needed for this pipeline
     print("        'taskfileVersion': 'latest',")
     print("        'installPath': './bin'")
     print("    },")

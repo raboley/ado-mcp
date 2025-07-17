@@ -32,15 +32,10 @@ async def mcp_client():
 async def test_github_resources_main_branch(mcp_client: Client):
     """Test running pipeline with GitHub resources from main branch."""
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 196  # github-resources-test pipeline
+    pipeline_id = 200  # github-resources-test-stable pipeline
     
     # Test with main branch (default)
-    variables = {
-        "testVariable": "main-branch-test"
-    }
-    
     template_parameters = {
-        "toolingBranch": "main",
         "taskfileVersion": "latest",
         "installPath": "./bin"
     }
@@ -52,7 +47,6 @@ async def test_github_resources_main_branch(mcp_client: Client):
             "project_id": project_id,
             "pipeline_id": pipeline_id,
             "timeout_seconds": 300,
-            "variables": variables,
             "template_parameters": template_parameters
         }
     )
@@ -80,15 +74,10 @@ async def test_github_resources_main_branch(mcp_client: Client):
 async def test_github_resources_with_specific_branch(mcp_client: Client):
     """Test running pipeline with GitHub resources from a specific branch."""
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 196  # github-resources-test pipeline
+    pipeline_id = 200  # github-resources-test-stable pipeline
     
     # Test with a specific branch (if it exists)
-    variables = {
-        "testVariable": "specific-branch-test"
-    }
-    
     template_parameters = {
-        "toolingBranch": "main",  # Change this to a specific branch if available
         "taskfileVersion": "v3.30.1",  # Use a specific version
         "installPath": "./custom-bin"
     }
@@ -100,7 +89,6 @@ async def test_github_resources_with_specific_branch(mcp_client: Client):
             "project_id": project_id,
             "pipeline_id": pipeline_id,
             "timeout_seconds": 300,
-            "variables": variables,
             "template_parameters": template_parameters
         }
     )
@@ -123,15 +111,10 @@ async def test_github_resources_with_specific_branch(mcp_client: Client):
 async def test_github_resources_with_tag(mcp_client: Client):
     """Test running pipeline with GitHub resources from a specific tag."""
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 196  # github-resources-test pipeline
+    pipeline_id = 200  # github-resources-test-stable pipeline
     
     # Test with a specific tag (if available)
-    variables = {
-        "testVariable": "tag-test"
-    }
-    
     template_parameters = {
-        "toolingBranch": "main",  # Could be a tag like "v1.0.0" if available
         "taskfileVersion": "v3.28.0",  # Use specific version
         "installPath": "./tag-bin"
     }
@@ -143,7 +126,6 @@ async def test_github_resources_with_tag(mcp_client: Client):
             "project_id": project_id,
             "pipeline_id": pipeline_id,
             "timeout_seconds": 300,
-            "variables": variables,
             "template_parameters": template_parameters
         }
     )
@@ -169,12 +151,7 @@ async def test_github_resources_by_name_with_branch(mcp_client: Client):
     pipeline_name = "github-resources-test"
     
     # Test using name-based execution with custom branch
-    variables = {
-        "testVariable": "name-based-branch-test"
-    }
-    
     template_parameters = {
-        "toolingBranch": "main",
         "taskfileVersion": "latest",
         "installPath": "./name-test-bin"
     }
@@ -186,7 +163,6 @@ async def test_github_resources_by_name_with_branch(mcp_client: Client):
             "project_name": project_name,
             "pipeline_name": pipeline_name,
             "timeout_seconds": 300,
-            "variables": variables,
             "template_parameters": template_parameters
         }
     )
@@ -209,7 +185,7 @@ async def test_github_resources_by_name_with_branch(mcp_client: Client):
 async def test_github_resources_dynamic_branch_selection(mcp_client: Client):
     """Test dynamic branch selection using resources with MCP client control."""
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 196  # github-resources-test pipeline
+    pipeline_id = 200  # github-resources-test-stable pipeline
     
     # Test multiple branch/tag combinations dynamically
     test_configurations = [
@@ -232,12 +208,7 @@ async def test_github_resources_dynamic_branch_selection(mcp_client: Client):
     for config in test_configurations:
         print(f"\n--- Testing configuration: {config['name']} ---")
         
-        variables = {
-            "testVariable": f"dynamic-test-{config['name']}"
-        }
-        
         template_parameters = {
-            "toolingBranch": config["branch"],
             "taskfileVersion": config["version"],
             "installPath": config["path"]
         }
@@ -248,7 +219,6 @@ async def test_github_resources_dynamic_branch_selection(mcp_client: Client):
             {
                 "project_id": project_id,
                 "pipeline_id": pipeline_id,
-                "variables": variables,
                 "template_parameters": template_parameters
             }
         )
@@ -277,15 +247,10 @@ async def test_github_resources_dynamic_branch_selection(mcp_client: Client):
 async def test_github_resources_with_custom_resources_parameter(mcp_client: Client):
     """Test using custom resources parameter to override repository branch."""
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 196  # github-resources-test pipeline
+    pipeline_id = 200  # github-resources-test-stable pipeline
     
     # Test using custom resources to override the repository branch
-    variables = {
-        "testVariable": "custom-resources-test"
-    }
-    
     template_parameters = {
-        "toolingBranch": "main",  # This will be overridden by resources
         "taskfileVersion": "latest",
         "installPath": "./custom-resources-bin"
     }
@@ -305,7 +270,6 @@ async def test_github_resources_with_custom_resources_parameter(mcp_client: Clie
         {
             "project_id": project_id,
             "pipeline_id": pipeline_id,
-            "variables": variables,
             "template_parameters": template_parameters,
             "resources": resources
         }
@@ -332,15 +296,10 @@ async def test_github_resources_with_custom_resources_parameter(mcp_client: Clie
 async def test_github_resources_error_handling(mcp_client: Client):
     """Test error handling when using invalid branch/tag in resources."""
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 196  # github-resources-test pipeline
+    pipeline_id = 200  # github-resources-test-stable pipeline
     
-    # Test with invalid branch
-    variables = {
-        "testVariable": "error-handling-test"
-    }
-    
+    # Test with invalid parameters
     template_parameters = {
-        "toolingBranch": "nonexistent-branch-12345",
         "taskfileVersion": "latest",
         "installPath": "./error-test-bin"
     }
@@ -352,7 +311,6 @@ async def test_github_resources_error_handling(mcp_client: Client):
                 "project_id": project_id,
                 "pipeline_id": pipeline_id,
                 "timeout_seconds": 120,  # Shorter timeout for error case
-                "variables": variables,
                 "template_parameters": template_parameters
             }
         )

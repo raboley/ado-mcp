@@ -72,7 +72,6 @@ async def test_github_resources_stable_branch(mcp_client: Client):
     }
     
     template_parameters = {
-        "toolingBranch": "stable/0.0.1",
         "taskfileVersion": "latest",
         "installPath": "./bin/stable"
     }
@@ -133,7 +132,6 @@ async def test_github_resources_with_resources_parameter(mcp_client: Client):
     }
     
     template_parameters = {
-        "toolingBranch": "main",
         "taskfileVersion": "latest",
         "installPath": "./bin/main"
     }
@@ -195,7 +193,6 @@ async def test_github_resources_name_based_execution(mcp_client: Client):
     }
     
     template_parameters = {
-        "toolingBranch": "main",
         "taskfileVersion": "v3.30.1",
         "installPath": "./bin/name-based"
     }
@@ -236,7 +233,6 @@ async def test_github_resources_run_and_get_outcome(mcp_client: Client):
     }
     
     template_parameters = {
-        "toolingBranch": "main",
         "taskfileVersion": "latest",
         "installPath": "./bin/outcome"
     }
@@ -284,7 +280,6 @@ async def test_github_resources_multiple_scenarios(mcp_client: Client):
         {
             "name": "Main Branch - Latest",
             "template_parameters": {
-                "toolingBranch": "main",
                 "taskfileVersion": "latest",
                 "installPath": "./bin/main-latest"
             },
@@ -293,7 +288,6 @@ async def test_github_resources_multiple_scenarios(mcp_client: Client):
         {
             "name": "Main Branch - Specific Version",
             "template_parameters": {
-                "toolingBranch": "main",
                 "taskfileVersion": "v3.30.1",
                 "installPath": "./bin/main-v3301"
             },
@@ -302,7 +296,6 @@ async def test_github_resources_multiple_scenarios(mcp_client: Client):
         {
             "name": "Stable Branch - Latest",
             "template_parameters": {
-                "toolingBranch": "stable/0.0.1",
                 "taskfileVersion": "latest",
                 "installPath": "./bin/stable-latest"
             },
@@ -346,7 +339,6 @@ async def test_github_resources_preview_api(mcp_client: Client):
     
     # Test preview with template parameters
     template_parameters = {
-        "toolingBranch": "main",
         "taskfileVersion": "latest",
         "installPath": "./bin/preview"
     }

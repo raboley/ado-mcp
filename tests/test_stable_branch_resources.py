@@ -46,7 +46,6 @@ async def test_stable_branch_resources(mcp_client: Client):
     }
     
     template_parameters = {
-        "toolingBranch": "stable/0.0.1",  # Use the stable branch
         "taskfileVersion": "latest",
         "installPath": "./bin/stable"
     }
@@ -189,7 +188,6 @@ async def test_stable_branch_with_name_based_execution(mcp_client: Client):
     }
     
     template_parameters = {
-        "toolingBranch": "stable/0.0.1",
         "taskfileVersion": "latest",
         "installPath": "./bin/stable-name-based"
     }
@@ -303,7 +301,6 @@ async def test_stable_branch_comprehensive_demo(mcp_client: Client):
             "method": "template_parameters",
             "config": {
                 "template_parameters": {
-                    "toolingBranch": "stable/0.0.1",
                     "taskfileVersion": "latest",
                     "installPath": "./bin/stable-template"
                 },
@@ -384,7 +381,7 @@ async def test_stable_branch_comprehensive_demo(mcp_client: Client):
     print("=" * 60)
     print()
     print("✅ The branch changing parameter has been verified to work with:")
-    print("• Template parameters (toolingBranch: 'stable/0.0.1')")
+    print("• Template parameters (taskfileVersion, installPath)")
     print("• Direct branch parameter (branch: 'refs/heads/stable/0.0.1')")
     print("• Resources configuration (repositories.tooling.refName)")
     print()
