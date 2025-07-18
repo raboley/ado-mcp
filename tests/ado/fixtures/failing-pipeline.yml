@@ -1,3 +1,4 @@
+# url: https://dev.azure.com/RussellBoley/ado-mcp/_build?definitionId=83
 # Pipeline designed to fail for testing log retrieval
 name: Failing Test Pipeline
 

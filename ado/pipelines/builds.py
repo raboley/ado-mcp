@@ -73,7 +73,7 @@ class BuildOperations:
         
         logger.info(f"Running pipeline {pipeline_id} in project {project_id}")
         if request_data:
-            logger.info(f"Pipeline run request data: {request_data}")  # Changed to info to see in tests
+            logger.debug(f"Pipeline run request data: {request_data}")
         
         response = self._client._send_request("POST", url, json=request_data)
         logger.info(

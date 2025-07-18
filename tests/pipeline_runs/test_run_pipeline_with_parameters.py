@@ -113,7 +113,7 @@ async def test_run_pipeline_with_github_resources_feature_branch(mcp_client: Cli
     resources = {
         "repositories": {
             "tooling": {
-                "refName": "refs/heads/feature/test-branch"
+                "refName": "refs/heads/stable/0.0.1"
             }
         }
     }
@@ -268,7 +268,6 @@ async def test_run_pipeline_with_resources_and_variables_combined(mcp_client: Cl
     print(f"✓ Combined resources and variables pipeline started: ID {pipeline_run['id']}")
 
 
-@pytest.mark.skip(reason="Pipeline 200 may not have OptionalStage to skip")
 @requires_ado_creds
 async def test_run_pipeline_github_resources_complex_scenario(mcp_client: Client):
     """Test complex GitHub resources scenario with multiple parameters."""
@@ -285,7 +284,8 @@ async def test_run_pipeline_github_resources_complex_scenario(mcp_client: Client
         "installPath": "/usr/local/bin/complex-test"
     }
     
-    stages_to_skip = ["OptionalStage"]
+    # Note: This pipeline doesn't have stages that can be skipped
+    # so we're not including stages_to_skip
     
     result = await mcp_client.call_tool(
         "run_pipeline",
@@ -293,8 +293,7 @@ async def test_run_pipeline_github_resources_complex_scenario(mcp_client: Client
             "project_id": TEST_PROJECT_ID,
             "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
             "resources": resources,
-            "template_parameters": template_parameters,
-            "stages_to_skip": stages_to_skip
+            "template_parameters": template_parameters
         }
     )
     
@@ -311,7 +310,7 @@ async def test_run_pipeline_parameter_combinations_tool_registration():
         tools = await client.list_tools()
         run_pipeline_tool = None
         
-        for tool in tools.tools:
+        for tool in tools:
             if tool.name == "run_pipeline":
                 run_pipeline_tool = tool
                 break

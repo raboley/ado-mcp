@@ -1,3 +1,4 @@
+# url: https://dev.azure.com/RussellBoley/ado-mcp/_build?definitionId=200
 name: GitHub Resources Test Pipeline
 
 # This pipeline demonstrates using GitHub resources to pull templates from different branches/tags

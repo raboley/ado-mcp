@@ -353,7 +353,7 @@ class AdoClient:
                 
             except requests.exceptions.HTTPError as e:
                 # Log HTTP errors for backward compatibility
-                logger.error(f"HTTP Error: {e} - Response Body: {e.response.text[:500] if e.response else 'No response'}")
+                logger.error(f"HTTP Error: {e} - Response Body: {e.response.text if e.response and e.response.text else 'No response'}")
                 # For backward compatibility, let all HTTP errors through as HTTPError
                 # The retry logic will handle whether to retry or not
                 raise e
