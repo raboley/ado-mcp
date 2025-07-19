@@ -18,14 +18,17 @@ pytestmark = pytest.mark.asyncio
 # Test fixtures - pipelines with known parameter support
 TEST_PROJECT_ID = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
 
-# Pipeline 59: Basic pipeline, supports variables only
+# Pipeline 59: Basic pipeline, no parameters (simple delay task)
 BASIC_PIPELINE_ID = 59  # test_run_and_get_pipeline_run_details
 
-# Pipeline 75: Parameterized pipeline, supports variables and template parameters  
+# Pipeline 75: Parameterized pipeline, supports template parameters (testEnvironment, enableDebug)
 PARAMETERIZED_PIPELINE_ID = 75  # preview-test-parameterized
 
-# Pipeline 200: GitHub resources pipeline, supports template parameters but NOT variables
+# Pipeline 200: GitHub resources pipeline, supports template parameters (taskfileVersion, installPath)
 GITHUB_RESOURCES_PIPELINE_ID = 200  # github-resources-test-stable
+
+# Pipeline 84: Complex pipeline with multiple stages for stage skipping tests
+COMPLEX_PIPELINE_ID = 84  # complex-pipeline.yml - stages: Validate, Build, Test
 
 
 @pytest.fixture
@@ -106,10 +109,10 @@ async def test_run_pipeline_with_github_resources_main_branch(mcp_client: Client
     print(f"✓ GitHub resources main branch pipeline started: ID {pipeline_run['id']}")
 
 
-@pytest.mark.skip(reason="Feature branch may not exist in raboley/tooling repository")
 @requires_ado_creds
 async def test_run_pipeline_with_github_resources_feature_branch(mcp_client: Client):
-    """Test running GitHub resources pipeline with feature branch override."""
+    """Test running GitHub resources pipeline with different branch override."""
+    # Use stable branch which we know exists
     resources = {
         "repositories": {
             "tooling": {
@@ -164,22 +167,21 @@ async def test_run_pipeline_with_multiple_template_parameters(mcp_client: Client
     print(f"✓ Multiple template parameters pipeline started: ID {pipeline_run['id']}")
 
 
-@pytest.mark.skip(reason="Pipeline 75 may not support runtime variables")
 @requires_ado_creds
-async def test_run_pipeline_with_variables_on_parameterized_pipeline(mcp_client: Client):
-    """Test running parameterized pipeline with variables (pipeline that supports them)."""
-    variables = {
-        "testEnvironment": "integration",
-        "enableDebug": True,
-        "runMode": "test"
+async def test_run_pipeline_with_template_parameters(mcp_client: Client):
+    """Test running pipeline with template parameters (using parameterized pipeline)."""
+    # Use the parameterized pipeline with correct template parameter names
+    template_parameters = {
+        "testEnvironment": "staging",
+        "enableDebug": True
     }
     
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
             "project_id": TEST_PROJECT_ID,
-            "pipeline_id": PARAMETERIZED_PIPELINE_ID,
-            "variables": variables
+            "pipeline_id": PARAMETERIZED_PIPELINE_ID,  # Pipeline 75
+            "template_parameters": template_parameters
         }
     )
     
@@ -187,20 +189,20 @@ async def test_run_pipeline_with_variables_on_parameterized_pipeline(mcp_client:
     assert pipeline_run is not None, "Pipeline run should not be None"
     assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
     
-    print(f"✓ Parameterized pipeline with variables started: ID {pipeline_run['id']}")
+    print(f"✓ Pipeline with template parameters started: ID {pipeline_run['id']}")
 
 
-@pytest.mark.skip(reason="Pipeline 75 may not have stages TestStage or DeployStage")
 @requires_ado_creds
 async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
     """Test running pipeline with stages to skip."""
-    stages_to_skip = ["TestStage", "DeployStage"]
+    # Use complex pipeline which has stages: Validate, Build, Test
+    stages_to_skip = ["Test"]  # Skip the Test stage
     
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
             "project_id": TEST_PROJECT_ID,
-            "pipeline_id": PARAMETERIZED_PIPELINE_ID,
+            "pipeline_id": COMPLEX_PIPELINE_ID,
             "stages_to_skip": stages_to_skip
         }
     )
@@ -231,12 +233,10 @@ async def test_run_pipeline_with_branch_override(mcp_client: Client):
     print(f"✓ Pipeline with branch override started: ID {pipeline_run['id']}")
 
 
-@pytest.mark.skip(reason="Pipeline 75 may not support this combination of parameters")
 @requires_ado_creds
-async def test_run_pipeline_with_resources_and_variables_combined(mcp_client: Client):
-    """Test running parameterized pipeline with both resources and variables."""
-    # Note: Using parameterized pipeline (75) since it supports variables
-    # and can handle resources (even though it doesn't use external repos)
+async def test_run_pipeline_with_branch_resource_override(mcp_client: Client):
+    """Test running basic pipeline with repository resource override."""
+    # Test the resources functionality with self repository branch override
     
     resources = {
         "repositories": {
@@ -246,18 +246,12 @@ async def test_run_pipeline_with_resources_and_variables_combined(mcp_client: Cl
         }
     }
     
-    variables = {
-        "testMode": "combined-test",
-        "enableAdvanced": True
-    }
-    
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
             "project_id": TEST_PROJECT_ID,
-            "pipeline_id": PARAMETERIZED_PIPELINE_ID,
-            "resources": resources,
-            "variables": variables
+            "pipeline_id": BASIC_PIPELINE_ID,
+            "resources": resources
         }
     )
     
