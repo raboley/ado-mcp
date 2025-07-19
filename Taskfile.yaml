@@ -44,7 +44,6 @@ tasks:
     cmds:
       - uv run pytest -v -n auto --slowest-first --durations=20
 
-
   coverage:
     desc: Generate code coverage report
     cmds:
@@ -165,6 +164,7 @@ tasks:
     desc: "Create .env file with credentials if it doesn't exist"
     cmds:
       - echo "AZURE_DEVOPS_EXT_PAT=$(security find-generic-password -w -a ado-token)" > .env
+      - echo "AZURE_DEVOPS_EXT_PAT=$(security find-generic-password -w -a ado-mcp-github)" > .env
       - echo "ADO_ORGANIZATION_URL={{.ADO_ORGANIZATION_URL}}" >> .env
       - echo "ADO_PROJECT_NAME={{.ADO_PROJECT_NAME}}" >> .env
     status:

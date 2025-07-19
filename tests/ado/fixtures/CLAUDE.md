@@ -120,7 +120,7 @@ steps:
 
 ## Creating a New Test Pipeline
 
-1. Start with the fast test pipeline template
+1. Start with the fst test pipeline template
 2. Add your pipeline URL comment at the top
 3. Modify only what's needed for your specific test
 4. If you need agent execution, prefix the name with `slow.`

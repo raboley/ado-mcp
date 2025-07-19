@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Any, Dict, List, Optional, Union, Union
 
 from ado.models import (
@@ -15,6 +16,7 @@ from ado.models import (
     Project,
     Repository,
     RunResourcesParameters,
+    RepositoryResourceParameters,
     ServiceConnection,
     StepFailure,
     TimelineResponse,
@@ -360,6 +362,16 @@ def register_ado_tools(mcp_instance, client_container):
         resources_dict = None
         if resources:
             resources_dict = resources.dict(exclude_none=True) if hasattr(resources, 'dict') else resources
+            
+            # Inject GitHub token for repository resources if not already provided
+            github_token = os.getenv("GITHUB_TOKEN")
+            if github_token and isinstance(resources_dict, dict) and "repositories" in resources_dict:
+                for repo_name, repo_params in resources_dict["repositories"].items():
+                    # Only inject if token is not already set
+                    if isinstance(repo_params, dict) and "token" not in repo_params:
+                        repo_params["token"] = github_token
+                        repo_params["tokenType"] = "Basic"
+                        logger.debug(f"Injected GitHub token for repository: {repo_name}")
         
         request = PipelinePreviewRequest(
             previewRun=True,
