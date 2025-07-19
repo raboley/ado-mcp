@@ -13,9 +13,15 @@ stages:
       - job: BuildJob
         displayName: 'Build Job'
         steps:
-          - checkout: none
           - script: echo "Starting build process..."
             displayName: 'Start Build'
+          
+          - script: |
+              echo "Building application..."
+              echo "This step will succeed"
+              exit 0
+            displayName: 'Build Application'
+          
           - script: |
               echo "Running tests..."
               echo "ERROR: Test failed - Unable to connect to database"
@@ -30,9 +36,8 @@ stages:
     displayName: 'Deploy Stage'
     dependsOn: Build
     jobs:
-      - job: deploy
-        pool: server
+      - job: DeployJob
+        displayName: 'Deploy Job'  
         steps:
-          - task: Delay@1
-            inputs:
-              delayForMinutes: '0'
+          - script: echo "This should not run due to build failure"
+            displayName: 'Deploy Application'

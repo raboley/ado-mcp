@@ -125,5 +125,6 @@ steps:
 3. Modify only what's needed for your specific test
 4. If you need agent execution, prefix the name with `slow.`
 5. Always use 0-minute delays unless testing delay functionality itself
+6. For azure devops to see the yaml commit and push any updates made.
 
 Remember: The goal is to keep our test suite fast while maintaining comprehensive coverage!
