@@ -12,27 +12,27 @@ variables:
   - name: appVersion
     value: '1.0.0'
 
-resources:
-  repositories:
-    - repository: tooling
-      type: github
-      name: raboley/tooling
-      endpoint: raboley
-      ref: refs/heads/main
-
-jobs:
-  - template: /.ado/jobs/fast.job.yml@tooling
-    parameters:
-      name: ParameterizedJob
-
 stages:
   - stage: Validate
     displayName: 'Validation Stage'
     jobs:
-      - template: /.ado/jobs/fast.job.yml@tooling
-        parameters:
-          name: ParameterizedJob
+      - job: LintJob
+        displayName: 'Code Linting'
+        steps:
+          - script: |
+              echo "Running code linter..."
+              echo "✓ No linting errors found"
+            displayName: 'Lint Code'
             
+      - job: SecurityScan
+        displayName: 'Security Scanning'
+        steps:
+          - script: |
+              echo "Running security scan..."
+              echo "⚠️ WARNING: Found 2 low-severity vulnerabilities"
+              echo "Details logged to security-report.json"
+            displayName: 'Security Scan'
+
   - stage: Build
     displayName: 'Build Stage'
     dependsOn: Validate
@@ -40,6 +40,13 @@ stages:
       - job: CompileJob
         displayName: 'Compile Application'
         steps:
+          - script: |
+              echo "Compiling application..."
+              echo "Configuration: $(buildConfiguration)"
+              echo "Version: $(appVersion)"
+              echo "✓ Compilation successful"
+            displayName: 'Compile'
+            
           - script: |
               echo "Running unit tests..."
               echo "Test 1: PASS"
