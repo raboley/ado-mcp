@@ -185,3 +185,64 @@ class TestPreviewPipelineGitHubResources:
         assert "/usr/local/bin" in preview_data["finalYaml"]
         
         logger.info("✓ Preview with template parameters succeeded")
+
+    @requires_ado_creds
+    async def test_preview_branch_affects_job_names(self, mcp_client: Client):
+        """
+        Test that using different branches in resources actually affects the generated job names.
+        
+        This is a regression test for the unexpected but useful behavior where the branch
+        selection in resources parameters affects the final YAML output, specifically job names.
+        """
+        parameterized_pipeline_id = 75  # preview-test-parameterized
+        
+        # First, preview with main branch (default)
+        result_main = await mcp_client.call_tool(
+            "preview_pipeline",
+            {
+                "project_id": PROJECT_ID,
+                "pipeline_id": parameterized_pipeline_id,
+                "resources": {
+                    "repositories": {
+                        "tooling": {
+                            "refName": "refs/heads/main"
+                        }
+                    }
+                }
+            }
+        )
+        
+        # Then, preview with stable branch
+        result_stable = await mcp_client.call_tool(
+            "preview_pipeline",
+            {
+                "project_id": PROJECT_ID,
+                "pipeline_id": parameterized_pipeline_id,
+                "resources": {
+                    "repositories": {
+                        "tooling": {
+                            "refName": "refs/heads/stable/0.0.1"
+                        }
+                    }
+                }
+            }
+        )
+        
+        main_yaml = result_main.data["finalYaml"]
+        stable_yaml = result_stable.data["finalYaml"]
+        
+        # Verify that main branch uses normal job names
+        assert "job: ParameterizedJob" in main_yaml
+        assert "job: dev" in main_yaml
+        assert "_stable" not in main_yaml
+        
+        # Verify that stable branch adds _stable suffix to job names
+        assert "job: ParameterizedJob_stable" in stable_yaml
+        assert "job: dev_stable" in stable_yaml
+        
+        # Verify the branch reference affects the actual template expansion
+        assert stable_yaml != main_yaml
+        
+        logger.info("✓ Branch selection correctly affects job names in preview")
+        logger.info(f"Main branch jobs: ParameterizedJob, dev")
+        logger.info(f"Stable branch jobs: ParameterizedJob_stable, dev_stable")
