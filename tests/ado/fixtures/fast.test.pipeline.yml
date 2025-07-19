@@ -1,12 +1,15 @@
-# url: https://dev.azure.com/RussellBoley/ado-mcp/_build?definitionId=59
-# Simple test pipeline that runs quickly for testing purposes
-name: Simple Test Pipeline
+# Pipeline URL: https://dev.azure.com/RussellBoley/ado-mcp/_build?definitionId=59
+name: test_run_and_get_pipeline_run_details
 
-trigger: none  # Manual trigger only for testing
+trigger: none
 
-pool: server
+variables:
+  testVariable: 'default value'
 
-steps:
+jobs:
+- job: DelayJob
+  pool: server
+  steps:
   - task: Delay@1
     inputs:
       delayForMinutes: '0'

@@ -186,7 +186,7 @@ class PipelinePreviewRequest(BaseModel):
 
     previewRun: Optional[bool] = True
     yamlOverride: Optional[str] = None
-    resources: Optional[Dict[str, Any]] = None
+    resources: Optional["RunResourcesParameters"] = None
     templateParameters: Optional[Dict[str, Any]] = None
     variables: Optional[Dict[str, Any]] = None
     stagesToSkip: Optional[List[str]] = None

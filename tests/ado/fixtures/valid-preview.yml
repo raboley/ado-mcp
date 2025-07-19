@@ -1,15 +1,12 @@
-# url: https://dev.azure.com/RussellBoley/ado-mcp/_build?definitionId=74
-# Valid simple pipeline for preview testing
-name: Valid Preview Test Pipeline
+# Pipeline URL: https://dev.azure.com/RussellBoley/ado-mcp/_build?definitionId=74
+name: preview-test-valid
 
-trigger: none  # Manual trigger only for testing
+trigger: none
 
-pool:
-  vmImage: ubuntu-latest
-
-steps:
-  - script: echo "Hello from preview test!"
-    displayName: 'Echo test message'
-  
-  - script: echo "Preview test completed successfully"
-    displayName: 'Completion message'
+jobs:
+- job: PreviewJob
+  pool: server
+  steps:
+  - task: Delay@1
+    inputs:
+      delayForMinutes: '0'

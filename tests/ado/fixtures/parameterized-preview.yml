@@ -1,8 +1,7 @@
-# url: https://dev.azure.com/RussellBoley/ado-mcp/_build?definitionId=75
-# Parameterized pipeline for preview testing with variables
-name: Parameterized Preview Test Pipeline
+# Pipeline URL: https://dev.azure.com/RussellBoley/ado-mcp/_build?definitionId=75
+name: preview-test-parameterized
 
-trigger: none  # Manual trigger only for testing
+trigger: none
 
 parameters:
   - name: testEnvironment
@@ -25,16 +24,18 @@ variables:
   - name: debugMode
     value: ${{ parameters.enableDebug }}
 
-pool:
-  vmImage: ubuntu-latest
+resources:
+  repositories:
+    - repository: tooling
+      type: github
+      name: raboley/tooling
+      endpoint: raboley
+      ref: refs/heads/main
 
-steps:
-  - script: echo "Environment=$(selectedEnvironment), Debug=$(debugMode)"
-    displayName: 'Display parameters and variables'
-  
-  - script: echo "Processing step..."
-    displayName: 'Processing step'
-      
-  - ${{ if parameters.enableDebug }}:
-    - script: echo "Debug mode is enabled!"
-      displayName: 'Debug information'
+jobs:
+  - template: /.ado/jobs/fast.job.yml@tooling
+    parameters:
+      name: ParameterizedJob
+  - template: /.ado/jobs/fast.job.yml@tooling
+    parameters:
+      name: ${{ parameters.testEnvironment }}

@@ -1,6 +1,5 @@
-# url: https://dev.azure.com/RussellBoley/ado-mcp/_build?definitionId=76
-# Invalid pipeline YAML for testing error handling
-name: Invalid Preview Test Pipeline
+# Pipeline URL: https://dev.azure.com/RussellBoley/ado-mcp/_build?definitionId=76
+name: preview-test-invalid
 
 trigger: none
 

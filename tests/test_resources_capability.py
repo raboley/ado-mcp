@@ -33,7 +33,7 @@ async def mcp_client():
 async def test_resources_parameter_capability(mcp_client: Client):
     """Test that the MCP client can pass resources parameter to pipelines."""
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 59  # Known working pipeline
+    pipeline_id = 200  # GitHub resources pipeline that supports resources
     
     # Test with resources parameter
     variables = {
@@ -42,10 +42,15 @@ async def test_resources_parameter_capability(mcp_client: Client):
     
     resources = {
         "repositories": {
-            "self": {
-                "refName": "refs/heads/main"
+            "tooling": {
+                "refName": "refs/heads/stable/0.0.1"
             }
         }
+    }
+    
+    template_parameters = {
+        "taskfileVersion": "latest",
+        "installPath": "./bin/resources-test"
     }
     
     # Test that we can pass resources parameter
@@ -55,7 +60,8 @@ async def test_resources_parameter_capability(mcp_client: Client):
             "project_id": project_id,
             "pipeline_id": pipeline_id,
             "variables": variables,
-            "resources": resources
+            "resources": resources,
+            "template_parameters": template_parameters
         }
     )
     

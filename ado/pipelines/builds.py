@@ -55,20 +55,24 @@ class BuildOperations:
                         processed_variables[key] = {"value": str(value)}
                 request_dict["variables"] = processed_variables
             
-            # Handle branch separately as it needs to be in resources.repositories.self.refName
+            # Handle resources and branch - branch needs to be merged into resources.repositories.self.refName
+            resources = request_dict.get("resources", {})
             if request.branch:
-                # Start with existing resources or create empty dict
-                resources = request_dict.get("resources", {})
+                # Ensure repositories exists
                 if "repositories" not in resources:
                     resources["repositories"] = {}
                 # Set the self repository branch (for when running from a different branch)
                 resources["repositories"]["self"] = {"refName": request.branch}
-                request_data["resources"] = resources
                 # Remove branch from the dict as we've handled it
                 request_dict.pop("branch", None)
             
-            # Add other fields (this will include resources if they were specified)
-            # The resources parameter should directly override YAML-defined resources
+            # Set resources in request_data if they exist (either from original request or from branch handling)
+            if resources:
+                request_data["resources"] = resources
+                # Remove resources from request_dict to avoid overwrite in update()
+                request_dict.pop("resources", None)
+            
+            # Add other fields
             request_data.update(request_dict)
         
         logger.info(f"Running pipeline {pipeline_id} in project {project_id}")

@@ -1,5 +1,5 @@
-# url: https://dev.azure.com/RussellBoley/ado-mcp/_build?definitionId=200
-name: GitHub Resources Test Pipeline
+# Pipeline URL: https://dev.azure.com/RussellBoley/ado-mcp/_build?definitionId=200
+name: slow.github-resources-test-stable
 
 # This pipeline demonstrates using GitHub resources to pull templates from different branches/tags
 # and shows how the MCP client can control branch selection dynamically
@@ -36,25 +36,4 @@ stages:
   - stage: ResourcesTest
     displayName: 'Test GitHub Resources'
     jobs:
-      - job: InstallTaskfile
-        displayName: 'Install Taskfile from GitHub Resources'
-        steps:
-          - checkout: self
-          - checkout: tooling
-          
-          - template: /.ado/steps/install.taskfile.yml@tooling
-            parameters:
-              version: ${{ parameters.taskfileVersion }}
-              installPath: ${{ parameters.installPath }}
-              
-          - script: |
-              echo "=== Taskfile Installation Verification ==="
-              echo "Checking installation path: ${{ parameters.installPath }}"
-              ls -la ${{ parameters.installPath }}/ || echo "Installation path not found"
-              echo ""
-              echo "Taskfile version:"
-              ${{ parameters.installPath }}/task --version || echo "Taskfile not found or not executable"
-              echo ""
-              echo "PATH contents:"
-              echo $PATH
-            displayName: 'Verify Taskfile Installation'
+      - template: /.ado/jobs/fast.job.yml

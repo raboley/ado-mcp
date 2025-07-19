@@ -39,6 +39,11 @@ tasks:
     cmds:
       - uv run pytest {{.TEST_NAME}} -v -s
 
+  test-slowest-first:
+    desc: Run tests with slowest tests first based on previous run times
+    cmds:
+      - uv run pytest -v -n auto --slowest-first --durations=20
+
 
   coverage:
     desc: Generate code coverage report
