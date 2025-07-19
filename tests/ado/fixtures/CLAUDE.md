@@ -118,6 +118,82 @@ steps:
 5. **Include the pipeline URL** as the first line comment
 6. **Test locally first** before creating in Azure DevOps
 
+## Repository Resources in Pipeline Preview
+
+When using the `preview_pipeline` MCP tool with repository resources:
+
+### Repository Types and Authentication
+
+**Public Repositories**: No authentication needed, `RepositoryType` is optional
+**Private Repositories**: Authentication required, `RepositoryType` must be specified
+
+### Supported Private Repository Types
+- **"gitHub"**: GitHub repositories (automatic GITHUB_TOKEN injection if available)
+
+### Resource Format
+
+**Public repositories** (no authentication needed):
+```python
+resources = {
+    "repositories": {
+        "repo_name": {
+            "refName": "refs/heads/branch_name"
+            # No RepositoryType needed for public repos
+        }
+    }
+}
+```
+
+**Private repositories** (authentication required):
+```python
+resources = {
+    "repositories": {
+        "repo_name": {
+            "refName": "refs/heads/branch_name",
+            "RepositoryType": "gitHub"  # Required for private repos
+        }
+    }
+}
+```
+
+### Authentication Methods
+- **GitHub Private Repos**: Automatically injects `GITHUB_TOKEN` from environment if available and no explicit token provided
+- **Other Types**: Currently unsupported (Azure Repos, Bitbucket, etc.)
+
+### Examples
+```python
+# Public GitHub repository (most common case)
+resources = {
+    "repositories": {
+        "tooling": {
+            "refName": "refs/heads/stable/0.0.1"
+        }
+    }
+}
+
+# Private GitHub repository with auto token injection
+resources = {
+    "repositories": {
+        "tooling": {
+            "refName": "refs/heads/main",
+            "RepositoryType": "gitHub"
+        }
+    }
+}
+
+# Private GitHub repository with explicit token
+resources = {
+    "repositories": {
+        "tooling": {
+            "refName": "refs/heads/main",
+            "RepositoryType": "gitHub",
+            "token": "ghp_your_token_here",
+            "tokenType": "Basic"
+        }
+    }
+}
+```
+
 ## Creating a New Test Pipeline
 
 1. Start with the fst test pipeline template

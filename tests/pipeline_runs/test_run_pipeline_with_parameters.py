@@ -280,7 +280,8 @@ async def test_run_pipeline_github_resources_complex_scenario(mcp_client: Client
     
     # Note: This pipeline doesn't have stages that can be skipped
     # so we're not including stages_to_skip
-    
+    # Use the request data if provided, otherwise send an empty preview request
+
     result = await mcp_client.call_tool(
         "run_pipeline",
         {

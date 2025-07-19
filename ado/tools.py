@@ -328,6 +328,57 @@ def register_ado_tools(mcp_instance, client_container):
             return None
         return ado_client_instance.get_pipeline_run(project_id, pipeline_id, run_id)
 
+    def _inject_github_tokens_if_needed(ado_client_instance, project_id: str, pipeline_id: int, resources_dict: Optional[dict]) -> Optional[dict]:
+        """
+        Inject GitHub tokens for repository resources that explicitly specify RepositoryType: "gitHub".
+        
+        This function:
+        1. Only injects tokens for repositories with explicit RepositoryType: "gitHub"
+        2. Skips repositories without RepositoryType (assumes public repositories)
+        3. Skips injection if token is already provided
+        4. Logs warnings only for unsupported repository types (when RepositoryType is provided)
+        
+        Args:
+            ado_client_instance: The ADO client instance (unused but kept for signature compatibility)
+            project_id (str): The project ID (unused but kept for signature compatibility)
+            pipeline_id (int): The pipeline ID (unused but kept for signature compatibility)
+            resources_dict (Optional[dict]): The resources dictionary from user input
+            
+        Returns:
+            Optional[dict]: Updated resources dictionary with GitHub tokens injected where appropriate
+        """
+        if not resources_dict or "repositories" not in resources_dict:
+            return resources_dict
+            
+        github_token = os.getenv("GITHUB_TOKEN")
+        if not github_token:
+            logger.debug("No GITHUB_TOKEN environment variable found, skipping token injection")
+            return resources_dict
+            
+        for repo_name, repo_params in resources_dict["repositories"].items():
+            if not isinstance(repo_params, dict):
+                continue
+                
+            repo_type = repo_params.get("RepositoryType")
+            
+            # If no RepositoryType specified, assume public repository - no token injection needed
+            if not repo_type:
+                logger.debug(f"Repository '{repo_name}' has no RepositoryType specified, assuming public repository")
+                continue
+                
+            if repo_type == "gitHub":
+                # Only inject if token is not already provided
+                if "token" not in repo_params:
+                    repo_params["token"] = github_token
+                    repo_params["tokenType"] = "Basic"
+                    logger.info(f"Injected GitHub token for private repository '{repo_name}' (RepositoryType: gitHub)")
+                else:
+                    logger.debug(f"Repository '{repo_name}' already has token provided, skipping injection")
+            else:
+                logger.warning(f"Repository '{repo_name}' has unsupported RepositoryType: '{repo_type}'. Currently only 'gitHub' is supported for automatic token injection.")
+            
+        return resources_dict
+
     @mcp_instance.tool
     def preview_pipeline(
         project_id: str,
@@ -340,6 +391,39 @@ def register_ado_tools(mcp_instance, client_container):
     ) -> Optional[PreviewRun]:
         """
         Previews a pipeline without executing it, returning the final YAML and other preview information.
+        
+        🔧 REPOSITORY TYPE AUTHENTICATION: RepositoryType is optional for public repositories but
+        required for private repositories that need authentication. Automatic token injection is 
+        provided for supported repository types.
+        
+        Environment tokens:
+        - GitHub: GITHUB_TOKEN
+
+        📋 SUPPORTED PRIVATE REPOSITORY TYPES:
+        - "gitHub": Automatically injects GITHUB_TOKEN from environment if available
+        
+        ⚠️  UNSUPPORTED TYPES: Azure Repos, Bitbucket, and other repository types are not yet supported.
+        
+        💡 REPOSITORY RESOURCE FORMAT:
+        
+        Public repositories (no authentication needed):
+        resources = {
+            "repositories": {
+                "repo_name": {
+                    "refName": "refs/heads/branch_name"
+                }
+            }
+        }
+        
+        Private repositories (authentication required):
+        resources = {
+            "repositories": {
+                "repo_name": {
+                    "refName": "refs/heads/branch_name",
+                    "RepositoryType": "gitHub"  # Required for private repos
+                }
+            }
+        }
 
         Args:
             project_id (str): The ID of the project.
@@ -348,7 +432,10 @@ def register_ado_tools(mcp_instance, client_container):
             variables (Optional[dict]): Optional runtime variables for the preview.
             template_parameters (Optional[dict]): Optional template parameters for the preview.
             stages_to_skip (Optional[List[str]]): Optional list of stage names to skip during preview.
-            resources (Optional[dict]): Optional resources configuration for repository branches/tags.
+            resources (Optional[dict]): Optional resources configuration. Each repository should include:
+                       - "refName": Branch/tag reference (e.g., "refs/heads/main") [REQUIRED]
+                       - "RepositoryType": Repository type (e.g., "gitHub") [REQUIRED for private repos only]
+                       - "token": Authentication token [Optional - auto-injected for supported types]
 
         Returns:
             Optional[PreviewRun]: A PreviewRun object representing the pipeline preview details, or None if client unavailable.
@@ -363,15 +450,8 @@ def register_ado_tools(mcp_instance, client_container):
         if resources:
             resources_dict = resources.dict(exclude_none=True) if hasattr(resources, 'dict') else resources
             
-            # Inject GitHub token for repository resources if not already provided
-            github_token = os.getenv("GITHUB_TOKEN")
-            if github_token and isinstance(resources_dict, dict) and "repositories" in resources_dict:
-                for repo_name, repo_params in resources_dict["repositories"].items():
-                    # Only inject if token is not already set
-                    if isinstance(repo_params, dict) and "token" not in repo_params:
-                        repo_params["token"] = github_token
-                        repo_params["tokenType"] = "Basic"
-                        logger.debug(f"Injected GitHub token for repository: {repo_name}")
+            # Auto-inject GitHub tokens for GitHub repositories only
+            resources_dict = _inject_github_tokens_if_needed(ado_client_instance, project_id, pipeline_id, resources_dict)
         
         request = PipelinePreviewRequest(
             previewRun=True,
