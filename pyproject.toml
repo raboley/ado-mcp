@@ -36,6 +36,7 @@ dependencies = [
     "opentelemetry-sdk>=1.20.0",
     "opentelemetry-instrumentation-requests>=0.41b0",
     "opentelemetry-exporter-otlp-proto-http>=1.20.0",
+    "PyYAML>=6.0.0",
 ]
 
 [project.scripts]

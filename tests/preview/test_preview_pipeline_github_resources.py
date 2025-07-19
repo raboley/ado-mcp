@@ -243,6 +243,13 @@ class TestPreviewPipelineGitHubResources:
         # Verify the branch reference affects the actual template expansion
         assert stable_yaml != main_yaml
         
+        # IMPORTANT: Verify that the returned YAML reflects the user's resource selection
+        # The finalYaml should show the branch we actually requested, not the original YAML
+        assert "ref: refs/heads/main" in main_yaml
+        assert "ref: refs/heads/stable/0.0.1" in stable_yaml, \
+            "finalYaml should reflect the user's resource parameter selection"
+        
         logger.info("✓ Branch selection correctly affects job names in preview")
+        logger.info("✓ finalYaml reflects user's resource parameter selection")
         logger.info(f"Main branch jobs: ParameterizedJob, dev")
         logger.info(f"Stable branch jobs: ParameterizedJob_stable, dev_stable")
