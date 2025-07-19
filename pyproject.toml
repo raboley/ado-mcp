@@ -81,19 +81,6 @@ ado = ["py.typed"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "function"
-# Ensure tests can find the .env file
-addopts = "-v --tb=short"
-# Test discovery patterns
-python_files = "test_*.py"
-python_classes = "Test*"
-python_functions = "test_*"
-# Markers for different test categories
-markers = [
-    "requires_ado_creds: Tests that require Azure DevOps credentials",
-    "slow: Tests that take a long time to run",
-    "integration: Integration tests that use real Azure DevOps API",
-]
 
 [tool.ruff]
 target-version = "py312"
