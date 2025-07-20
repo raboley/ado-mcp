@@ -1,10 +1,3 @@
-"""
-Tests for the run_pipeline_by_name MCP tool.
-
-This module tests running pipelines using natural project and pipeline names
-instead of numeric IDs. Tests fuzzy matching and name resolution.
-"""
-
 import os
 import pytest
 from fastmcp.client import Client
@@ -12,20 +5,17 @@ from fastmcp.client import Client
 from server import mcp
 from tests.ado.test_client import requires_ado_creds
 
-# Mark all tests in this module as asyncio
 pytestmark = pytest.mark.asyncio
 
-# Test fixtures - using known project and pipeline names
 TEST_PROJECT_NAME = "ado-mcp"
-BASIC_PIPELINE_NAME = "test_run_and_get_pipeline_run_details"  # Pipeline 59: Simple, no parameters
-GITHUB_RESOURCES_PIPELINE_NAME = "github-resources-test-stable"  # Pipeline 200: GitHub resources + template params
-PREVIEW_PARAMETERIZED_PIPELINE_NAME = "preview-test-parameterized"  # Pipeline 75: Template parameters
-COMPLEX_PIPELINE_NAME = "log-test-complex"  # Pipeline 84: Multi-stage (Validate, Build, Test)
+BASIC_PIPELINE_NAME = "test_run_and_get_pipeline_run_details"
+GITHUB_RESOURCES_PIPELINE_NAME = "github-resources-test-stable"
+PREVIEW_PARAMETERIZED_PIPELINE_NAME = "preview-test-parameterized"
+COMPLEX_PIPELINE_NAME = "log-test-complex"
 
 
 @pytest.fixture
 async def mcp_client():
-    """Provides a connected MCP client for tests."""
     async with Client(mcp) as client:
         initial_org_url = os.environ.get(
             "ADO_ORGANIZATION_URL", "https://dev.azure.com/RussellBoley"
@@ -36,8 +26,6 @@ async def mcp_client():
 
 @pytest.fixture
 async def mcp_client_no_auth(monkeypatch):
-    """Provides a connected MCP client without authentication setup."""
-    # Unset environment variables that provide authentication
     monkeypatch.delenv("AZURE_DEVOPS_EXT_PAT", raising=False)
     monkeypatch.delenv("ADO_ORGANIZATION_URL", raising=False)
     async with Client(mcp) as client:
@@ -46,7 +34,6 @@ async def mcp_client_no_auth(monkeypatch):
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_basic(mcp_client: Client):
-    """Test running a pipeline using project and pipeline names."""
     result = await mcp_client.call_tool(
         "run_pipeline_by_name",
         {
@@ -56,22 +43,18 @@ async def test_run_pipeline_by_name_basic(mcp_client: Client):
     )
     
     pipeline_run = result.data
-    assert pipeline_run is not None, "Pipeline run should not be None"
-    assert isinstance(pipeline_run, dict), "Pipeline run should be a dictionary"
-    assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
-    assert pipeline_run["state"] in ["unknown", "inProgress"], "Pipeline should be starting"
+    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert isinstance(pipeline_run, dict), f"Expected dict but got {type(pipeline_run)}"
+    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
+    assert pipeline_run["state"] in ["unknown", "inProgress"], f"Expected state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     
-    # Verify pipeline information
-    assert "pipeline" in pipeline_run, "Pipeline run should contain pipeline info"
+    assert "pipeline" in pipeline_run, f"Expected 'pipeline' field in pipeline run but got fields: {list(pipeline_run.keys())}"
     pipeline_info = pipeline_run["pipeline"]
-    assert pipeline_info["name"] == BASIC_PIPELINE_NAME, "Pipeline name should match"
-    
-    print(f"✓ Pipeline run by name started: {BASIC_PIPELINE_NAME} (ID: {pipeline_run['id']})")
+    assert pipeline_info["name"] == BASIC_PIPELINE_NAME, f"Expected pipeline name '{BASIC_PIPELINE_NAME}' but got '{pipeline_info['name']}'"
 
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_with_template_parameters(mcp_client: Client):
-    """Test running pipeline by name with template parameters."""
     template_parameters = {
         "taskfileVersion": "latest",
         "installPath": "./bin/by-name-test"
@@ -87,15 +70,12 @@ async def test_run_pipeline_by_name_with_template_parameters(mcp_client: Client)
     )
     
     pipeline_run = result.data
-    assert pipeline_run is not None, "Pipeline run should not be None"
-    assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
-    
-    print(f"✓ Pipeline by name with template parameters started: ID {pipeline_run['id']}")
+    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
 
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_with_resources(mcp_client: Client):
-    """Test running pipeline by name with repository resources."""
     resources = {
         "repositories": {
             "tooling": {
@@ -120,15 +100,12 @@ async def test_run_pipeline_by_name_with_resources(mcp_client: Client):
     )
     
     pipeline_run = result.data
-    assert pipeline_run is not None, "Pipeline run should not be None"
-    assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
-    
-    print(f"✓ Pipeline by name with resources started: ID {pipeline_run['id']}")
+    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
 
 
 @requires_ado_creds
-async def test_run_pipeline_by_name_with_template_parameters(mcp_client: Client):
-    """Test running pipeline by name with template parameters."""
+async def test_run_pipeline_by_name_with_template_parameters_preview(mcp_client: Client):
     template_parameters = {
         "testEnvironment": "prod",
         "enableDebug": False
@@ -144,15 +121,12 @@ async def test_run_pipeline_by_name_with_template_parameters(mcp_client: Client)
     )
     
     pipeline_run = result.data
-    assert pipeline_run is not None, "Pipeline run should not be None"
-    assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
-    
-    print(f"✓ Pipeline by name with template parameters started: ID {pipeline_run['id']}")
+    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
 
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_with_branch(mcp_client: Client):
-    """Test running pipeline by name with specific branch."""
     result = await mcp_client.call_tool(
         "run_pipeline_by_name",
         {
@@ -163,58 +137,45 @@ async def test_run_pipeline_by_name_with_branch(mcp_client: Client):
     )
     
     pipeline_run = result.data
-    assert pipeline_run is not None, "Pipeline run should not be None"
-    assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
-    
-    print(f"✓ Pipeline by name with branch started: ID {pipeline_run['id']}")
+    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
 
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_with_stages_to_skip(mcp_client: Client):
-    """Test running pipeline by name with stages to skip (using complex pipeline)."""
-    # Use complex pipeline which has actual stages: Validate, Build, Test
-    stages_to_skip = ["Test"]  # Skip the Test stage
+    stages_to_skip = ["Test"]
     
     result = await mcp_client.call_tool(
         "run_pipeline_by_name",
         {
             "project_name": TEST_PROJECT_NAME,
-            "pipeline_name": "log-test-complex",  # Pipeline 84 with actual stages
+            "pipeline_name": "log-test-complex",
             "stages_to_skip": stages_to_skip
         }
     )
     
     pipeline_run = result.data
-    assert pipeline_run is not None, "Pipeline run should not be None"
-    assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
-    
-    print(f"✓ Pipeline by name with skipped stages started: ID {pipeline_run['id']}")
+    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
 
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_fuzzy_matching(mcp_client: Client):
-    """Test fuzzy matching for project and pipeline names."""
-    # Test with partial project name
     result = await mcp_client.call_tool(
         "run_pipeline_by_name",
         {
-            "project_name": "ado",  # Partial name should match "ado-mcp"
-            "pipeline_name": "test_run_and_get_pipeline"  # Partial pipeline name
+            "project_name": "ado",
+            "pipeline_name": "test_run_and_get_pipeline"
         }
     )
     
     pipeline_run = result.data
-    assert pipeline_run is not None, "Pipeline run should not be None with fuzzy matching"
-    assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
-    
-    print(f"✓ Fuzzy matching worked: started pipeline with partial names")
+    assert pipeline_run is not None, f"Expected pipeline run with fuzzy matching but got None"
+    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
 
 
 @requires_ado_creds 
 async def test_run_pipeline_by_name_with_authentication(mcp_client: Client):
-    """Test run_pipeline_by_name behavior with proper authentication."""
-    # Note: The no-client test scenario is complex due to global client persistence
-    # This test verifies the tool works correctly with authentication
     result = await mcp_client.call_tool(
         "run_pipeline_by_name",
         {
@@ -224,15 +185,12 @@ async def test_run_pipeline_by_name_with_authentication(mcp_client: Client):
     )
     
     pipeline_run = result.data
-    assert pipeline_run is not None, "Pipeline run should be created with valid authentication"
-    assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
-    
-    print(f"✓ Pipeline by name with authentication started: ID {pipeline_run['id']}")
+    assert pipeline_run is not None, f"Expected pipeline run with authentication but got None"
+    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
 
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_nonexistent_project(mcp_client: Client):
-    """Test error handling for non-existent project name."""
     try:
         result = await mcp_client.call_tool(
             "run_pipeline_by_name",
@@ -242,19 +200,16 @@ async def test_run_pipeline_by_name_nonexistent_project(mcp_client: Client):
             }
         )
         
-        # If it doesn't raise an exception, check the result
         if result.data is None:
-            print("✓ Non-existent project properly returned None")
+            assert True, "Non-existent project correctly returned None"
         else:
-            assert False, "Non-existent project should not return a valid result"
-    except Exception as e:
-        print(f"✓ Non-existent project properly raised exception: {type(e).__name__}")
-        assert True, "Exception is expected for non-existent project"
+            assert False, f"Expected None for non-existent project but got {result.data}"
+    except Exception:
+        assert True, "Non-existent project correctly raised exception"
 
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_nonexistent_pipeline(mcp_client: Client):
-    """Test error handling for non-existent pipeline name."""
     try:
         result = await mcp_client.call_tool(
             "run_pipeline_by_name",
@@ -264,42 +219,35 @@ async def test_run_pipeline_by_name_nonexistent_pipeline(mcp_client: Client):
             }
         )
         
-        # If it doesn't raise an exception, check the result
         if result.data is None:
-            print("✓ Non-existent pipeline properly returned None")
+            assert True, "Non-existent pipeline correctly returned None"
         else:
-            assert False, "Non-existent pipeline should not return a valid result"
-    except Exception as e:
-        print(f"✓ Non-existent pipeline properly raised exception: {type(e).__name__}")
-        assert True, "Exception is expected for non-existent pipeline"
+            assert False, f"Expected None for non-existent pipeline but got {result.data}"
+    except Exception:
+        assert True, "Non-existent pipeline correctly raised exception"
 
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_case_insensitive(mcp_client: Client):
-    """Test that name matching is case insensitive."""
     result = await mcp_client.call_tool(
         "run_pipeline_by_name",
         {
-            "project_name": "ADO-MCP",  # Different case
-            "pipeline_name": "TEST_RUN_AND_GET_PIPELINE_RUN_DETAILS"  # Different case
+            "project_name": "ADO-MCP",
+            "pipeline_name": "TEST_RUN_AND_GET_PIPELINE_RUN_DETAILS"
         }
     )
     
     pipeline_run = result.data
-    assert pipeline_run is not None, "Pipeline run should work with different case"
-    assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
-    
-    print(f"✓ Case insensitive matching worked: ID {pipeline_run['id']}")
+    assert pipeline_run is not None, f"Expected pipeline run with case insensitive matching but got None"
+    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
 
 
 async def test_run_pipeline_by_name_tool_registration():
-    """Test that the run_pipeline_by_name tool is properly registered."""
     async with Client(mcp) as client:
         tools_response = await client.list_tools()
-        # Handle both potential response formats
         if hasattr(tools_response, "tools"):
             tools = tools_response.tools
         else:
             tools = tools_response
         tool_names = [tool.name for tool in tools]
-        assert "run_pipeline_by_name" in tool_names, "run_pipeline_by_name tool should be registered"
+        assert "run_pipeline_by_name" in tool_names, f"Expected 'run_pipeline_by_name' in tool names but got {tool_names}"

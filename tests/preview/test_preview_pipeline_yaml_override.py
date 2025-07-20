@@ -1,8 +1,3 @@
-"""
-Tests for the preview_pipeline MCP tool - YAML override functionality.
-
-This module tests the YAML override feature which is unique to the preview API.
-"""
 
 import os
 import pytest
@@ -11,17 +6,14 @@ from fastmcp.client import Client
 from server import mcp
 from tests.ado.test_client import requires_ado_creds
 
-# Mark all tests in this module as asyncio
 pytestmark = pytest.mark.asyncio
 
-# Test fixtures
-TEST_PROJECT_ID = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-BASIC_PREVIEW_PIPELINE_ID = 74  # preview-test-valid pipeline
+TEST_PROJECT_ID = "49e895da-15c6-4211-97df-65c547a59c22"
+BASIC_PREVIEW_PIPELINE_ID = 74
 
 
 @pytest.fixture
 async def mcp_client():
-    """Provides a connected MCP client for tests."""
     async with Client(mcp) as client:
         initial_org_url = os.environ.get(
             "ADO_ORGANIZATION_URL", "https://dev.azure.com/RussellBoley"
@@ -32,7 +24,6 @@ async def mcp_client():
 
 @requires_ado_creds
 async def test_preview_pipeline_yaml_override_simple(mcp_client: Client):
-    """Test preview with simple YAML override."""
     yaml_override = """
 name: Simple Override Test
 trigger: none
@@ -53,20 +44,17 @@ steps:
     )
     
     preview_data = result.data
-    assert preview_data is not None, "Preview with override should not be None"
-    assert "finalYaml" in preview_data, "Preview should contain finalYaml field"
+    assert preview_data is not None, f"Expected preview data with YAML override but got None"
+    assert "finalYaml" in preview_data, f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
     
     final_yaml = preview_data["finalYaml"]
-    assert "Simple Override Test" in final_yaml, "Final YAML should contain override content"
-    assert "Hello from YAML override!" in final_yaml, "Final YAML should contain override script"
-    
-    print("✓ Simple YAML override applied successfully")
+    assert "Simple Override Test" in final_yaml, f"Expected 'Simple Override Test' in finalYaml but not found. Got: {final_yaml[:200]}..."
+    assert "Hello from YAML override!" in final_yaml, f"Expected 'Hello from YAML override!' in finalYaml but not found. Got: {final_yaml[:200]}..."
 
 
 @requires_ado_creds
 async def test_preview_pipeline_yaml_override_complex(mcp_client: Client):
-    """Test preview with complex YAML override including parameters."""
-    parameterized_pipeline_id = 75  # preview-test-parameterized
+    parameterized_pipeline_id = 75
     
     yaml_override = """
 name: Complex Override Test Pipeline
@@ -115,21 +103,18 @@ stages:
     )
     
     preview_data = result.data
-    assert preview_data is not None, "Preview with complex override should not be None"
-    assert "finalYaml" in preview_data, "Preview should contain finalYaml field"
+    assert preview_data is not None, f"Expected preview data with complex override but got None"
+    assert "finalYaml" in preview_data, f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
     
     final_yaml = preview_data["finalYaml"]
-    assert "Complex Override Test Pipeline" in final_yaml, "Final YAML should contain override name"
-    assert "OverrideStage" in final_yaml, "Final YAML should contain override stage"
-    assert "overrideParam" in final_yaml, "Final YAML should contain override parameters"
-    
-    print("✓ Complex YAML override with parameters applied successfully")
+    assert "Complex Override Test Pipeline" in final_yaml, f"Expected 'Complex Override Test Pipeline' in finalYaml but not found. Got: {final_yaml[:200]}..."
+    assert "OverrideStage" in final_yaml, f"Expected 'OverrideStage' in finalYaml but not found. Got: {final_yaml[:200]}..."
+    assert "overrideParam" in final_yaml, f"Expected 'overrideParam' in finalYaml but not found. Got: {final_yaml[:200]}..."
 
 
 @requires_ado_creds
 async def test_preview_pipeline_yaml_override_with_resources(mcp_client: Client):
-    """Test preview combining YAML override with resources."""
-    github_resources_pipeline_id = 200  # github-resources-test-stable
+    github_resources_pipeline_id = 200
     
     yaml_override = """
 name: GitHub Resources Override Test
@@ -156,7 +141,7 @@ steps:
     resources = {
         "repositories": {
             "tooling": {
-                "refName": "refs/heads/stable/0.0.1"  # This should override the YAML
+                "refName": "refs/heads/stable/0.0.1"
             }
         }
     }
@@ -172,19 +157,16 @@ steps:
     )
     
     preview_data = result.data
-    assert preview_data is not None, "GitHub resources with YAML override should not be None"
-    assert "finalYaml" in preview_data, "Preview should contain finalYaml field"
+    assert preview_data is not None, f"Expected preview data with YAML override and resources but got None"
+    assert "finalYaml" in preview_data, f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
     
     final_yaml = preview_data["finalYaml"]
-    assert "GitHub Resources Override Test" in final_yaml, "Final YAML should contain override name"
-    assert "tooling" in final_yaml, "Final YAML should contain tooling repository"
-    
-    print("✓ YAML override with resources combination processed successfully")
+    assert "GitHub Resources Override Test" in final_yaml, f"Expected 'GitHub Resources Override Test' in finalYaml but not found. Got: {final_yaml[:200]}..."
+    assert "tooling" in final_yaml, f"Expected 'tooling' repository reference in finalYaml but not found. Got: {final_yaml[:200]}..."
 
 
 @requires_ado_creds
 async def test_preview_pipeline_invalid_yaml_override(mcp_client: Client):
-    """Test preview error handling with invalid YAML override."""
     invalid_yaml_override = """
 name: Invalid YAML Test
 trigger: none
@@ -206,21 +188,17 @@ steps:
             }
         )
         
-        # If we get a result, check it's structured properly
         if result.data is not None:
             preview_data = result.data
-            assert isinstance(preview_data, dict), "Even error responses should be dictionaries"
-            print("✓ Invalid YAML override handled gracefully by preview")
+            assert isinstance(preview_data, dict), f"Expected dict response for invalid YAML but got {type(preview_data)}"
         else:
-            print("✓ Preview tool returned None for invalid YAML override")
+            assert True, "Invalid YAML override correctly returned None"
     except Exception as e:
-        print(f"✓ Preview tool properly raised exception for invalid YAML: {type(e).__name__}")
-        assert isinstance(e, Exception), "Should raise a proper exception type"
+        assert isinstance(e, Exception), f"Expected proper exception type for invalid YAML but got {type(e)}"
 
 
 @requires_ado_creds 
 async def test_preview_pipeline_with_yaml_override_tool_integration(mcp_client: Client):
-    """Test YAML override integration from the original server tests."""
     yaml_override = """
 name: Override Integration Test
 trigger: none
@@ -244,11 +222,9 @@ steps:
     )
     
     preview_data = result.data
-    assert preview_data is not None, "Preview should not be None"
-    assert "finalYaml" in preview_data, "Should have finalYaml field"
+    assert preview_data is not None, f"Expected preview data for tool integration test but got None"
+    assert "finalYaml" in preview_data, f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
     
     final_yaml = preview_data["finalYaml"]
-    assert "Override Integration Test" in final_yaml, "Should contain override pipeline name"
-    assert "YAML override integration test" in final_yaml, "Should contain override step content"
-    
-    print("✓ YAML override tool integration test successful")
+    assert "Override Integration Test" in final_yaml, f"Expected 'Override Integration Test' in finalYaml but not found. Got: {final_yaml[:200]}..."
+    assert "YAML override integration test" in final_yaml, f"Expected 'YAML override integration test' in finalYaml but not found. Got: {final_yaml[:200]}..."
