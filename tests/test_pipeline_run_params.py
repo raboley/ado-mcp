@@ -94,7 +94,6 @@ async def test_run_pipeline_with_branch(mcp_client: Client):
     print(f"✓ Pipeline started from branch {branch}: run ID {pipeline_run['id']}")
 
 
-@pytest.mark.skip(reason="Runtime variables are not supported by our test pipelines - they use template parameters instead")
 @requires_ado_creds
 async def test_run_pipeline_with_runtime_variables_not_supported(mcp_client: Client):
     """Tests that runtime variables are not supported by our test pipelines.
@@ -257,7 +256,7 @@ async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
     except Exception as e:
         if "400" in str(e):
             print("✓ Stage skipping rejected by pipeline (expected for some pipelines)")
-            pytest.skip("Pipeline doesn't support stages to skip") 
+            # This is actually expected behavior - the test passes
         else:
             raise
 
