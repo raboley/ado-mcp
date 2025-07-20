@@ -18,10 +18,6 @@ This feature enables users to create, read, update, delete, and query work items
 
 ### Primary User Stories
 
-1. **As an automation tool**, I want to create bug work items automatically when pipeline failures occur, so that issues are tracked without manual intervention.
-
-2. **As an automation tool**, I want to update work item states based on deployment status, so that work tracking reflects the actual state of the code.
-
 3. **As an automation tool**, I want to query work items by various criteria, so that I can find relevant items for processing.
 
 4. **As an automation tool**, I want to add comments to work items, so that automated actions are documented.
@@ -212,9 +208,8 @@ Documentation references:
 ## Open Questions
 
 1. Should we implement WIQL query support or start with simpler filtering? (Decision: Start with whichever is easier)
-2. What is the maximum number of work items we should support in batch operations?
-3. Should work item creation from pipeline failures be a separate tool or integrated into failure analysis?
-4. Do we need to support custom fields beyond the standard Azure DevOps fields?
-5. Should we implement work item state transition validation?
-6. How should we handle work items in different projects when doing cross-project queries?
-7. Should deleted work items be automatically purged after a certain time?
+2. What is the maximum number of work items we should support in batch operations? (100)
+4. Do we need to support custom fields beyond the standard Azure DevOps fields? Not unless it is just a basic dictionary of fields.
+5. Should we implement work item state transition validation? yes, when we try to do something we need to validate it happens.
+6. How should we handle work items in different projects when doing cross-project queries? (future enhancement)
+7. Should deleted work items be automatically purged after a certain time? leave it to default.
