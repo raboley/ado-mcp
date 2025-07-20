@@ -22,6 +22,7 @@ from ado.models import (
     TimelineResponse,
     Variable,
 )
+from ado.work_items.tools import register_work_item_tools
 
 logger = logging.getLogger(__name__)
 
@@ -985,3 +986,6 @@ def register_ado_tools(mcp_instance, client_container):
             return []
         
         return ado_client_instance.list_available_pipelines(project_name)
+    
+    # Register work item tools
+    register_work_item_tools(mcp_instance, client_container)
