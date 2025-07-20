@@ -38,6 +38,62 @@
     - 1 failure case
     - 1 test to ensure tools and resources are added to the mcp server.
 
+#### 🎯 Test Quality Standards
+- **NO docstrings on test functions** - the function name should be self-explanatory
+- **NO comments explaining test steps** - code should be clear without explanation
+- **NO print statements or celebratory output** - assertions are sufficient
+- **NO "fire and forget" testing** - always validate the actual outcome
+- **ALWAYS test the end result** - verify what the user would see, not just that something didn't crash
+- **Make failures informative** - include all context needed to understand and fix failures
+- **Use descriptive assertion messages** - explain what should have happened when assertions fail
+- **Test actual behavior** - don't assume success, verify the expected outcome occurred
+
+Example of BAD test practices:
+```python
+async def test_run_pipeline_with_variables(client):
+    """Test that we can run a pipeline with variables."""  # NO docstring
+    # First we set up our variables  # NO explaining comments
+    variables = {"test": "value"}
+    
+    result = await client.call_tool("run_pipeline", {...})
+    
+    assert result.data is not None  # Weak assertion
+    print("✓ Pipeline started successfully!")  # NO print statements
+```
+
+Example of GOOD test practices:
+```python
+async def test_run_pipeline_with_variables_substitution(client):
+    variables = {"testVar": "expected-value"}
+    
+    result = await client.call_tool("run_pipeline", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "variables": variables
+    })
+    
+    run_id = result.data["id"]
+    
+    outcome = await client.call_tool("run_pipeline_and_get_outcome", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "timeout_seconds": 60,
+        "variables": variables
+    })
+    
+    assert outcome["success"] is True, f"Pipeline failed: {outcome.get('failure_summary')}"
+    
+    timeline = await client.call_tool("get_pipeline_timeline", {
+        "project_id": project_id,
+        "pipeline_id": pipeline_id,
+        "run_id": run_id
+    })
+    
+    task_names = [record["name"] for record in timeline["records"] if record.get("type") == "Task"]
+    expected_substitution = "Task with testVar: expected-value"
+    assert expected_substitution in task_names, f"Variable not substituted. Found tasks: {task_names}"
+```
+
 ### ✅ Task Completion
 - **Always Run tests** ensuring they all pass using `task test` before marking something complete
 - **Mark completed tasks in `TASK.md`** immediately after finishing them.
