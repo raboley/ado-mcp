@@ -45,7 +45,9 @@
 - **NO "fire and forget" testing** - always validate the actual outcome
 - **ALWAYS test the end result** - verify what the user would see, not just that something didn't crash
 - **Make failures informative** - include all context needed to understand and fix failures
-- **Use descriptive assertion messages** - explain what should have happened when assertions fail
+- **Use descriptive assertion messages with context** - explain both what should have happened AND what actually happened
+- **For comparisons, always show expected vs actual** - use f-strings to display both values when assertions fail
+- **For boolean checks, explain the opposite condition** - e.g., "should fetch from API, but was retrieved from cache"
 - **Test actual behavior** - don't assume success, verify the expected outcome occurred
 
 Example of BAD test practices:
@@ -81,7 +83,7 @@ async def test_run_pipeline_with_variables_substitution(client):
         "variables": variables
     })
     
-    assert outcome["success"] is True, f"Pipeline failed: {outcome.get('failure_summary')}"
+    assert outcome["success"] is True, f"Pipeline should succeed but failed: {outcome.get('failure_summary')}"
     
     timeline = await client.call_tool("get_pipeline_timeline", {
         "project_id": project_id,
@@ -91,7 +93,7 @@ async def test_run_pipeline_with_variables_substitution(client):
     
     task_names = [record["name"] for record in timeline["records"] if record.get("type") == "Task"]
     expected_substitution = "Task with testVar: expected-value"
-    assert expected_substitution in task_names, f"Variable not substituted. Found tasks: {task_names}"
+    assert expected_substitution in task_names, f"Variable should be substituted in task name. Expected '{expected_substitution}' in tasks but found: {task_names}"
 ```
 
 ### ✅ Task Completion

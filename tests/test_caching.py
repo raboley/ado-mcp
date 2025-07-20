@@ -1,14 +1,3 @@
-"""
-Integration tests for the Azure DevOps caching functionality.
-
-Tests cover:
-- Cache TTL and expiration
-- Name-to-ID mapping with fuzzy matching
-- Performance improvements from caching
-
-These are basic unit tests for cache functionality.
-See test_caching_e2e.py for full end-to-end tests with observability.
-"""
 
 import pytest
 import time
@@ -19,35 +8,29 @@ from tests.ado.test_client import requires_ado_creds
 
 
 class TestAdoCache:
-    """Test the caching layer functionality."""
     
     def setup_method(self):
-        """Set up fresh cache for each test."""
         self.cache = AdoCache()
     
     def test_cache_basic_operations(self):
-        """Test basic cache set/get operations."""
-        # Test setting and getting data
         test_data = {"key": "value"}
         self.cache._set("test", test_data, 60)
         
         result = self.cache._get("test")
-        assert result == test_data
+        assert result == test_data, f"Expected {test_data} but got {result}"
     
     def test_cache_expiration(self):
-        """Test that cache entries expire correctly."""
         test_data = {"key": "value"}
-        self.cache._set("test", test_data, 1)  # 1 second TTL
+        self.cache._set("test", test_data, 1)
         
-        # Should be available immediately
-        assert self.cache._get("test") == test_data
+        retrieved = self.cache._get("test")
+        assert retrieved == test_data, f"Cache entry should be available immediately. Expected {test_data} but got {retrieved}"
         
-        # Should expire after TTL
         time.sleep(1.1)
-        assert self.cache._get("test") is None
+        expired_result = self.cache._get("test")
+        assert expired_result is None, f"Cache entry should expire after TTL but got {expired_result}"
     
     def test_project_caching(self):
-        """Test project caching and name mapping."""
         projects = [
             Project(
                 id="proj1", 
@@ -73,32 +56,26 @@ class TestAdoCache:
         
         self.cache.set_projects(projects)
         
-        # Test retrieval
         cached_projects = self.cache.get_projects()
-        assert len(cached_projects) == 2
-        assert cached_projects[0].name == "ado-mcp"
+        assert len(cached_projects) == 2, f"Expected 2 projects but got {len(cached_projects)}"
+        assert cached_projects[0].name == "ado-mcp", f"Expected first project name 'ado-mcp' but got '{cached_projects[0].name}'"
         
-        # Test exact name matching
         project = self.cache.find_project_by_name("ado-mcp")
-        assert project is not None
-        assert project.id == "proj1"
+        assert project is not None, "Should find project by exact name but got None"
+        assert project.id == "proj1", f"Expected project ID 'proj1' but got '{project.id}'"
         
-        # Test case insensitive matching
         project = self.cache.find_project_by_name("ADO-MCP")
-        assert project is not None
-        assert project.id == "proj1"
+        assert project is not None, "Should find project by case insensitive name but got None"
+        assert project.id == "proj1", f"Expected project ID 'proj1' but got '{project.id}'"
         
-        # Test fuzzy matching
         project = self.cache.find_project_by_name("Learning")
-        assert project is not None
-        assert project.id == "proj2"
+        assert project is not None, "Should find Learning project but got None"
+        assert project.id == "proj2", f"Expected project ID 'proj2' but got '{project.id}'"
         
-        # Test no match
         project = self.cache.find_project_by_name("NonExistent")
-        assert project is None
+        assert project is None, f"Should not find non-existent project but got {project}"
     
     def test_pipeline_caching(self):
-        """Test pipeline caching and name mapping."""
         pipelines = [
             Pipeline(
                 id=1, 
@@ -119,66 +96,53 @@ class TestAdoCache:
         project_id = "proj1"
         self.cache.set_pipelines(project_id, pipelines)
         
-        # Test retrieval
         cached_pipelines = self.cache.get_pipelines(project_id)
-        assert len(cached_pipelines) == 2
+        assert len(cached_pipelines) == 2, f"Expected 2 pipelines, got {len(cached_pipelines)}"
         
-        # Test exact name matching
         pipeline = self.cache.find_pipeline_by_name(project_id, "CI Pipeline")
-        assert pipeline is not None
-        assert pipeline.id == 1
+        assert pipeline is not None, "Should find pipeline by exact name"
+        assert pipeline.id == 1, f"Expected pipeline ID 1, got {pipeline.id}"
         
-        # Test fuzzy matching (partial name with enough similarity)
         pipeline = self.cache.find_pipeline_by_name(project_id, "CI Pipe")
-        assert pipeline is not None
-        assert pipeline.id == 1
+        assert pipeline is not None, "Should find pipeline by partial name fuzzy matching"
+        assert pipeline.id == 1, f"Expected pipeline ID 1, got {pipeline.id}"
         
-        # Test no match
         pipeline = self.cache.find_pipeline_by_name(project_id, "NonExistent")
-        assert pipeline is None
+        assert pipeline is None, "Should not find non-existent pipeline"
     
     def test_cache_stats(self):
-        """Test cache statistics."""
         stats = self.cache.get_stats()
-        assert stats["total_entries"] == 0
-        assert stats["active_entries"] == 0
+        assert stats["total_entries"] == 0, f"Expected 0 total entries, got {stats['total_entries']}"
+        assert stats["active_entries"] == 0, f"Expected 0 active entries, got {stats['active_entries']}"
         
-        # Add some data
         self.cache._set("test1", "data1", 60)
-        self.cache._set("test2", "data2", 1)  # Will expire quickly
+        self.cache._set("test2", "data2", 1)
         
         stats = self.cache.get_stats()
-        assert stats["total_entries"] == 2
-        assert stats["active_entries"] == 2
+        assert stats["total_entries"] == 2, f"Expected 2 total entries, got {stats['total_entries']}"
+        assert stats["active_entries"] == 2, f"Expected 2 active entries, got {stats['active_entries']}"
         
-        # Wait for one to expire
         time.sleep(1.1)
         stats = self.cache.get_stats()
-        assert stats["total_entries"] == 2
-        assert stats["expired_entries"] == 1
+        assert stats["total_entries"] == 2, f"Expected 2 total entries after expiration, got {stats['total_entries']}"
+        assert stats["expired_entries"] == 1, f"Expected 1 expired entry, got {stats['expired_entries']}"
     
     def test_clear_expired(self):
-        """Test clearing expired entries."""
-        self.cache._set("test1", "data1", 60)  # Won't expire
-        self.cache._set("test2", "data2", 1)   # Will expire
+        self.cache._set("test1", "data1", 60)
+        self.cache._set("test2", "data2", 1)
         
-        assert self.cache.get_stats()["total_entries"] == 2
+        assert self.cache.get_stats()["total_entries"] == 2, "Should have 2 entries before expiration"
         
         time.sleep(1.1)
         removed_count = self.cache.clear_expired()
-        assert removed_count == 1
-        assert self.cache.get_stats()["total_entries"] == 1
-
-
-# Mocked tests removed - see test_caching_e2e.py for end-to-end tests with observability
+        assert removed_count == 1, f"Expected to remove 1 expired entry, removed {removed_count}"
+        assert self.cache.get_stats()["total_entries"] == 1, f"Expected 1 entry after cleanup, got {self.cache.get_stats()['total_entries']}"
 
 
 @requires_ado_creds
 class TestCachingIntegration:
-    """Integration tests with real Azure DevOps data."""
     
     def test_name_based_project_lookup(self):
-        """Test name-based project lookup with real data."""
         from ado.client import AdoClient
         import os
         
@@ -187,26 +151,21 @@ class TestCachingIntegration:
             pat=os.environ["AZURE_DEVOPS_EXT_PAT"]
         )
         
-        # Clear cache to ensure fresh test
         ado_cache.clear_all()
         
-        # Find a project by name (should work with any project in the org)
         projects = client.list_available_projects()
         if projects:
             first_project_name = projects[0]
             
-            # Test finding by exact name
             project = client.find_project_by_name(first_project_name)
-            assert project is not None
-            assert project.name == first_project_name
+            assert project is not None, f"Should find project '{first_project_name}'"
+            assert project.name == first_project_name, f"Expected project name '{first_project_name}', got '{project.name}'"
             
-            # Test that second call uses cache (check logs if needed)
             project2 = client.find_project_by_name(first_project_name)
-            assert project2 is not None
-            assert project2.id == project.id
+            assert project2 is not None, f"Cached lookup should find project '{first_project_name}'"
+            assert project2.id == project.id, f"Cached project should have same ID {project.id}, got {project2.id}"
     
     def test_name_based_pipeline_lookup(self):
-        """Test name-based pipeline lookup with real data."""
         from ado.client import AdoClient
         import os
         
@@ -215,10 +174,8 @@ class TestCachingIntegration:
             pat=os.environ["AZURE_DEVOPS_EXT_PAT"]
         )
         
-        # Clear cache to ensure fresh test
         ado_cache.clear_all()
         
-        # Get projects and find one with pipelines
         projects = client.list_available_projects()
         if projects:
             for project_name in projects:
@@ -226,17 +183,15 @@ class TestCachingIntegration:
                 if pipelines:
                     pipeline_name = pipelines[0]
                     
-                    # Test finding pipeline by name
                     result = client.find_pipeline_by_name(project_name, pipeline_name)
-                    assert result is not None
+                    assert result is not None, f"Should find pipeline '{pipeline_name}' in project '{project_name}'"
                     
                     project, pipeline = result
-                    assert project.name == project_name
-                    assert pipeline.name == pipeline_name
+                    assert project.name == project_name, f"Expected project name '{project_name}', got '{project.name}'"
+                    assert pipeline.name == pipeline_name, f"Expected pipeline name '{pipeline_name}', got '{pipeline.name}'"
                     break
     
     def test_cache_performance(self):
-        """Test that caching improves performance."""
         from ado.client import AdoClient
         import os
         import time
@@ -246,28 +201,21 @@ class TestCachingIntegration:
             pat=os.environ["AZURE_DEVOPS_EXT_PAT"]
         )
         
-        # Clear cache
         ado_cache.clear_all()
         
-        # Time first call (should hit API)
         start_time = time.time()
         projects1 = client.list_available_projects()
         first_call_time = time.time() - start_time
         
-        # Time second call (should use cache)
         start_time = time.time()
         projects2 = client.list_available_projects()
         second_call_time = time.time() - start_time
         
-        # Verify results are the same
-        assert projects1 == projects2
+        assert projects1 == projects2, "Cached and uncached results should be identical"
         
-        # Second call should be significantly faster
-        # (Note: This is a rough test, actual times may vary)
-        assert second_call_time < first_call_time / 2
+        assert second_call_time < first_call_time / 2, f"Cached call ({second_call_time:.3f}s) should be faster than uncached call ({first_call_time:.3f}s)"
     
     def test_fuzzy_matching_with_real_data(self):
-        """Test fuzzy matching with real project names."""
         from ado.client import AdoClient
         import os
         
@@ -278,12 +226,10 @@ class TestCachingIntegration:
         
         projects = client.list_available_projects()
         if projects:
-            # Take first project and test partial name matching
             full_name = projects[0]
             if len(full_name) > 3:
-                partial_name = full_name[:3]  # First 3 characters
+                partial_name = full_name[:3]
                 
-                # Should find the project with partial name
                 project = client.find_project_by_name(partial_name)
-                # Note: This might not always work if there are multiple similar names
-                # but it tests the fuzzy matching capability
+                if project:
+                    assert partial_name.lower() in project.name.lower(), f"Fuzzy match should contain partial name '{partial_name}' in found project '{project.name}'"
