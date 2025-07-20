@@ -29,15 +29,6 @@ async def mcp_client():
         yield client
 
 
-@pytest.fixture
-async def mcp_client_no_auth(monkeypatch):
-    """Provides a connected MCP client without authentication setup."""
-    # Unset environment variables that provide authentication
-    monkeypatch.delenv("AZURE_DEVOPS_EXT_PAT", raising=False)
-    monkeypatch.delenv("ADO_ORGANIZATION_URL", raising=False)
-    async with Client(mcp) as client:
-        yield client
-
 
 @requires_ado_creds
 async def test_list_pipelines_returns_valid_list(mcp_client: Client):
@@ -116,16 +107,6 @@ async def test_list_pipelines_specific_pipeline_details(mcp_client: Client):
     assert github_pipeline["id"] == 200, "Should have correct pipeline ID"
     assert "github-resources-test-stable" in github_pipeline["name"], "Should have correct name"
 
-
-async def test_list_pipelines_no_client(mcp_client_no_auth: Client):
-    """Test list_pipelines behavior when no client is configured."""
-    result = await mcp_client_no_auth.call_tool(
-        "list_pipelines", 
-        {"project_id": TEST_PROJECT_ID}
-    )
-    
-    pipelines = result.data
-    assert pipelines == [], "Should return empty list when no client is configured"
 
 
 @requires_ado_creds

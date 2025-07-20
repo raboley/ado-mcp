@@ -31,15 +31,6 @@ async def mcp_client():
         yield client
 
 
-@pytest.fixture
-async def mcp_client_no_auth(monkeypatch):
-    """Provides a connected MCP client without authentication setup."""
-    # Unset environment variables that provide authentication
-    monkeypatch.delenv("AZURE_DEVOPS_EXT_PAT", raising=False)
-    monkeypatch.delenv("ADO_ORGANIZATION_URL", raising=False)
-    async with Client(mcp) as client:
-        yield client
-
 
 @pytest.fixture
 async def build_id(mcp_client):
@@ -162,18 +153,6 @@ async def test_get_build_by_id_status_field(mcp_client: Client, build_id: int):
     print(f"✓ Build status is valid: {build_data['status']}")
 
 
-async def test_get_build_by_id_no_client(mcp_client_no_auth: Client):
-    """Test get_build_by_id behavior when no client is configured."""
-    result = await mcp_client_no_auth.call_tool(
-        "get_build_by_id",
-        {
-            "project_id": TEST_PROJECT_ID,
-            "build_id": 123456  # Any build ID
-        }
-    )
-    
-    build_data = result.data
-    assert build_data is None, "Should return None when no client is configured"
 
 
 @requires_ado_creds

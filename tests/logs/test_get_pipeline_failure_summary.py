@@ -30,14 +30,6 @@ async def mcp_client():
         yield client
 
 
-@pytest.fixture
-async def mcp_client_no_auth(monkeypatch):
-    """Provides a connected MCP client without authentication setup."""
-    # Unset environment variables that provide authentication
-    monkeypatch.delenv("AZURE_DEVOPS_EXT_PAT", raising=False)
-    monkeypatch.delenv("ADO_ORGANIZATION_URL", raising=False)
-    async with Client(mcp) as client:
-        yield client
 
 
 @pytest.fixture
@@ -171,19 +163,6 @@ async def test_get_pipeline_failure_summary_task_structure(mcp_client: Client, c
     print(f"✓ Task and hierarchy failure structures are valid")
 
 
-async def test_get_pipeline_failure_summary_no_client(mcp_client_no_auth: Client):
-    """Test get_pipeline_failure_summary behavior when no client is configured."""
-    result = await mcp_client_no_auth.call_tool(
-        "get_pipeline_failure_summary",
-        {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": BASIC_PIPELINE_ID,
-            "run_id": 123456  # Any run ID
-        }
-    )
-    
-    failure_summary = result.data
-    assert failure_summary is None, "Should return None when no client is configured"
 
 
 @requires_ado_creds

@@ -274,8 +274,8 @@ async def test_run_pipeline_github_resources_complex_scenario(mcp_client: Client
     }
     
     template_parameters = {
-        "taskfileVersion": "v1.2.3",
-        "installPath": "/usr/local/bin/complex-test"
+        "taskfileVersion": "latest",
+        "installPath": "./bin/complex-test"
     }
     
     # Note: This pipeline doesn't have stages that can be skipped

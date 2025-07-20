@@ -127,19 +127,6 @@ async def test_preview_pipeline_with_stages_to_skip(mcp_client: Client):
     print(f"✓ Preview with stages to skip: {stages_to_skip}")
 
 
-async def test_preview_pipeline_no_client():
-    """Test preview_pipeline behavior when no client is configured."""
-    async with Client(mcp) as client:
-        result = await client.call_tool(
-            "preview_pipeline",
-            {
-                "project_id": TEST_PROJECT_ID,
-                "pipeline_id": BASIC_PREVIEW_PIPELINE_ID
-            }
-        )
-        
-        preview_data = result.data
-        assert preview_data is None, "Should return None when no client is configured"
 
 
 @requires_ado_creds

@@ -1337,9 +1337,10 @@ async def test_run_pipeline_and_get_outcome_failure(mcp_client: Client):
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 83  # log-test-failing pipeline (designed to fail)
 
+    # Note: This is a "slow" pipeline that uses agents, so it may take longer
     result = await mcp_client.call_tool(
         "run_pipeline_and_get_outcome",
-        {"project_id": project_id, "pipeline_id": pipeline_id, "timeout_seconds": 300},
+        {"project_id": project_id, "pipeline_id": pipeline_id, "timeout_seconds": 600},
     )
 
     outcome = result.data

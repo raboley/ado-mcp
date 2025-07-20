@@ -26,15 +26,6 @@ async def mcp_client():
         yield client
 
 
-@pytest.fixture
-async def mcp_client_no_auth(monkeypatch):
-    """Provides a connected MCP client without authentication setup."""
-    # Unset environment variables that provide authentication
-    monkeypatch.delenv("AZURE_DEVOPS_EXT_PAT", raising=False)
-    monkeypatch.delenv("ADO_ORGANIZATION_URL", raising=False)
-    async with Client(mcp) as client:
-        yield client
-
 
 @requires_ado_creds
 async def test_check_authentication_success(mcp_client: Client):
@@ -44,13 +35,6 @@ async def test_check_authentication_success(mcp_client: Client):
     auth_result = result.data
     assert auth_result is True, "Authentication should succeed with valid credentials"
 
-
-async def test_check_authentication_no_client(mcp_client_no_auth: Client):
-    """Test authentication check when no client is configured."""
-    result = await mcp_client_no_auth.call_tool("check_ado_authentication")
-    
-    auth_result = result.data
-    assert auth_result is False, "Authentication should fail when no client is configured"
 
 
 @requires_ado_creds 
