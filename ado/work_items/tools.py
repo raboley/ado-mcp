@@ -103,34 +103,27 @@ def register_work_item_tools(mcp_instance, client_container):
             return None
             
         try:
-            # Validate work item type
             if not bypass_rules and not WorkItemValidator.validate_work_item_type(project_id, work_item_type):
                 logger.warning(f"Work item type '{work_item_type}' may not be valid for project '{project_id}'")
             
-            # Build fields dictionary
             fields = {
                 "System.Title": title,
             }
             
-            # Add optional fields if provided
             if description:
                 fields["System.Description"] = description
             if area_path:
-                # Validate and sanitize area path
                 area_path = WorkItemValidator.sanitize_path(area_path)
                 if not bypass_rules and not WorkItemValidator.validate_area_path(project_id, area_path):
                     logger.warning(f"Area path '{area_path}' may not be valid for project '{project_id}'")
-                    # Suggest valid paths
                     suggestions = WorkItemValidator.suggest_valid_paths(project_id, area_path, "area")
                     if suggestions:
                         logger.info(f"Suggested area paths: {', '.join(suggestions[:3])}")
                 fields["System.AreaPath"] = area_path
             if iteration_path:
-                # Validate and sanitize iteration path
                 iteration_path = WorkItemValidator.sanitize_path(iteration_path)
                 if not bypass_rules and not WorkItemValidator.validate_iteration_path(project_id, iteration_path):
                     logger.warning(f"Iteration path '{iteration_path}' may not be valid for project '{project_id}'")
-                    # Suggest valid paths
                     suggestions = WorkItemValidator.suggest_valid_paths(project_id, iteration_path, "iteration")
                     if suggestions:
                         logger.info(f"Suggested iteration paths: {', '.join(suggestions[:3])}")
@@ -140,23 +133,20 @@ def register_work_item_tools(mcp_instance, client_container):
             if state:
                 fields["System.State"] = state
             if priority:
-                # Validate priority value
                 if not bypass_rules and not WorkItemValidator.validate_field_value("System.Priority", priority, "Integer"):
                     raise ValueError(f"Invalid priority value: {priority}. Must be an integer between 1 and 4.")
                 fields["System.Priority"] = priority
             if tags:
                 fields["System.Tags"] = tags
                 
-            # Add any additional fields
             if additional_fields:
-                # Validate additional fields
                 if not bypass_rules:
                     for field_name, field_value in additional_fields.items():
                         if not WorkItemValidator.validate_field_value(field_name, field_value):
                             logger.warning(f"Field '{field_name}' value may not be valid: {field_value}")
                 fields.update(additional_fields)
                 
-            # Create work items client
+            work_items_client = WorkItemsClient(ado_client_instance)
             work_items_client = WorkItemsClient(ado_client_instance)
             
             # Create the work item
@@ -326,26 +316,21 @@ def register_work_item_tools(mcp_instance, client_container):
             if assigned_to is not None:
                 updates["System.AssignedTo"] = assigned_to
             if priority is not None:
-                # Validate priority value
                 if not bypass_rules and not WorkItemValidator.validate_field_value("System.Priority", priority, "Integer"):
                     raise ValueError(f"Invalid priority value: {priority}. Must be an integer between 1 and 4.")
                 updates["System.Priority"] = priority
             if area_path is not None:
-                # Validate and sanitize area path
                 area_path = WorkItemValidator.sanitize_path(area_path)
                 if not bypass_rules and not WorkItemValidator.validate_area_path(project_id, area_path):
                     logger.warning(f"Area path '{area_path}' may not be valid for project '{project_id}'")
-                    # Suggest valid paths
                     suggestions = WorkItemValidator.suggest_valid_paths(project_id, area_path, "area")
                     if suggestions:
                         logger.info(f"Suggested area paths: {', '.join(suggestions[:3])}")
                 updates["System.AreaPath"] = area_path
             if iteration_path is not None:
-                # Validate and sanitize iteration path
                 iteration_path = WorkItemValidator.sanitize_path(iteration_path)
                 if not bypass_rules and not WorkItemValidator.validate_iteration_path(project_id, iteration_path):
                     logger.warning(f"Iteration path '{iteration_path}' may not be valid for project '{project_id}'")
-                    # Suggest valid paths
                     suggestions = WorkItemValidator.suggest_valid_paths(project_id, iteration_path, "iteration")
                     if suggestions:
                         logger.info(f"Suggested iteration paths: {', '.join(suggestions[:3])}")
@@ -353,16 +338,13 @@ def register_work_item_tools(mcp_instance, client_container):
             if tags is not None:
                 updates["System.Tags"] = tags
                 
-            # Add custom field updates
             if fields_to_update:
-                # Validate custom field updates
                 if not bypass_rules:
                     for field_name, field_value in fields_to_update.items():
                         if not WorkItemValidator.validate_field_value(field_name, field_value):
                             logger.warning(f"Field '{field_name}' value may not be valid: {field_value}")
                 updates.update(fields_to_update)
                 
-            # Create replace operations for updates
             for field_path, value in updates.items():
                 operations.append(
                     JsonPatchOperation(
@@ -372,7 +354,6 @@ def register_work_item_tools(mcp_instance, client_container):
                     )
                 )
                 
-            # Create remove operations
             if fields_to_remove:
                 for field_path in fields_to_remove:
                     operations.append(

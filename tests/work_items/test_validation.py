@@ -55,18 +55,18 @@ class TestPathValidation:
     def test_validate_path_format_invalid_paths(self):
         """Test that invalid path formats are rejected."""
         invalid_paths = [
-            "",  # Empty
-            None,  # None
-            "\\Project",  # Leading backslash
-            "Project\\",  # Trailing backslash
-            "Project\\\\Team",  # Double backslash
-            "Project\\\\",  # Double trailing backslash
-            "Project\\ \\Team",  # Empty segment
-            "Project<>Team",  # Invalid characters
-            "Project/Team",  # Forward slash
-            "Project|Team",  # Pipe character
-            "Project*Team",  # Asterisk
-            "Project?Team",  # Question mark
+            "",
+            None,
+            "\\Project",
+            "Project\\",
+            "Project\\\\Team",
+            "Project\\\\",
+            "Project\\ \\Team",
+            "Project<>Team",
+            "Project/Team",
+            "Project|Team",
+            "Project*Team",
+            "Project?Team",
         ]
         
         for path in invalid_paths:
@@ -101,7 +101,7 @@ class TestFieldValidation:
             assert WorkItemValidator.validate_field_value("System.Priority", priority, "Integer"), \
                 f"Priority {priority} should be valid"
         
-        # Invalid priorities (Note: None is actually valid as it represents no value)
+        # Reason: None is valid (represents no priority set)
         invalid_priorities = [0, 5, -1, 10, "1", 1.5]
         for priority in invalid_priorities:
             assert not WorkItemValidator.validate_field_value("System.Priority", priority, "Integer"), \
@@ -132,7 +132,7 @@ class TestFieldValidation:
                 assert WorkItemValidator.validate_field_value(field, user), \
                     f"User field '{field}' with value '{user}' should be valid"
         
-        # Invalid user values (Note: None is actually valid as it represents no assignment)
+        # Reason: None is valid (represents no assignment)
         invalid_users = ["", 123, []]
         for field in user_fields:
             for user in invalid_users:

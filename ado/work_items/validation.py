@@ -28,13 +28,11 @@ class WorkItemValidator:
         if not area_path:
             return False
             
-        # Check cache for area paths
         cached_areas = ado_cache.get_area_paths(project_id)
         if cached_areas:
             return WorkItemValidator._path_exists_in_tree(area_path, cached_areas)
         
-        # If not cached, we can't validate without making an API call
-        # For now, we'll do basic format validation
+        # Reason: Avoid making API calls during validation for performance
         return WorkItemValidator._validate_path_format(area_path)
     
     @staticmethod
@@ -52,13 +50,11 @@ class WorkItemValidator:
         if not iteration_path:
             return False
             
-        # Check cache for iteration paths
         cached_iterations = ado_cache.get_iteration_paths(project_id)
         if cached_iterations:
             return WorkItemValidator._path_exists_in_tree(iteration_path, cached_iterations)
         
-        # If not cached, we can't validate without making an API call
-        # For now, we'll do basic format validation
+        # Reason: Avoid making API calls during validation for performance
         return WorkItemValidator._validate_path_format(iteration_path)
     
     @staticmethod
@@ -75,17 +71,14 @@ class WorkItemValidator:
         if not path or not isinstance(path, str):
             return False
         
-        # Path should not start or end with backslash
         if path.startswith("\\") or path.endswith("\\"):
             return False
         
-        # Path segments should not be empty
         segments = path.split("\\")
         if any(not segment.strip() for segment in segments):
             return False
         
-        # Path should not contain invalid characters
-        # Azure DevOps paths typically allow alphanumeric, spaces, dots, dashes, underscores
+        # Reason: Azure DevOps paths have specific character restrictions
         invalid_chars_pattern = r'[<>:"/|?*\x00-\x1f]'
         if re.search(invalid_chars_pattern, path):
             return False
@@ -107,12 +100,10 @@ class WorkItemValidator:
         if not nodes:
             return False
         
-        # For simplicity, check the path property of nodes
         for node in nodes:
             if hasattr(node, 'path') and node.path == path:
                 return True
             
-            # Check children recursively
             if hasattr(node, 'children') and node.children:
                 if WorkItemValidator._path_exists_in_tree(path, node.children):
                     return True
@@ -134,17 +125,14 @@ class WorkItemValidator:
         if not work_item_type:
             return False
         
-        # Check cache for work item types
         cached_types = ado_cache.get_work_item_types(project_id)
         if cached_types:
-            # Check exact match
             for wit in cached_types:
                 if wit.name == work_item_type:
                     return True
             return False
         
-        # If not cached, we can't validate without making an API call
-        # Common work item types as fallback
+        # Reason: Fallback to common types when cache is empty to avoid API calls
         common_types = ["Bug", "Task", "User Story", "Feature", "Epic", "Test Case", "Issue"]
         return work_item_type in common_types
     
@@ -167,9 +155,8 @@ class WorkItemValidator:
         Returns:
             True if the transition is allowed
         """
-        # For now, we'll allow all transitions
-        # In a real implementation, this would check the work item type's state transitions
-        # from the cached metadata
+        # Reason: State transition validation requires complex metadata that's not readily available
+        # For now we allow all transitions to avoid breaking workflows
         logger.debug(
             f"State transition validation for {work_item_type}: "
             f"{from_state} -> {to_state} (currently permissive)"
@@ -194,24 +181,19 @@ class WorkItemValidator:
             True if the value is valid for the field type
         """
         if field_value is None:
-            return True  # Null values are generally allowed
+            return True  # Reason: Azure DevOps allows null for most optional fields
         
-        # Special field validations
         if field_name == "System.Priority":
-            # Priority should be 1-4
             if isinstance(field_value, int):
                 return 1 <= field_value <= 4
             return False
         
         if field_name == "System.Tags":
-            # Tags should be a string
             return isinstance(field_value, str)
         
         if field_name in ["System.AssignedTo", "System.CreatedBy", "System.ChangedBy"]:
-            # User fields should be strings (email or display name)
             return isinstance(field_value, str) and len(field_value) > 0
         
-        # General type validations
         if field_type:
             if field_type in ["String", "PlainText", "HTML"]:
                 return isinstance(field_value, str)
@@ -220,10 +202,8 @@ class WorkItemValidator:
             elif field_type == "Double":
                 return isinstance(field_value, (int, float))
             elif field_type == "DateTime":
-                # Should be a string in ISO format
                 if isinstance(field_value, str):
                     try:
-                        # Basic ISO date validation
                         return bool(re.match(r'^\d{4}-\d{2}-\d{2}', field_value))
                     except:
                         return False
@@ -231,7 +211,7 @@ class WorkItemValidator:
             elif field_type == "Boolean":
                 return isinstance(field_value, bool)
         
-        # Default: allow any value
+        # Reason: Be permissive for unknown field types to avoid breaking custom fields
         return True
     
     @staticmethod
@@ -248,19 +228,11 @@ class WorkItemValidator:
         if not path:
             return ""
         
-        # Remove leading/trailing whitespace
         path = path.strip()
-        
-        # Remove leading/trailing backslashes
         path = path.strip("\\")
-        
-        # Replace multiple backslashes with single
         path = re.sub(r'\\+', r'\\', path)
-        
-        # Remove invalid characters
         path = re.sub(r'[<>:"/|?*\x00-\x1f]', '', path)
         
-        # Clean up segments
         segments = path.split("\\")
         segments = [seg.strip() for seg in segments if seg.strip()]
         
@@ -285,7 +257,6 @@ class WorkItemValidator:
         """
         suggestions = []
         
-        # Get cached paths
         if path_type == "area":
             cached_nodes = ado_cache.get_area_paths(project_id)
         else:
@@ -294,23 +265,21 @@ class WorkItemValidator:
         if not cached_nodes:
             return suggestions
         
-        # Collect all paths from the tree
         all_paths = WorkItemValidator._collect_all_paths(cached_nodes)
         
-        # Filter by partial match
         partial_lower = partial_path.lower()
         for path in all_paths:
             if partial_lower in path.lower():
                 suggestions.append(path)
         
-        # Sort by relevance (paths that start with the partial first)
+        # Reason: Prioritize exact prefix matches for better UX
         suggestions.sort(key=lambda p: (
             not p.lower().startswith(partial_lower),
             len(p),
             p.lower()
         ))
         
-        return suggestions[:5]  # Return top 5 suggestions
+        return suggestions[:5]
     
     @staticmethod
     def _collect_all_paths(nodes: List[Any], parent_path: str = "") -> List[str]:
@@ -330,11 +299,9 @@ class WorkItemValidator:
             if hasattr(node, 'path'):
                 paths.append(node.path)
             elif hasattr(node, 'name'):
-                # Build path from parent
                 current_path = f"{parent_path}\\{node.name}" if parent_path else node.name
                 paths.append(current_path)
                 
-                # Recurse into children
                 if hasattr(node, 'children') and node.children:
                     child_paths = WorkItemValidator._collect_all_paths(
                         node.children, current_path

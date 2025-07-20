@@ -114,10 +114,12 @@ async def test_area_paths_caching(mcp_client, project_id):
 @requires_ado_creds
 async def test_area_paths_caching_with_depth_parameter(mcp_client, project_id):
     """Test that area paths with depth parameter are not cached."""
-    # Clear cache to ensure clean state
     ado_cache.clear_all()
     
-    # First call with depth - should hit the API
+    # Verify cache is empty initially
+    assert ado_cache.get_area_paths(project_id) is None, "Cache should be empty initially"
+    
+    # First call with depth=1 - should hit API and NOT populate cache
     result1 = await mcp_client.call_tool("list_area_paths", {
         "project_id": project_id,
         "depth": 1
@@ -125,24 +127,29 @@ async def test_area_paths_caching_with_depth_parameter(mcp_client, project_id):
     
     assert result1.data is not None, "First call should return data"
     
-    # Second call with same depth - should also hit the API (not cached)
-    start_time1 = time.time()
-    result2 = await mcp_client.call_tool("list_area_paths", {
-        "project_id": project_id,
-        "depth": 1
-    })
-    duration1 = time.time() - start_time1
+    # Cache should still be empty since depth parameter was used
+    assert ado_cache.get_area_paths(project_id) is None, "Cache should remain empty when depth is specified"
     
-    # Third call with different depth - should hit the API
-    start_time2 = time.time()
-    result3 = await mcp_client.call_tool("list_area_paths", {
+    # Second call with depth=2 - should also hit API and NOT populate cache
+    result2 = await mcp_client.call_tool("list_area_paths", {
         "project_id": project_id,
         "depth": 2
     })
-    duration2 = time.time() - start_time2
     
-    # Both calls should take similar time (both hitting API)
-    assert abs(duration1 - duration2) < duration1, "Both calls should hit API and take similar time"
+    assert result2.data is not None, "Second call should return data"
+    
+    # Cache should still be empty
+    assert ado_cache.get_area_paths(project_id) is None, "Cache should remain empty when depth is specified"
+    
+    # Call without depth - should hit API and populate cache
+    result3 = await mcp_client.call_tool("list_area_paths", {
+        "project_id": project_id
+    })
+    
+    assert result3.data is not None, "Third call should return data"
+    
+    # Now cache should be populated
+    assert ado_cache.get_area_paths(project_id) is not None, "Cache should be populated when no depth is specified"
 
 
 @pytest.mark.asyncio
