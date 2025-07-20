@@ -129,15 +129,22 @@ class WorkItemRevision(BaseModel):
     revised_date: Optional[datetime] = Field(None, description="When this revision was made")
     
     
+class WorkItemReference(BaseModel):
+    """Represents a reference to a work item from query results."""
+    
+    id: int = Field(..., description="The work item ID")
+    url: str = Field(..., description="The REST URL of the work item")
+
+
 class WorkItemQueryResult(BaseModel):
     """Represents the result of a work item query."""
     
-    query_type: str = Field(..., description="The type of query (flat, tree, oneHop)")
-    query_result_type: str = Field(..., description="The type of results (workItem, workItemLink)")
-    as_of: Optional[datetime] = Field(None, description="The date/time the query was run")
-    work_items: List[WorkItem] = Field(..., description="The work items returned by the query")
-    columns: Optional[List[str]] = Field(None, description="Column names in the result")
-    sort_columns: Optional[List[Dict[str, Any]]] = Field(None, description="Sort column information")
+    queryType: str = Field(..., description="The type of query (flat, tree, oneHop)")
+    queryResultType: Optional[str] = Field(None, description="The type of results (workItem, workItemLink)")
+    asOf: Optional[str] = Field(None, description="The date/time the query was run")
+    workItems: List[WorkItemReference] = Field(..., description="The work items returned by the query")
+    columns: Optional[List[Dict[str, Any]]] = Field(None, description="Column information")
+    sortColumns: Optional[List[Dict[str, Any]]] = Field(None, description="Sort column information")
 
 
 class ClassificationNode(BaseModel):

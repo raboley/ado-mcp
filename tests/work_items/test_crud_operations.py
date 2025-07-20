@@ -268,10 +268,6 @@ async def test_delete_work_item_soft_delete(mcp_client, project_id, work_item_cl
     
     work_item_id = create_result.data["id"]
     
-    # Track for cleanup (will be soft deleted by test but tracking anyway)
-    work_item_cleanup(work_item_id)
-    
-    # Soft delete the work item
     delete_result = await mcp_client.call_tool("delete_work_item", {
         "project_id": project_id,
         "work_item_id": work_item_id,
@@ -283,27 +279,46 @@ async def test_delete_work_item_soft_delete(mcp_client, project_id, work_item_cl
 
 @pytest.mark.asyncio 
 @requires_ado_creds
-async def test_create_work_item_failure_invalid_type(mcp_client, project_id):
+async def test_create_work_item_failure_invalid_type(mcp_client, project_id, caplog):
     """Test creating a work item with invalid work item type."""
-    with pytest.raises(Exception) as exc_info:
-        await mcp_client.call_tool("create_work_item", {
-            "project_id": project_id,
-            "work_item_type": "InvalidWorkItemType",
-            "title": "This should fail"
-        })
+    import logging
+    import io
+    from contextlib import redirect_stderr
+    
+    # Suppress both log output and stderr to avoid scary error messages
+    with caplog.at_level(logging.CRITICAL):
+        # Redirect stderr to a string buffer to suppress rich output
+        stderr_buffer = io.StringIO()
+        with redirect_stderr(stderr_buffer):
+            with pytest.raises(Exception) as exc_info:
+                await mcp_client.call_tool("create_work_item", {
+                    "project_id": project_id,
+                    "work_item_type": "InvalidWorkItemType",
+                    "title": "This should fail"
+                })
     
     assert "work item type" in str(exc_info.value).lower() or "invalidworkitemtype" in str(exc_info.value).lower(), f"Error should mention invalid work item type but got: {exc_info.value}"
 
 
 @pytest.mark.asyncio
 @requires_ado_creds
-async def test_get_work_item_failure_nonexistent_id(mcp_client, project_id):
+async def test_get_work_item_failure_nonexistent_id(mcp_client, project_id, caplog):
     """Test retrieving a work item with non-existent ID."""
-    with pytest.raises(Exception) as exc_info:
-        await mcp_client.call_tool("get_work_item", {
-            "project_id": project_id,
-            "work_item_id": 999999999  # Very unlikely to exist
-        })
+    import logging
+    import sys
+    import io
+    from contextlib import redirect_stderr
+    
+    # Suppress both log output and stderr to avoid scary error messages
+    with caplog.at_level(logging.CRITICAL):
+        # Redirect stderr to a string buffer to suppress rich output
+        stderr_buffer = io.StringIO()
+        with redirect_stderr(stderr_buffer):
+            with pytest.raises(Exception) as exc_info:
+                await mcp_client.call_tool("get_work_item", {
+                    "project_id": project_id,
+                    "work_item_id": 999999999  # Very unlikely to exist
+                })
     
     assert "not found" in str(exc_info.value).lower() or "999999999" in str(exc_info.value), f"Error should indicate work item not found but got: {exc_info.value}"
 
@@ -325,8 +340,106 @@ async def test_work_item_tools_registered_in_mcp_server(mcp_client):
         "create_work_item",
         "get_work_item", 
         "update_work_item",
-        "delete_work_item"
+        "delete_work_item",
+        "list_work_items"
     ]
     
     for tool_name in expected_tools:
         assert tool_name in tool_names, f"Tool '{tool_name}' should be registered but available tools are: {tool_names}"
+
+
+@pytest.mark.asyncio
+@requires_ado_creds
+async def test_list_work_items_create_verify_cleanup_pattern(mcp_client, project_id, work_item_cleanup):
+    """Test that creates 3 work items following a random pattern, lists them, verifies they exist, then cleans up."""
+    import random
+    import string
+    
+    # Generate a unique pattern for this test run to avoid conflicts with other tests
+    test_pattern = f"TestPattern_{random.randint(1000, 9999)}_{''.join(random.choices(string.ascii_letters, k=5))}"
+    
+    # Create 3 work items with the pattern in their titles
+    work_item_types = ["Bug", "Task", "User Story"]
+    created_work_item_ids = []
+    
+    for i, work_item_type in enumerate(work_item_types):
+        create_result = await mcp_client.call_tool("create_work_item", {
+            "project_id": project_id,
+            "work_item_type": work_item_type,
+            "title": f"{test_pattern}_{work_item_type}_{i+1}",
+            "description": f"Test work item {i+1} for list verification",
+            "tags": f"test; automation; {test_pattern}"
+        })
+        
+        assert create_result.data is not None, f"Work item creation should succeed but got: {create_result.data}"
+        work_item_id = create_result.data["id"]
+        created_work_item_ids.append(work_item_id)
+        work_item_cleanup(work_item_id)
+    
+    # List all work items to verify our 3 items exist
+    list_result = await mcp_client.call_tool("list_work_items", {
+        "project_id": project_id
+    })
+    
+    assert list_result.data is not None, "List work items should return data"
+    work_items_list = list_result.data
+    assert isinstance(work_items_list, list), f"Work items should be a list but got: {type(work_items_list)}"
+    
+    # Extract all work item IDs from the list
+    listed_work_item_ids = {item["id"] for item in work_items_list}
+    
+    # Verify that all our created work items are in the list
+    for work_item_id in created_work_item_ids:
+        assert work_item_id in listed_work_item_ids, f"Created work item {work_item_id} should be in the list but was not found. Listed IDs: {listed_work_item_ids}"
+    
+    # Test filtering with WIQL query to find only our test pattern items
+    query_result = await mcp_client.call_tool("list_work_items", {
+        "project_id": project_id,
+        "wiql_query": f"SELECT [System.Id], [System.Title] FROM WorkItems WHERE [System.Title] CONTAINS '{test_pattern}'"
+    })
+    
+    assert query_result.data is not None, "Filtered query should return data"
+    filtered_items = query_result.data
+    filtered_ids = {item["id"] for item in filtered_items}
+    
+    # All our created items should be in the filtered results
+    for work_item_id in created_work_item_ids:
+        assert work_item_id in filtered_ids, f"Work item {work_item_id} with pattern {test_pattern} should be in filtered results but was not found. Filtered IDs: {filtered_ids}"
+    
+    # Test the top parameter
+    limited_result = await mcp_client.call_tool("list_work_items", {
+        "project_id": project_id,
+        "top": 2
+    })
+    
+    assert limited_result.data is not None, "Limited query should return data"
+    limited_items = limited_result.data
+    assert len(limited_items) <= 2, f"Limited query should return at most 2 items but got {len(limited_items)} items"
+    
+    # Cleanup verification - get each work item to ensure they exist before cleanup
+    for work_item_id in created_work_item_ids:
+        get_result = await mcp_client.call_tool("get_work_item", {
+            "project_id": project_id,
+            "work_item_id": work_item_id
+        })
+        assert get_result.data is not None, f"Work item {work_item_id} should exist before cleanup but was not found"
+        assert get_result.data["fields"]["System.Title"].startswith(test_pattern), f"Work item title should start with pattern {test_pattern} but got: {get_result.data['fields']['System.Title']}"
+    
+    # The cleanup will be handled by the work_item_cleanup fixture
+    # which will permanently delete all tracked work items
+
+
+@pytest.mark.asyncio
+@requires_ado_creds  
+async def test_list_work_items_tool_registered_in_mcp_server(mcp_client):
+    """Test that list_work_items tool is properly registered in the MCP server."""
+    # List all available tools
+    tools_response = await mcp_client.list_tools()
+    if hasattr(tools_response, "tools"):
+        tools = tools_response.tools
+    else:
+        tools = tools_response
+    tool_names = [tool.name for tool in tools]
+    
+    # Check that list_work_items tool is registered
+    assert "list_work_items" in tool_names, f"Tool 'list_work_items' should be registered but available tools are: {tool_names}"

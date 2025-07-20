@@ -14,6 +14,7 @@ from ado.work_items.models import (
     WorkItem,
     WorkItemComment,
     WorkItemField,
+    WorkItemReference,
     WorkItemQueryResult,
     WorkItemRevision,
     WorkItemType,
@@ -482,3 +483,69 @@ class WorkItemsClient:
         except Exception as e:
             logger.error(f"Failed to get iteration paths: {e}")
             raise AdoError(f"Failed to get iteration paths: {e}", "iteration_paths_get_failed") from e
+    
+    def query_work_items(
+        self,
+        project_id: str,
+        wiql_query: Optional[str] = None,
+        top: Optional[int] = None,
+    ) -> WorkItemQueryResult:
+        """
+        Query work items using WIQL (Work Item Query Language).
+        
+        Args:
+            project_id: The ID or name of the project.
+            wiql_query: The WIQL query string. If None, returns all work items.
+            top: Maximum number of results to return.
+            
+        Returns:
+            WorkItemQueryResult with query results.
+            
+        Raises:
+            AdoError: If the API request fails.
+        """
+        # Default query to list all work items if none provided
+        if wiql_query is None:
+            wiql_query = (
+                "SELECT [System.Id], [System.Title], [System.WorkItemType], "
+                "[System.State], [System.AssignedTo], [System.CreatedDate] "
+                "FROM WorkItems ORDER BY [System.Id]"
+            )
+        
+        url = f"{self.organization_url}/{project_id}/_apis/wit/wiql"
+        params = {
+            "api-version": "7.1"
+        }
+        
+        if top is not None:
+            params["$top"] = top
+        
+        request_body = {
+            "query": wiql_query
+        }
+        
+        logger.info(f"Querying work items in project '{project_id}' with query: {wiql_query[:100]}...")
+        
+        try:
+            data = self.client._send_request(
+                method="POST",
+                url=url,
+                params=params,
+                json=request_body
+            )
+            
+            logger.info(f"Successfully queried work items for project '{project_id}'")
+            
+            # Parse as WorkItemQueryResult
+            if data:
+                try:
+                    return WorkItemQueryResult(**data)
+                except Exception as e:
+                    logger.warning(f"Failed to parse query result data: {data}. Error: {e}")
+                    return WorkItemQueryResult(queryType="flat", asOf="", columns=[], workItems=[])
+            else:
+                return WorkItemQueryResult(queryType="flat", asOf="", columns=[], workItems=[])
+            
+        except Exception as e:
+            logger.error(f"Failed to query work items: {e}")
+            raise AdoError(f"Failed to query work items: {e}", "work_items_query_failed") from e

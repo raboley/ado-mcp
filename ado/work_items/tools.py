@@ -4,7 +4,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from ado.work_items.client import WorkItemsClient
-from ado.work_items.models import JsonPatchOperation, WorkItem, WorkItemType, WorkItemField, ClassificationNode
+from ado.work_items.models import JsonPatchOperation, WorkItem, WorkItemType, WorkItemField, ClassificationNode, WorkItemReference
 
 logger = logging.getLogger(__name__)
 
@@ -615,4 +615,70 @@ def register_work_item_tools(mcp_instance, client_container):
             
         except Exception as e:
             logger.error(f"Failed to list iteration paths: {e}")
+            raise
+    
+    @mcp_instance.tool
+    def list_work_items(
+        project_id: str,
+        wiql_query: Optional[str] = None,
+        top: Optional[int] = None,
+    ) -> List[WorkItemReference]:
+        """
+        List work items in a project using WIQL (Work Item Query Language).
+        
+        This tool queries work items and returns a list of work item references.
+        To get full work item details, use the get_work_item tool with the returned IDs.
+        
+        Args:
+            project_id: The ID or name of the project.
+            wiql_query: Optional WIQL query string. If not provided, lists all work items
+                       with basic fields (ID, Title, Type, State, AssignedTo, CreatedDate).
+            top: Maximum number of results to return.
+            
+        Returns:
+            List of work item references with IDs and URLs.
+            
+        Examples:
+            # List all work items in a project
+            list_work_items(project_id="MyProject")
+            
+            # List only bugs
+            list_work_items(
+                project_id="MyProject", 
+                wiql_query="SELECT [System.Id], [System.Title] FROM WorkItems WHERE [System.WorkItemType] = 'Bug'"
+            )
+            
+            # List work items with limit
+            list_work_items(project_id="MyProject", top=50)
+            
+            # List work items assigned to specific user
+            list_work_items(
+                project_id="MyProject",
+                wiql_query="SELECT [System.Id], [System.Title] FROM WorkItems WHERE [System.AssignedTo] = 'user@example.com'"
+            )
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return []
+            
+        try:
+            work_items_client = WorkItemsClient(ado_client_instance)
+            
+            logger.info(f"Listing work items for project: {project_id}")
+            
+            query_result = work_items_client.query_work_items(
+                project_id=project_id,
+                wiql_query=wiql_query,
+                top=top
+            )
+            
+            # Return the list of WorkItemReference objects directly
+            work_items = query_result.workItems
+            
+            logger.info(f"Successfully listed {len(work_items)} work items")
+            return work_items
+            
+        except Exception as e:
+            logger.error(f"Failed to list work items: {e}")
             raise
