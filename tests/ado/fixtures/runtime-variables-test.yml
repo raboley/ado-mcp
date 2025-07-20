@@ -1,6 +1,7 @@
 # Pipeline URL: https://dev.azure.com/RussellBoley/ado-mcp/_build?definitionId=285
 # Pipeline for testing runtime variables support
-# Note: Variables are NOT defined in YAML so they can be set at queue time
+# No variables defined in YAML - they must be configured in Azure DevOps UI
+# to be settable at queue time
 name: runtime_variables_test
 
 trigger: none
