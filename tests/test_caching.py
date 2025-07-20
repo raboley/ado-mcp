@@ -97,46 +97,48 @@ class TestAdoCache:
         self.cache.set_pipelines(project_id, pipelines)
         
         cached_pipelines = self.cache.get_pipelines(project_id)
-        assert len(cached_pipelines) == 2, f"Expected 2 pipelines, got {len(cached_pipelines)}"
+        assert len(cached_pipelines) == 2, f"Expected 2 pipelines but got {len(cached_pipelines)}"
         
         pipeline = self.cache.find_pipeline_by_name(project_id, "CI Pipeline")
-        assert pipeline is not None, "Should find pipeline by exact name"
-        assert pipeline.id == 1, f"Expected pipeline ID 1, got {pipeline.id}"
+        assert pipeline is not None, "Should find pipeline by exact name but got None"
+        assert pipeline.id == 1, f"Expected pipeline ID 1 but got {pipeline.id}"
         
         pipeline = self.cache.find_pipeline_by_name(project_id, "CI Pipe")
-        assert pipeline is not None, "Should find pipeline by partial name fuzzy matching"
-        assert pipeline.id == 1, f"Expected pipeline ID 1, got {pipeline.id}"
+        assert pipeline is not None, "Should find pipeline by partial name fuzzy matching but got None"
+        assert pipeline.id == 1, f"Expected pipeline ID 1 but got {pipeline.id}"
         
         pipeline = self.cache.find_pipeline_by_name(project_id, "NonExistent")
-        assert pipeline is None, "Should not find non-existent pipeline"
+        assert pipeline is None, f"Should not find non-existent pipeline but got {pipeline}"
     
     def test_cache_stats(self):
         stats = self.cache.get_stats()
-        assert stats["total_entries"] == 0, f"Expected 0 total entries, got {stats['total_entries']}"
-        assert stats["active_entries"] == 0, f"Expected 0 active entries, got {stats['active_entries']}"
+        assert stats["total_entries"] == 0, f"Expected 0 total entries but got {stats['total_entries']}"
+        assert stats["active_entries"] == 0, f"Expected 0 active entries but got {stats['active_entries']}"
         
         self.cache._set("test1", "data1", 60)
         self.cache._set("test2", "data2", 1)
         
         stats = self.cache.get_stats()
-        assert stats["total_entries"] == 2, f"Expected 2 total entries, got {stats['total_entries']}"
-        assert stats["active_entries"] == 2, f"Expected 2 active entries, got {stats['active_entries']}"
+        assert stats["total_entries"] == 2, f"Expected 2 total entries but got {stats['total_entries']}"
+        assert stats["active_entries"] == 2, f"Expected 2 active entries but got {stats['active_entries']}"
         
         time.sleep(1.1)
         stats = self.cache.get_stats()
-        assert stats["total_entries"] == 2, f"Expected 2 total entries after expiration, got {stats['total_entries']}"
-        assert stats["expired_entries"] == 1, f"Expected 1 expired entry, got {stats['expired_entries']}"
+        assert stats["total_entries"] == 2, f"Expected 2 total entries after expiration but got {stats['total_entries']}"
+        assert stats["expired_entries"] == 1, f"Expected 1 expired entry but got {stats['expired_entries']}"
     
     def test_clear_expired(self):
         self.cache._set("test1", "data1", 60)
         self.cache._set("test2", "data2", 1)
         
-        assert self.cache.get_stats()["total_entries"] == 2, "Should have 2 entries before expiration"
+        initial_count = self.cache.get_stats()["total_entries"]
+        assert initial_count == 2, f"Should have 2 entries before expiration but got {initial_count}"
         
         time.sleep(1.1)
         removed_count = self.cache.clear_expired()
-        assert removed_count == 1, f"Expected to remove 1 expired entry, removed {removed_count}"
-        assert self.cache.get_stats()["total_entries"] == 1, f"Expected 1 entry after cleanup, got {self.cache.get_stats()['total_entries']}"
+        assert removed_count == 1, f"Expected to remove 1 expired entry but removed {removed_count}"
+        final_count = self.cache.get_stats()["total_entries"]
+        assert final_count == 1, f"Expected 1 entry after cleanup but got {final_count}"
 
 
 @requires_ado_creds
@@ -158,12 +160,12 @@ class TestCachingIntegration:
             first_project_name = projects[0]
             
             project = client.find_project_by_name(first_project_name)
-            assert project is not None, f"Should find project '{first_project_name}'"
-            assert project.name == first_project_name, f"Expected project name '{first_project_name}', got '{project.name}'"
+            assert project is not None, f"Should find project '{first_project_name}' but got None"
+            assert project.name == first_project_name, f"Expected project name '{first_project_name}' but got '{project.name}'"
             
             project2 = client.find_project_by_name(first_project_name)
-            assert project2 is not None, f"Cached lookup should find project '{first_project_name}'"
-            assert project2.id == project.id, f"Cached project should have same ID {project.id}, got {project2.id}"
+            assert project2 is not None, f"Cached lookup should find project '{first_project_name}' but got None"
+            assert project2.id == project.id, f"Cached project should have same ID {project.id} but got {project2.id}"
     
     def test_name_based_pipeline_lookup(self):
         from ado.client import AdoClient
@@ -184,11 +186,11 @@ class TestCachingIntegration:
                     pipeline_name = pipelines[0]
                     
                     result = client.find_pipeline_by_name(project_name, pipeline_name)
-                    assert result is not None, f"Should find pipeline '{pipeline_name}' in project '{project_name}'"
+                    assert result is not None, f"Should find pipeline '{pipeline_name}' in project '{project_name}' but got None"
                     
                     project, pipeline = result
-                    assert project.name == project_name, f"Expected project name '{project_name}', got '{project.name}'"
-                    assert pipeline.name == pipeline_name, f"Expected pipeline name '{pipeline_name}', got '{pipeline.name}'"
+                    assert project.name == project_name, f"Expected project name '{project_name}' but got '{project.name}'"
+                    assert pipeline.name == pipeline_name, f"Expected pipeline name '{pipeline_name}' but got '{pipeline.name}'"
                     break
     
     def test_cache_performance(self):
@@ -211,9 +213,9 @@ class TestCachingIntegration:
         projects2 = client.list_available_projects()
         second_call_time = time.time() - start_time
         
-        assert projects1 == projects2, "Cached and uncached results should be identical"
+        assert projects1 == projects2, f"Cached and uncached results should be identical. First call returned {projects1} but cached call returned {projects2}"
         
-        assert second_call_time < first_call_time / 2, f"Cached call ({second_call_time:.3f}s) should be faster than uncached call ({first_call_time:.3f}s)"
+        assert second_call_time < first_call_time / 2, f"Cached call ({second_call_time:.3f}s) should be faster than half of uncached call ({first_call_time:.3f}s) but was not"
     
     def test_fuzzy_matching_with_real_data(self):
         from ado.client import AdoClient
@@ -232,4 +234,4 @@ class TestCachingIntegration:
                 
                 project = client.find_project_by_name(partial_name)
                 if project:
-                    assert partial_name.lower() in project.name.lower(), f"Fuzzy match should contain partial name '{partial_name}' in found project '{project.name}'"
+                    assert partial_name.lower() in project.name.lower(), f"Fuzzy match should contain partial name '{partial_name}' in found project '{project.name}' but does not"

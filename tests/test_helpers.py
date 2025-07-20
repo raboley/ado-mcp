@@ -27,26 +27,26 @@ async def test_analyze_pipeline_input_with_url(mcp_client: Client):
     result = await mcp_client.call_tool("analyze_pipeline_input", {"user_input": test_url})
 
     analysis = result.data
-    assert analysis is not None, "Analysis should not be None"
-    assert isinstance(analysis, dict), "Analysis should be a dictionary"
+    assert analysis is not None, f"Analysis should not be None but got {analysis}"
+    assert isinstance(analysis, dict), f"Analysis should be a dictionary but got {type(analysis)}"
 
-    assert "input_type" in analysis, "Analysis should have input_type"
-    assert "extracted_info" in analysis, "Analysis should have extracted_info"
-    assert "next_steps" in analysis, "Analysis should have next_steps"
-    assert "confidence" in analysis, "Analysis should have confidence"
+    assert "input_type" in analysis, f"Analysis should have input_type but got keys: {list(analysis.keys())}"
+    assert "extracted_info" in analysis, f"Analysis should have extracted_info but got keys: {list(analysis.keys())}"
+    assert "next_steps" in analysis, f"Analysis should have next_steps but got keys: {list(analysis.keys())}"
+    assert "confidence" in analysis, f"Analysis should have confidence but got keys: {list(analysis.keys())}"
 
-    assert analysis["input_type"] == "azure_devops_url", "Should identify as Azure DevOps URL"
-    assert analysis["confidence"] == "high", "Should have high confidence for clear URL"
+    assert analysis["input_type"] == "azure_devops_url", f"Should identify as Azure DevOps URL but got '{analysis['input_type']}'"
+    assert analysis["confidence"] == "high", f"Should have high confidence for clear URL but got '{analysis['confidence']}'"
 
     extracted = analysis["extracted_info"]
-    assert extracted["organization"] == "RussellBoley", "Should extract correct organization"
-    assert extracted["project"] == "ado-mcp", "Should extract correct project"
-    assert extracted["build_id"] == 324, "Should extract correct build ID"
-    assert extracted["url_type"] == "build_results", "Should identify as build results URL"
+    assert extracted["organization"] == "RussellBoley", f"Should extract correct organization but got '{extracted['organization']}'"
+    assert extracted["project"] == "ado-mcp", f"Should extract correct project but got '{extracted['project']}'"
+    assert extracted["build_id"] == 324, f"Should extract correct build ID but got {extracted['build_id']}"
+    assert extracted["url_type"] == "build_results", f"Should identify as build results URL but got '{extracted['url_type']}'"
 
-    assert len(analysis["next_steps"]) > 0, "Should provide next steps"
+    assert len(analysis["next_steps"]) > 0, f"Should provide next steps but got {len(analysis['next_steps'])} steps"
     assert any("get_build_by_id" in step for step in analysis["next_steps"]), (
-        "Should suggest get_build_by_id"
+        f"Should suggest get_build_by_id but got steps: {analysis['next_steps']}"
     )
 
 
@@ -57,13 +57,13 @@ async def test_analyze_pipeline_input_with_pipeline_name(mcp_client: Client):
     )
 
     analysis = result.data
-    assert analysis is not None, "Analysis should not be None"
+    assert analysis is not None, f"Analysis should not be None but got {analysis}"
 
-    assert "input_type" in analysis, "Should have input_type"
+    assert "input_type" in analysis, f"Should have input_type but got keys: {list(analysis.keys())}"
     extracted = analysis["extracted_info"]
 
-    assert "pipeline_names" in extracted, "Should extract pipeline names"
-    assert len(analysis["next_steps"]) > 0, "Should provide guidance"
+    assert "pipeline_names" in extracted, f"Should extract pipeline names but got keys: {list(extracted.keys())}"
+    assert len(analysis["next_steps"]) > 0, f"Should provide guidance but got {len(analysis['next_steps'])} steps"
 
 
 @requires_ado_creds
@@ -76,25 +76,25 @@ async def test_find_pipeline_by_name_exact_match(mcp_client: Client):
     )
 
     search_result = result.data
-    assert search_result is not None, "Search result should not be None"
-    assert isinstance(search_result, dict), "Search result should be a dictionary"
+    assert search_result is not None, f"Search result should not be None but got {search_result}"
+    assert isinstance(search_result, dict), f"Search result should be a dictionary but got {type(search_result)}"
 
     # Verify search result structure
-    assert "search_term" in search_result, "Should have search_term"
-    assert "total_matches" in search_result, "Should have total_matches"
-    assert "matches" in search_result, "Should have matches"
-    assert "suggested_actions" in search_result, "Should have suggested_actions"
+    assert "search_term" in search_result, f"Should have search_term but got keys: {list(search_result.keys())}"
+    assert "total_matches" in search_result, f"Should have total_matches but got keys: {list(search_result.keys())}"
+    assert "matches" in search_result, f"Should have matches but got keys: {list(search_result.keys())}"
+    assert "suggested_actions" in search_result, f"Should have suggested_actions but got keys: {list(search_result.keys())}"
 
-    assert search_result["total_matches"] >= 1, "Should find at least one match"
+    assert search_result["total_matches"] >= 1, f"Should find at least one match but got {search_result['total_matches']} matches"
 
     if search_result["matches"]:
         best_match = search_result["matches"][0]
-        assert "pipeline" in best_match, "Match should have pipeline info"
-        assert "match_type" in best_match, "Match should have match_type"
-        assert "confidence" in best_match, "Match should have confidence"
-        assert best_match["match_type"] == "exact", "Should be exact match"
-        assert best_match["confidence"] == 1.0, "Exact match should have confidence 1.0"
-        assert best_match["pipeline"]["name"] == "log-test-complex", "Should match exact name"
+        assert "pipeline" in best_match, f"Match should have pipeline info but got keys: {list(best_match.keys())}"
+        assert "match_type" in best_match, f"Match should have match_type but got keys: {list(best_match.keys())}"
+        assert "confidence" in best_match, f"Match should have confidence but got keys: {list(best_match.keys())}"
+        assert best_match["match_type"] == "exact", f"Should be exact match but got '{best_match['match_type']}'"
+        assert best_match["confidence"] == 1.0, f"Exact match should have confidence 1.0 but got {best_match['confidence']}"
+        assert best_match["pipeline"]["name"] == "log-test-complex", f"Should match exact name but got '{best_match['pipeline']['name']}'"
 
 
 
@@ -112,15 +112,15 @@ async def test_find_pipeline_by_name_fuzzy_match(mcp_client: Client):
     )
 
     search_result = result.data
-    assert search_result is not None, "Search result should not be None"
+    assert search_result is not None, f"Search result should not be None but got {search_result}"
 
-    assert search_result["total_matches"] >= 1, "Should find at least one fuzzy match"
+    assert search_result["total_matches"] >= 1, f"Should find at least one fuzzy match but got {search_result['total_matches']} matches"
 
     if search_result["matches"]:
         for match in search_result["matches"]:
-            assert 0.0 < match["confidence"] <= 1.0, "Confidence should be between 0 and 1"
+            assert 0.0 < match["confidence"] <= 1.0, f"Confidence should be between 0 and 1 but got {match['confidence']}"
             assert match["match_type"] in ["exact", "contains", "contained_in", "word_match"], (
-                "Should have valid match type"
+                f"Should have valid match type but got '{match['match_type']}'"
             )
 
 

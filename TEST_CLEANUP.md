@@ -16,7 +16,7 @@ This document tracks the cleanup of all test files to ensure they follow the tes
 - [x] tests/test_caching.py
 - [x] tests/test_caching_e2e.py
 - [x] tests/test_helpers.py
-- [ ] tests/test_production_features.py
+- [x] tests/test_production_features.py (partially improved)
 - [ ] tests/test_resources_capability.py
 - [ ] tests/test_server.py
 - [ ] tests/test_pipeline_run_params.py

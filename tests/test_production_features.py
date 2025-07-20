@@ -1,4 +1,3 @@
-"""End-to-end tests for production-ready features."""
 
 import os
 import pytest
@@ -23,10 +22,8 @@ from ado.telemetry import TelemetryManager
 
 
 class TestStructuredErrors:
-    """Test structured error types and error codes."""
     
     def test_ado_error_structure(self):
-        """Test AdoError has structured error information."""
         error = AdoError(
             message="Test error",
             error_code="TEST_ERROR",
@@ -34,25 +31,23 @@ class TestStructuredErrors:
             original_exception=ValueError("original")
         )
         
-        assert str(error) == "Test error"
-        assert error.error_code == "TEST_ERROR"
-        assert error.context == {"key": "value"}
-        assert isinstance(error.original_exception, ValueError)
+        assert str(error) == "Test error", f"Expected 'Test error' but got '{str(error)}'"
+        assert error.error_code == "TEST_ERROR", f"Expected 'TEST_ERROR' but got '{error.error_code}'"
+        assert error.context == {"key": "value"}, f"Expected {{'key': 'value'}} but got {error.context}"
+        assert isinstance(error.original_exception, ValueError), f"Expected ValueError but got {type(error.original_exception)}"
     
     def test_authentication_error_structure(self):
-        """Test AdoAuthenticationError has proper structure."""
         error = AdoAuthenticationError(
             message="Auth failed",
             context={"method": "pat"},
             original_exception=ValueError("original")
         )
         
-        assert error.error_code == "ADO_AUTH_FAILED"
-        assert error.context == {"method": "pat"}
-        assert isinstance(error.original_exception, ValueError)
+        assert error.error_code == "ADO_AUTH_FAILED", f"Expected 'ADO_AUTH_FAILED' but got '{error.error_code}'"
+        assert error.context == {"method": "pat"}, f"Expected {{'method': 'pat'}} but got {error.context}"
+        assert isinstance(error.original_exception, ValueError), f"Expected ValueError but got {type(error.original_exception)}"
     
     def test_rate_limit_error_structure(self):
-        """Test AdoRateLimitError has proper structure."""
         error = AdoRateLimitError(
             message="Rate limited",
             retry_after=60,
@@ -60,29 +55,26 @@ class TestStructuredErrors:
             original_exception=HTTPError("original")
         )
         
-        assert error.error_code == "ADO_RATE_LIMIT"
-        assert error.retry_after == 60
-        assert error.context["retry_after"] == 60
-        assert error.context["url"] == "test"
-        assert isinstance(error.original_exception, HTTPError)
+        assert error.error_code == "ADO_RATE_LIMIT", f"Expected 'ADO_RATE_LIMIT' but got '{error.error_code}'"
+        assert error.retry_after == 60, f"Expected retry_after 60 but got {error.retry_after}"
+        assert error.context["retry_after"] == 60, f"Expected context retry_after 60 but got {error.context['retry_after']}"
+        assert error.context["url"] == "test", f"Expected context url 'test' but got '{error.context['url']}'"
+        assert isinstance(error.original_exception, HTTPError), f"Expected HTTPError but got {type(error.original_exception)}"
 
 
 class TestConfiguration:
-    """Test configuration management."""
     
     def test_default_config_creation(self):
-        """Test default configuration creation."""
         config = AdoMcpConfig()
         
-        assert config.retry.max_retries == 3
-        assert config.retry.initial_delay == 1.0
-        assert config.retry.backoff_multiplier == 2.0
-        assert config.auth.timeout_seconds == 30
-        assert config.telemetry.enabled == True
-        assert config.request_timeout_seconds == 30
+        assert config.retry.max_retries == 3, f"Expected max_retries 3 but got {config.retry.max_retries}"
+        assert config.retry.initial_delay == 1.0, f"Expected initial_delay 1.0 but got {config.retry.initial_delay}"
+        assert config.retry.backoff_multiplier == 2.0, f"Expected backoff_multiplier 2.0 but got {config.retry.backoff_multiplier}"
+        assert config.auth.timeout_seconds == 30, f"Expected auth timeout 30 but got {config.auth.timeout_seconds}"
+        assert config.telemetry.enabled == True, f"Expected telemetry enabled True but got {config.telemetry.enabled}"
+        assert config.request_timeout_seconds == 30, f"Expected request timeout 30 but got {config.request_timeout_seconds}"
     
     def test_config_from_environment(self):
-        """Test configuration loading from environment variables."""
         with patch.dict(os.environ, {
             'ADO_ORGANIZATION_URL': 'https://test.visualstudio.com',
             'AZURE_DEVOPS_EXT_PAT': 'test-pat',
