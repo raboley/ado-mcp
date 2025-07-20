@@ -56,7 +56,6 @@ async def test_run_pipeline_with_template_parameters_correct_names(mcp_client: C
     assert pipeline_run["state"] in ["unknown", "inProgress"], "Pipeline should be starting"
     assert pipeline_run["pipeline"]["id"] == pipeline_id, "Pipeline ID should match"
     
-    print(f"✓ Pipeline started with template parameters: run ID {pipeline_run['id']}")
 
 
 @requires_ado_creds 
@@ -91,56 +90,70 @@ async def test_run_pipeline_with_branch(mcp_client: Client):
         if "self" in repos:
             assert repos["self"]["refName"] == branch, "Branch should match requested"
     
-    print(f"✓ Pipeline started from branch {branch}: run ID {pipeline_run['id']}")
 
 
 @requires_ado_creds
 async def test_run_pipeline_with_runtime_variables_api_format(mcp_client: Client):
-    """Tests that our API correctly formats runtime variables for Azure DevOps.
-    
-    This test verifies that our implementation correctly converts variables
-    to the Azure DevOps API format, even if the specific pipeline doesn't
-    accept runtime variables (which requires UI configuration).
-    
-    Note: Runtime variables require explicit configuration in Azure DevOps UI
-    to be settable at queue time. Variables defined in YAML cannot be overridden.
-    """
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 285  # runtime-variables-test pipeline
     
-    # Test both string and object format variables
     variables = {
         "testVar": "test-value-123",
         "environment": {"value": "testing", "isSecret": False}
     }
     
-    try:
-        result = await mcp_client.call_tool(
-            "run_pipeline",
-            {
-                "project_id": project_id,
-                "pipeline_id": pipeline_id,
-                "variables": variables
-            }
-        )
-        
-        # If this succeeds, variables were accepted (UI configured correctly)
-        pipeline_run = result.data
-        assert pipeline_run is not None, "Pipeline run should not be None"
-        print(f"✓ Runtime variables accepted! Pipeline run ID: {pipeline_run['id']}")
-        print(f"✓ Variables passed: testVar={variables['testVar']}, environment={variables['environment']}")
-        
-    except Exception as e:
-        # Expected if UI variables not configured - verify it's a variable-related error
-        error_msg = str(e)
-        if "400" in error_msg or "Bad Request" in error_msg:
-            print("✓ Runtime variables correctly formatted and sent to Azure DevOps API")
-            print("✓ 400 error expected - variables need to be configured in Azure DevOps UI")
-            print(f"✓ Our API correctly handled variable formats: {variables}")
-            # This is actually the expected behavior until UI is configured
-        else:
-            # Unexpected error - re-raise it
-            raise
+    # Run pipeline with variables
+    result = await mcp_client.call_tool(
+        "run_pipeline",
+        {
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
+            "variables": variables
+        }
+    )
+
+    pipeline_run = result.data
+    assert pipeline_run is not None
+    run_id = pipeline_run["id"]
+    
+    # Wait for pipeline to complete and get timeline
+    outcome_result = await mcp_client.call_tool(
+        "run_pipeline_and_get_outcome",
+        {
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
+            "timeout_seconds": 60,
+            "variables": variables
+        }
+    )
+    
+    outcome = outcome_result.data
+    assert outcome["success"] is True
+    
+    # Get the timeline to verify variable substitution
+    timeline_result = await mcp_client.call_tool(
+        "get_pipeline_timeline",
+        {
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
+            "run_id": run_id
+        }
+    )
+    
+    timeline = timeline_result.data
+    
+    # Find the delay task with our variables in the display name
+    delay_task = None
+    for record in timeline["records"]:
+        if record.get("type") == "Task" and "Test runtime variables" in record.get("name", ""):
+            delay_task = record
+            break
+    
+    assert delay_task is not None, "Could not find delay task with runtime variables"
+    
+    # Verify the variables were substituted correctly
+    expected_display_name = "Test runtime variables: test-value-123 and testing"
+    assert delay_task["name"] == expected_display_name
 
 
 @requires_ado_creds
@@ -176,7 +189,6 @@ async def test_run_pipeline_and_get_outcome_with_all_params(mcp_client: Client):
     assert pipeline_run["state"] == "completed", "Pipeline should be completed"
     assert outcome["success"] is True, "Pipeline should succeed"
     
-    print(f"✓ Pipeline with all params completed in {outcome['execution_time_seconds']:.2f}s")
 
 
 @requires_ado_creds
@@ -208,7 +220,6 @@ async def test_run_pipeline_by_name_with_template_parameters(mcp_client: Client)
     assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
     assert pipeline_run["state"] in ["unknown", "inProgress"], "Pipeline should be starting"
     
-    print(f"✓ Pipeline '{pipeline_name}' started by name with template parameters: run ID {pipeline_run['id']}")
 
 
 @requires_ado_creds
@@ -237,7 +248,6 @@ async def test_run_pipeline_and_get_outcome_by_name_with_branch(mcp_client: Clie
     assert outcome["pipeline_run"]["state"] == "completed", "Pipeline should complete"
     assert outcome["success"] is True, "Pipeline should succeed"
     
-    print(f"✓ Pipeline '{pipeline_name}' run by name from branch completed successfully")
 
 
 @requires_ado_creds
@@ -267,11 +277,9 @@ async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
         assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
         assert pipeline_run["state"] in ["unknown", "inProgress"], "Pipeline should be starting"
         
-        print(f"✓ Pipeline started with stages to skip: run ID {pipeline_run['id']}")
     except Exception as e:
         if "400" in str(e):
-            print("✓ Stage skipping rejected by pipeline (expected for some pipelines)")
-            # This is actually expected behavior - the test passes
+            pass  # Expected behavior - the test passes
         else:
             raise
 
@@ -299,7 +307,6 @@ async def test_run_pipeline_no_params_unchanged(mcp_client: Client):
     assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
     assert pipeline_run["state"] in ["unknown", "inProgress"], "Pipeline should be starting"
     
-    print(f"✓ Pipeline started without params (backward compatibility): run ID {pipeline_run['id']}")
 
 
 @requires_ado_creds
@@ -329,7 +336,6 @@ async def test_run_pipeline_with_empty_params(mcp_client: Client):
     assert pipeline_run["id"] is not None, "Pipeline run should have an ID"
     assert pipeline_run["state"] in ["unknown", "inProgress"], "Pipeline should be starting"
     
-    print(f"✓ Pipeline started with empty params: run ID {pipeline_run['id']}")
 
 
 @requires_ado_creds
@@ -356,4 +362,3 @@ async def test_pipeline_run_request_model():
     assert partial_dict == {"variables": {"var2": "value2"}}
     assert "branch" not in partial_dict
     
-    print("✓ PipelineRunRequest model works correctly")
