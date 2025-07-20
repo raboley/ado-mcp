@@ -101,13 +101,35 @@ steps:
 - Parameter passing tests
 - Resource configuration tests
 - Template parameter tests
-- Variable tests
+- Runtime variable tests
 
 ### Slow Pipelines (Agent Jobs)
 - Log retrieval tests
 - Script execution tests
 - Build failure analysis tests
 - Complex multi-stage tests with actual work
+
+## Runtime Variables vs Template Parameters
+
+When testing pipelines with dynamic values, understand the difference:
+
+### Runtime Variables
+- Set at **queue time** when running the pipeline
+- Must be configured in Azure DevOps UI as "settable at queue time"
+- Variables defined in YAML **cannot** be overridden at queue time
+- Use `variables` parameter in `run_pipeline*` tools
+- Example: `{"variables": {"testVar": "value"}}`
+
+### Template Parameters  
+- Defined in YAML with `parameters:` block
+- Set when calling the pipeline
+- More flexible for conditional logic in pipeline
+- Use `template_parameters` parameter in `run_pipeline*` tools
+- Example: `{"template_parameters": {"environment": "prod"}}`
+
+### When to Use Each
+- **Runtime Variables**: For simple value overrides (environment names, versions)
+- **Template Parameters**: For pipeline logic control (enabling/disabling steps, conditional execution)
 
 ## Best Practices
 

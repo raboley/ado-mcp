@@ -248,10 +248,14 @@ def register_ado_tools(mcp_instance, client_container):
             project_id (str): The ID of the project.
             pipeline_id (int): The ID of the pipeline.
             variables (Dict[str, Union[str, Variable]]): Runtime variables to pass to the pipeline
+                             ⚠️  IMPORTANT: Variables must be configured in Azure DevOps UI as "settable at queue time"
+                             Variables defined in YAML cannot be overridden at queue time.
                              Accepts both simple strings and Variable objects:
                              - String format: {"myVar": "myValue"}
                              - Object format: {"myVar": {"value": "myValue", "isSecret": false}}
-            template_parameters (dict): Template parameters if the pipeline uses templates (e.g., {"environment": "prod"})
+            template_parameters (dict): Template parameters for pipelines with parameters: block in YAML
+                             More flexible than variables for conditional pipeline logic
+                             Example: {"environment": "prod", "enableDebug": true}
             branch (str): Branch to run the pipeline from (e.g., "refs/heads/main" or "refs/heads/feature/my-branch")
             stages_to_skip (list): List of stage names to skip during execution
             resources (RunResourcesParameters): 🔧 DYNAMIC REPOSITORY RESOURCES - Override YAML-defined repository branches
@@ -632,10 +636,14 @@ def register_ado_tools(mcp_instance, client_container):
             max_lines (int): Maximum number of lines to return from the end of each log (default: 100).
                            Set to 0 or negative to return all lines.
             variables (Dict[str, Union[str, Variable]]): Runtime variables to pass to the pipeline
+                             ⚠️  IMPORTANT: Variables must be configured in Azure DevOps UI as "settable at queue time"
+                             Variables defined in YAML cannot be overridden at queue time.
                              Accepts both simple strings and Variable objects:
                              - String format: {"myVar": "myValue"}
                              - Object format: {"myVar": {"value": "myValue", "isSecret": false}}
-            template_parameters (dict): Template parameters if the pipeline uses templates (e.g., {"environment": "prod"})
+            template_parameters (dict): Template parameters for pipelines with parameters: block in YAML
+                             More flexible than variables for conditional pipeline logic
+                             Example: {"environment": "prod", "enableDebug": true}
             branch (str): Branch to run the pipeline from (e.g., "refs/heads/main" or "refs/heads/feature/my-branch")
             stages_to_skip (list): List of stage names to skip during execution
             resources (RunResourcesParameters): 🔧 DYNAMIC REPOSITORY RESOURCES - Override YAML-defined repository branches
@@ -784,10 +792,14 @@ def register_ado_tools(mcp_instance, client_container):
             project_name (str): Project name (fuzzy matching enabled)
             pipeline_name (str): Pipeline name (fuzzy matching enabled)
             variables (Dict[str, Union[str, Variable]]): Runtime variables to pass to the pipeline
+                             ⚠️  IMPORTANT: Variables must be configured in Azure DevOps UI as "settable at queue time"
+                             Variables defined in YAML cannot be overridden at queue time.
                              Accepts both simple strings and Variable objects:
                              - String format: {"myVar": "myValue"}
                              - Object format: {"myVar": {"value": "myValue", "isSecret": false}}
-            template_parameters (dict): Template parameters if the pipeline uses templates (e.g., {"environment": "prod"})
+            template_parameters (dict): Template parameters for pipelines with parameters: block in YAML
+                             More flexible than variables for conditional pipeline logic
+                             Example: {"environment": "prod", "enableDebug": true}
             branch (str): Branch to run the pipeline from (e.g., "refs/heads/main" or "refs/heads/feature/my-branch")
             stages_to_skip (list): List of stage names to skip during execution
             resources (RunResourcesParameters): 🔧 DYNAMIC REPOSITORY RESOURCES - Override YAML-defined repository branches
@@ -886,10 +898,14 @@ def register_ado_tools(mcp_instance, client_container):
             timeout_seconds (int): Max wait time (default: 300s = 5 minutes)
             max_lines (int): Maximum log lines to return (default: 100)
             variables (Dict[str, Union[str, Variable]]): Runtime variables to pass to the pipeline
+                             ⚠️  IMPORTANT: Variables must be configured in Azure DevOps UI as "settable at queue time"
+                             Variables defined in YAML cannot be overridden at queue time.
                              Accepts both simple strings and Variable objects:
                              - String format: {"myVar": "myValue"}
                              - Object format: {"myVar": {"value": "myValue", "isSecret": false}}
-            template_parameters (dict): Template parameters if the pipeline uses templates (e.g., {"environment": "prod"})
+            template_parameters (dict): Template parameters for pipelines with parameters: block in YAML
+                             More flexible than variables for conditional pipeline logic
+                             Example: {"environment": "prod", "enableDebug": true}
             branch (str): Branch to run the pipeline from (e.g., "refs/heads/main" or "refs/heads/feature/my-branch")
             stages_to_skip (list): List of stage names to skip during execution
             resources (RunResourcesParameters): 🔧 DYNAMIC REPOSITORY RESOURCES - Override YAML-defined repository branches
