@@ -16,13 +16,15 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
 from difflib import get_close_matches
 
-from opentelemetry import trace
+from opentelemetry import trace, metrics
 from opentelemetry.trace import Status, StatusCode
 
 from .models import Project, Pipeline
+from .work_items.models import WorkItemType, ClassificationNode
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
+meter = metrics.get_meter(__name__)
 
 
 @dataclass
@@ -52,6 +54,33 @@ class AdoCache:
         self.PIPELINE_TTL = 10 * 60     # 10 minutes - pipelines change occasionally  
         self.SERVICE_CONN_TTL = 30 * 60 # 30 minutes - very stable
         self.RUN_TTL = 3 * 60           # 3 minutes - runs are dynamic
+        self.WORK_ITEM_TYPE_TTL = 60 * 60  # 1 hour - work item types are very stable
+        self.CLASSIFICATION_TTL = 60 * 60  # 1 hour - area/iteration paths rarely change
+        
+        # Initialize metrics
+        self._cache_hit_counter = meter.create_counter(
+            name="ado_cache_hits",
+            description="Number of cache hits",
+            unit="1"
+        )
+        
+        self._cache_miss_counter = meter.create_counter(
+            name="ado_cache_misses", 
+            description="Number of cache misses",
+            unit="1"
+        )
+        
+        self._cache_eviction_counter = meter.create_counter(
+            name="ado_cache_evictions",
+            description="Number of expired cache entries evicted",
+            unit="1"
+        )
+        
+        self._cache_size_gauge = meter.create_up_down_counter(
+            name="ado_cache_size",
+            description="Current size of the cache",
+            unit="1"
+        )
     
     def _get_cache_key(self, *parts: str) -> str:
         """Generate a cache key from parts."""
@@ -64,28 +93,46 @@ class AdoCache:
     
     def _set(self, key: str, data: Any, ttl_seconds: int) -> None:
         """Set a cache entry with TTL."""
+        # Extract cache type from key for metrics labeling
+        cache_type = key.split(":")[0] if ":" in key else "unknown"
+        
+        # Check if we're replacing an existing entry
+        is_new = key not in self._cache
+        
         expires_at = time.time() + ttl_seconds
         self._cache[key] = CacheEntry(data=data, expires_at=expires_at)
+        
+        # Update cache size metric only for new entries
+        if is_new:
+            self._cache_size_gauge.add(1, {"cache_type": cache_type})
+        
         logger.debug(f"Cached {key} for {ttl_seconds}s")
     
     def _get(self, key: str) -> Optional[Any]:
         """Get a cache entry if it exists and is valid."""
         with tracer.start_as_current_span("cache_get") as span:
             span.set_attribute("cache.key", key)
+            # Extract cache type from key for metrics labeling
+            cache_type = key.split(":")[0] if ":" in key else "unknown"
             
             if self._is_valid(key):
                 span.set_attribute("cache.hit", True)
+                self._cache_hit_counter.add(1, {"cache_type": cache_type})
                 logger.debug(f"Cache hit for key: {key}")
                 return self._cache[key].data
             elif key in self._cache:
                 # Remove expired entry
                 del self._cache[key]
+                self._cache_size_gauge.add(-1, {"cache_type": cache_type})
+                self._cache_eviction_counter.add(1, {"cache_type": cache_type, "reason": "expired"})
                 logger.debug(f"Removed expired cache entry: {key}")
                 span.set_attribute("cache.hit", False)
                 span.set_attribute("cache.expired", True)
+                self._cache_miss_counter.add(1, {"cache_type": cache_type, "reason": "expired"})
             else:
                 span.set_attribute("cache.hit", False)
                 span.set_attribute("cache.expired", False)
+                self._cache_miss_counter.add(1, {"cache_type": cache_type, "reason": "not_found"})
                 logger.debug(f"Cache miss for key: {key}")
             return None
     
@@ -232,6 +279,83 @@ class AdoCache:
         self._set(key, connections, self.SERVICE_CONN_TTL)
         logger.info(f"Cached {len(connections)} service connections for project {project_id}")
     
+    # Work item types caching
+    def get_work_item_types(self, project_id: str) -> Optional[List[WorkItemType]]:
+        """Get cached work item types for a project."""
+        key = f"work_item_types:{project_id}"
+        return self._get(key)
+    
+    def set_work_item_types(self, project_id: str, work_item_types: List[WorkItemType]) -> None:
+        """Cache work item types for a project."""
+        key = f"work_item_types:{project_id}"
+        self._set(key, work_item_types, self.WORK_ITEM_TYPE_TTL)
+        
+        # Create name mapping for fast lookups
+        name_map = {wit.name.lower(): wit for wit in work_item_types}
+        name_key = f"work_item_types:{project_id}:name_map"
+        self._set(name_key, name_map, self.WORK_ITEM_TYPE_TTL)
+        
+        logger.info(f"Cached {len(work_item_types)} work item types for project {project_id}")
+    
+    def find_work_item_type_by_name(self, project_id: str, name: str, fuzzy: bool = True) -> Optional[WorkItemType]:
+        """
+        Find a work item type by name within a project.
+        
+        Args:
+            project_id: Project ID to search within
+            name: Work item type name to search for
+            fuzzy: Enable fuzzy matching
+            
+        Returns:
+            WorkItemType object if found, None otherwise
+        """
+        work_item_types = self.get_work_item_types(project_id)
+        if not work_item_types:
+            return None
+        
+        name_lower = name.lower()
+        
+        # Exact match first
+        for wit in work_item_types:
+            if wit.name.lower() == name_lower:
+                return wit
+        
+        # Fuzzy matching
+        if fuzzy:
+            wit_names = [wit.name for wit in work_item_types]
+            matches = get_close_matches(name, wit_names, n=1, cutoff=0.6)
+            if matches:
+                match_name = matches[0]
+                for wit in work_item_types:
+                    if wit.name == match_name:
+                        logger.info(f"Fuzzy matched '{name}' to work item type '{match_name}'")
+                        return wit
+        
+        return None
+    
+    # Classification nodes caching (area and iteration paths)
+    def get_area_paths(self, project_id: str) -> Optional[List[ClassificationNode]]:
+        """Get cached area paths for a project."""
+        key = f"area_paths:{project_id}"
+        return self._get(key)
+    
+    def set_area_paths(self, project_id: str, area_paths: List[ClassificationNode]) -> None:
+        """Cache area paths for a project."""
+        key = f"area_paths:{project_id}"
+        self._set(key, area_paths, self.CLASSIFICATION_TTL)
+        logger.info(f"Cached area paths for project {project_id}")
+    
+    def get_iteration_paths(self, project_id: str) -> Optional[List[ClassificationNode]]:
+        """Get cached iteration paths for a project."""
+        key = f"iteration_paths:{project_id}"
+        return self._get(key)
+    
+    def set_iteration_paths(self, project_id: str, iteration_paths: List[ClassificationNode]) -> None:
+        """Cache iteration paths for a project."""
+        key = f"iteration_paths:{project_id}"
+        self._set(key, iteration_paths, self.CLASSIFICATION_TTL)
+        logger.info(f"Cached iteration paths for project {project_id}")
+    
     # Cache management
     def clear_expired(self) -> int:
         """Remove all expired cache entries. Returns number of entries removed."""
@@ -239,7 +363,10 @@ class AdoCache:
         expired_keys = [key for key, entry in self._cache.items() if entry.is_expired()]
         
         for key in expired_keys:
+            cache_type = key.split(":")[0] if ":" in key else "unknown"
             del self._cache[key]
+            self._cache_size_gauge.add(-1, {"cache_type": cache_type})
+            self._cache_eviction_counter.add(1, {"cache_type": cache_type, "reason": "manual_clear"})
         
         removed_count = len(expired_keys)
         if removed_count > 0:
@@ -249,19 +376,40 @@ class AdoCache:
     
     def clear_all(self) -> None:
         """Clear all cache entries."""
+        # Count entries by type before clearing
+        type_counts = {}
+        for key in self._cache:
+            cache_type = key.split(":")[0] if ":" in key else "unknown"
+            type_counts[cache_type] = type_counts.get(cache_type, 0) + 1
+        
+        # Update metrics for each type
+        for cache_type, count in type_counts.items():
+            self._cache_size_gauge.add(-count, {"cache_type": cache_type})
+            self._cache_eviction_counter.add(count, {"cache_type": cache_type, "reason": "manual_clear_all"})
+        
         self._cache.clear()
         logger.info("Cleared all cache entries")
     
     def get_stats(self) -> Dict[str, Any]:
-        """Get cache statistics."""
+        """Get cache statistics including hit/miss rates."""
         total_entries = len(self._cache)
         expired_entries = sum(1 for entry in self._cache.values() if entry.is_expired())
+        
+        # Group cache entries by type
+        entries_by_type = {}
+        for key in self._cache:
+            cache_type = key.split(":")[0] if ":" in key else "unknown"
+            entries_by_type[cache_type] = entries_by_type.get(cache_type, 0) + 1
         
         return {
             "total_entries": total_entries,
             "active_entries": total_entries - expired_entries,
             "expired_entries": expired_entries,
-            "cache_keys": list(self._cache.keys())
+            "entries_by_type": entries_by_type,
+            "cache_keys": list(self._cache.keys()),
+            # Note: Hit/miss rates are tracked via OpenTelemetry metrics
+            # and should be queried from the metrics backend
+            "metrics_info": "Hit/miss rates are tracked via OpenTelemetry metrics"
         }
 
 

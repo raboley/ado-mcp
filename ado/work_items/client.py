@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from ado.client import AdoClient
 from ado.errors import AdoError
+from ado.cache import ado_cache
 # Retry is handled by the client's _send_request method
 # Telemetry is optional for now
 from ado.work_items.models import (
@@ -300,12 +301,18 @@ class WorkItemsClient:
         Raises:
             AdoError: If the API request fails.
         """
+        # Check cache first
+        cached_types = ado_cache.get_work_item_types(project_id)
+        if cached_types is not None:
+            logger.info(f"Returning {len(cached_types)} cached work item types for project '{project_id}'")
+            return cached_types
+        
         url = f"{self.organization_url}/{project_id}/_apis/wit/workitemtypes"
         params = {
             "api-version": "7.1"
         }
         
-        logger.info(f"Getting work item types for project '{project_id}'")
+        logger.info(f"Getting work item types from API for project '{project_id}'")
         
         try:
             data = self.client._send_request(
@@ -324,6 +331,9 @@ class WorkItemsClient:
                     work_item_types.append(work_item_type)
                 except Exception as e:
                     logger.warning(f"Failed to parse work item type data: {wit_data}. Error: {e}")
+            
+            # Cache the results
+            ado_cache.set_work_item_types(project_id, work_item_types)
             
             return work_item_types
             
@@ -398,6 +408,13 @@ class WorkItemsClient:
         Raises:
             AdoError: If the API request fails.
         """
+        # Only use cache when depth is None (full tree)
+        if depth is None:
+            cached_paths = ado_cache.get_area_paths(project_id)
+            if cached_paths is not None:
+                logger.info(f"Returning cached area paths for project '{project_id}'")
+                return cached_paths
+        
         url = f"{self.organization_url}/{project_id}/_apis/wit/classificationnodes/areas"
         params = {
             "api-version": "7.1"
@@ -406,7 +423,7 @@ class WorkItemsClient:
         if depth is not None:
             params["$depth"] = depth
         
-        logger.info(f"Getting area paths for project '{project_id}'")
+        logger.info(f"Getting area paths from API for project '{project_id}'")
         
         try:
             data = self.client._send_request(
@@ -418,15 +435,20 @@ class WorkItemsClient:
             logger.info(f"Successfully retrieved area paths for project '{project_id}'")
             
             # Parse as ClassificationNode
+            result = []
             if data:
                 try:
                     node = ClassificationNode(**data)
-                    return [node]
+                    result = [node]
                 except Exception as e:
                     logger.warning(f"Failed to parse area path data: {data}. Error: {e}")
-                    return []
-            else:
-                return []
+                    result = []
+            
+            # Cache the results if we got the full tree
+            if depth is None and result:
+                ado_cache.set_area_paths(project_id, result)
+            
+            return result
             
         except Exception as e:
             logger.error(f"Failed to get area paths: {e}")
@@ -450,6 +472,13 @@ class WorkItemsClient:
         Raises:
             AdoError: If the API request fails.
         """
+        # Only use cache when depth is None (full tree)
+        if depth is None:
+            cached_paths = ado_cache.get_iteration_paths(project_id)
+            if cached_paths is not None:
+                logger.info(f"Returning cached iteration paths for project '{project_id}'")
+                return cached_paths
+        
         url = f"{self.organization_url}/{project_id}/_apis/wit/classificationnodes/iterations"
         params = {
             "api-version": "7.1"
@@ -458,7 +487,7 @@ class WorkItemsClient:
         if depth is not None:
             params["$depth"] = depth
         
-        logger.info(f"Getting iteration paths for project '{project_id}'")
+        logger.info(f"Getting iteration paths from API for project '{project_id}'")
         
         try:
             data = self.client._send_request(
@@ -470,15 +499,20 @@ class WorkItemsClient:
             logger.info(f"Successfully retrieved iteration paths for project '{project_id}'")
             
             # Parse as ClassificationNode
+            result = []
             if data:
                 try:
                     node = ClassificationNode(**data)
-                    return [node]
+                    result = [node]
                 except Exception as e:
                     logger.warning(f"Failed to parse iteration path data: {data}. Error: {e}")
-                    return []
-            else:
-                return []
+                    result = []
+            
+            # Cache the results if we got the full tree
+            if depth is None and result:
+                ado_cache.set_iteration_paths(project_id, result)
+            
+            return result
             
         except Exception as e:
             logger.error(f"Failed to get iteration paths: {e}")
