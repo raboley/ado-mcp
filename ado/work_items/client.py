@@ -17,6 +17,7 @@ from ado.work_items.models import (
     WorkItemField,
     WorkItemReference,
     WorkItemQueryResult,
+    WorkItemRelation,
     WorkItemRevision,
     WorkItemType,
     WorkItemTypeState,
@@ -1139,3 +1140,121 @@ class WorkItemsClient:
         except Exception as e:
             logger.error(f"Failed to get revisions for work item {work_item_id}: {e}")
             raise AdoError(f"Failed to get revisions for work item {work_item_id}: {e}", "get_revisions_failed") from e
+
+    def link_work_items(
+        self,
+        project_id: str,
+        source_work_item_id: int,
+        target_work_item_id: int,
+        relationship_type: str,
+        comment: Optional[str] = None
+    ) -> WorkItem:
+        """
+        Create a link between two work items.
+        
+        Args:
+            project_id: The ID or name of the project
+            source_work_item_id: The ID of the source work item
+            target_work_item_id: The ID of the target work item
+            relationship_type: The type of relationship (e.g., "System.LinkTypes.Hierarchy-Forward", 
+                             "System.LinkTypes.Related", "System.LinkTypes.Dependency-Forward")
+            comment: Optional comment for the link
+            
+        Returns:
+            WorkItem: The updated source work item
+            
+        Raises:
+            AdoError: If the API call fails
+        """
+        # Build the target work item URL
+        target_url = f"{self.organization_url}/{project_id}/_apis/wit/workitems/{target_work_item_id}"
+        
+        # Create the relationship operation
+        operations = [
+            JsonPatchOperation(
+                op="add",
+                path="/relations/-",
+                value={
+                    "rel": relationship_type,
+                    "url": target_url,
+                    "attributes": {"comment": comment} if comment else {}
+                }
+            )
+        ]
+        
+        logger.info(
+            f"Linking work item {source_work_item_id} to {target_work_item_id} "
+            f"with relationship '{relationship_type}' in project '{project_id}'"
+        )
+        
+        try:
+            # Use the existing update method to add the relationship
+            updated_work_item = self.update_work_item(
+                project_id=project_id,
+                work_item_id=source_work_item_id,
+                operations=operations
+            )
+            
+            logger.info(
+                f"Successfully linked work item {source_work_item_id} to {target_work_item_id} "
+                f"with relationship '{relationship_type}'"
+            )
+            return updated_work_item
+            
+        except Exception as e:
+            logger.error(f"Failed to link work items {source_work_item_id} -> {target_work_item_id}: {e}")
+            raise AdoError(f"Failed to link work items {source_work_item_id} -> {target_work_item_id}: {e}", "link_work_items_failed") from e
+
+    def get_work_item_relations(
+        self,
+        project_id: str,
+        work_item_id: int,
+        depth: int = 1
+    ) -> List[WorkItemRelation]:
+        """
+        Get relationships for a work item.
+        
+        Args:
+            project_id: The ID or name of the project
+            work_item_id: The ID of the work item
+            depth: Depth of relationships to retrieve (1 = direct relationships only)
+            
+        Returns:
+            List[WorkItemRelation]: List of relationships
+            
+        Raises:
+            AdoError: If the API call fails
+        """
+        # Get the work item with relations expanded
+        work_item = self.get_work_item(
+            project_id=project_id,
+            work_item_id=work_item_id,
+            expand="relations"
+        )
+        
+        relations = []
+        # Check if work item has relations in the raw data
+        raw_relations = None
+        if hasattr(work_item, 'relations') and work_item.relations:
+            raw_relations = work_item.relations
+        elif hasattr(work_item, '__dict__') and 'relations' in work_item.__dict__:
+            raw_relations = work_item.__dict__['relations']
+        elif isinstance(work_item, dict) and 'relations' in work_item:
+            raw_relations = work_item['relations']
+            
+        if raw_relations:
+            for relation_data in raw_relations:
+                # Handle both dict and WorkItemRelation objects
+                if isinstance(relation_data, dict):
+                    relation = WorkItemRelation(
+                        rel=relation_data.get("rel", ""),
+                        url=relation_data.get("url", ""),
+                        attributes=relation_data.get("attributes", {})
+                    )
+                else:
+                    # Already a WorkItemRelation object
+                    relation = relation_data
+                relations.append(relation)
+        
+        logger.info(f"Successfully retrieved {len(relations)} relationships for work item {work_item_id}")
+        return relations

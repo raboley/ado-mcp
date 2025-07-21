@@ -66,36 +66,36 @@
   - [x] 3.13 Write tests for batch deletion
   - [x] 3.14 Document query syntax and batch operation limits
 
-- [ ] 4.0 Work Item Comments and History Tracking
-  - [ ] 4.1 Define WorkItemComment and WorkItemRevision models
-  - [ ] 4.2 Implement add_work_item_comment tool with formatting support
-  - [ ] 4.3 Write tests for comment creation with HTML/Markdown
-  - [ ] 4.4 Add logging for comment operations
-  - [ ] 4.5 Implement get_work_item_comments tool with pagination
-  - [ ] 4.6 Write tests for comment retrieval and filtering
-  - [ ] 4.7 Implement get_work_item_history tool
-  - [ ] 4.8 Write tests for revision history retrieval
-  - [ ] 4.9 Implement get_work_item_revisions with date filtering
-  - [ ] 4.10 Write tests for revision filtering scenarios
-  - [ ] 4.11 Add telemetry for history access patterns
-  - [ ] 4.12 Document comment formatting and history features
+- [x] 4.0 Work Item Comments and History Tracking
+  - [x] 4.1 Define WorkItemComment and WorkItemRevision models
+  - [x] 4.2 Implement add_work_item_comment tool with formatting support
+  - [x] 4.3 Write tests for comment creation with HTML/Markdown
+  - [x] 4.4 Add logging for comment operations
+  - [x] 4.5 Implement get_work_item_comments tool with pagination
+  - [x] 4.6 Write tests for comment retrieval and filtering
+  - [x] 4.7 Implement get_work_item_history tool
+  - [x] 4.8 Write tests for revision history retrieval
+  - [x] 4.9 Implement get_work_item_revisions with date filtering
+  - [x] 4.10 Write tests for revision filtering scenarios
+  - [x] 4.11 Add telemetry for history access patterns
+  - [x] 4.12 Document comment formatting and history features
 
 - [ ] 5.0 Work Item Relationships and Advanced Features
-  - [ ] 5.1 Define WorkItemRelation and WorkItemQueryResult models
-  - [ ] 5.2 Implement link_work_items tool for creating relationships
-  - [ ] 5.3 Write tests for various relationship types (parent/child, related, blocks)
-  - [ ] 5.4 Add validation for relationship constraints
-  - [ ] 5.5 Implement get_work_item_relations tool
-  - [ ] 5.6 Write tests for relationship retrieval and expansion
-  - [ ] 5.7 Implement field validation with detailed error messages
-  - [ ] 5.8 Write tests for field validation scenarios
+  - [x] 5.1 Define WorkItemRelation and WorkItemQueryResult models
+  - [x] 5.2 Implement link_work_items tool for creating relationships
+  - [x] 5.3 Write tests for various relationship types (parent/child, related, blocks)
+  - [x] 5.4 Add validation for relationship constraints
+  - [x] 5.5 Implement get_work_item_relations tool
+  - [x] 5.6 Write tests for relationship retrieval and expansion
+  - [x] 5.7 Implement field validation with detailed error messages
+  - [x] 5.8 Write tests for field validation scenarios
   - [ ] 5.9 Add state transition validation logic
   - [ ] 5.10 Write tests for state transition rules
   - [ ] 5.11 Add comprehensive error handling and retry logic
   - [ ] 5.12 Implement connection pooling for API requests
-  - [ ] 5.13 Write integration tests for end-to-end workflows
-  - [ ] 5.14 Document relationship types and validation rules
-  - [ ] 5.15 Update main tools.py to register all work item tools
+  - [x] 5.13 Write integration tests for end-to-end workflows
+  - [x] 5.14 Document relationship types and validation rules
+  - [x] 5.15 Update main tools.py to register all work item tools
 
 - [ ] 6.0 Process and Templates Management (Based on Reference Implementation)
   - [ ] 6.1 Define Process and Template models (Process, ProcessTemplate, WorkItemTemplate)

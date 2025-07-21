@@ -4,7 +4,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from ado.work_items.client import WorkItemsClient
-from ado.work_items.models import JsonPatchOperation, WorkItem, WorkItemType, WorkItemField, ClassificationNode, WorkItemReference, WorkItemQueryResult, WorkItemComment, WorkItemRevision
+from ado.work_items.models import JsonPatchOperation, WorkItem, WorkItemType, WorkItemField, ClassificationNode, WorkItemReference, WorkItemQueryResult, WorkItemComment, WorkItemRevision, WorkItemRelation
 from ado.work_items.validation import WorkItemValidator
 
 logger = logging.getLogger(__name__)
@@ -1915,6 +1915,176 @@ def register_work_item_tools(mcp_instance, client_container):
             
         except Exception as e:
             logger.error(f"Failed to get history for work item {work_item_id}: {e}")
+            raise
+
+    @mcp_instance.tool
+    def link_work_items(
+        project_id: str,
+        source_work_item_id: int,
+        target_work_item_id: int,
+        relationship_type: str,
+        comment: Optional[str] = None
+    ) -> Optional[WorkItem]:
+        """
+        Create a link between two work items.
+        
+        This tool creates a relationship between two work items. Common relationship types
+        include parent-child hierarchies, dependencies, and general related links.
+        
+        Args:
+            project_id: The ID or name of the project.
+            source_work_item_id: The ID of the source work item (the one getting the new relationship).
+            target_work_item_id: The ID of the target work item (the one being linked to).
+            relationship_type: The type of relationship. Common types:
+                             - "System.LinkTypes.Hierarchy-Forward" (Parent -> Child)
+                             - "System.LinkTypes.Hierarchy-Reverse" (Child -> Parent) 
+                             - "System.LinkTypes.Related" (Related)
+                             - "System.LinkTypes.Dependency-Forward" (Predecessor -> Successor)
+                             - "System.LinkTypes.Dependency-Reverse" (Successor -> Predecessor)
+            comment: Optional comment to describe the relationship.
+            
+        Returns:
+            WorkItem: The updated source work item with the new relationship,
+                     or None if client unavailable.
+            
+        Examples:
+            # Create a parent-child relationship
+            link_work_items(
+                project_id="MyProject",
+                source_work_item_id=123,  # Parent
+                target_work_item_id=124,  # Child
+                relationship_type="System.LinkTypes.Hierarchy-Forward",
+                comment="Breaking down epic into user story"
+            )
+            
+            # Create a dependency relationship
+            link_work_items(
+                project_id="MyProject", 
+                source_work_item_id=125,  # Predecessor
+                target_work_item_id=126,  # Successor
+                relationship_type="System.LinkTypes.Dependency-Forward",
+                comment="This task must complete before the next one"
+            )
+            
+            # Create a related link
+            link_work_items(
+                project_id="MyProject",
+                source_work_item_id=127,
+                target_work_item_id=128,
+                relationship_type="System.LinkTypes.Related",
+                comment="These work items are related"
+            )
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+            
+        try:
+            work_items_client = WorkItemsClient(ado_client_instance)
+            
+            # Validate relationship type first
+            from .validation import WorkItemValidator
+            
+            if not WorkItemValidator.validate_relationship_type(relationship_type):
+                logger.error(f"Invalid relationship type: {relationship_type}")
+                valid_types = WorkItemValidator.get_valid_relationship_types()
+                raise ValueError(f"Invalid relationship type '{relationship_type}'. Valid types: {', '.join(valid_types[:5])}...")
+            
+            # Get work item types for validation
+            try:
+                source_work_item = work_items_client.get_work_item(project_id, source_work_item_id)
+                target_work_item = work_items_client.get_work_item(project_id, target_work_item_id)
+                
+                source_type = source_work_item.fields.get("System.WorkItemType", "Unknown")
+                target_type = target_work_item.fields.get("System.WorkItemType", "Unknown")
+                
+                # Validate relationship constraints
+                is_valid, error_message = WorkItemValidator.validate_relationship_constraints(
+                    source_type, target_type, relationship_type
+                )
+                
+                if not is_valid and error_message:
+                    logger.warning(f"Relationship constraint warning: {error_message}")
+                    # Get suggestions for better user experience
+                    suggestions = WorkItemValidator.suggest_relationship_types(source_type, target_type)
+                    if suggestions:
+                        suggestion_text = ", ".join([f"{rel} ({desc})" for rel, desc in suggestions[:3]])
+                        logger.info(f"Suggested relationships for {source_type} -> {target_type}: {suggestion_text}")
+            
+            except Exception as validation_error:
+                # Don't fail the operation if validation fails, just log
+                logger.warning(f"Could not validate relationship constraints: {validation_error}")
+            
+            updated_work_item = work_items_client.link_work_items(
+                project_id=project_id,
+                source_work_item_id=source_work_item_id,
+                target_work_item_id=target_work_item_id,
+                relationship_type=relationship_type,
+                comment=comment
+            )
+            
+            logger.info(f"Successfully linked work item #{source_work_item_id} to #{target_work_item_id} with relationship '{relationship_type}'")
+            return updated_work_item
+            
+        except Exception as e:
+            logger.error(f"Failed to link work items {source_work_item_id} -> {target_work_item_id}: {e}")
+            raise
+
+    @mcp_instance.tool
+    def get_work_item_relations(
+        project_id: str,
+        work_item_id: int,
+        depth: int = 1
+    ) -> Optional[List[WorkItemRelation]]:
+        """
+        Get relationships for a work item.
+        
+        This tool retrieves all relationships (links) for a specific work item, including
+        parent-child hierarchies, dependencies, and related links.
+        
+        Args:
+            project_id: The ID or name of the project.
+            work_item_id: The ID of the work item to get relationships for.
+            depth: Depth of relationships to retrieve (currently only depth=1 is supported).
+            
+        Returns:
+            List[WorkItemRelation]: List of relationships for the work item,
+                                  or None if client unavailable.
+            
+        Examples:
+            # Get all relationships for a work item
+            get_work_item_relations(
+                project_id="MyProject",
+                work_item_id=123
+            )
+            
+            # Get relationships (depth parameter for future expansion)
+            get_work_item_relations(
+                project_id="MyProject",
+                work_item_id=123,
+                depth=1
+            )
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+            
+        try:
+            work_items_client = WorkItemsClient(ado_client_instance)
+            
+            relations = work_items_client.get_work_item_relations(
+                project_id=project_id,
+                work_item_id=work_item_id,
+                depth=depth
+            )
+            
+            logger.info(f"Successfully retrieved {len(relations)} relationships for work item #{work_item_id}")
+            return relations
+            
+        except Exception as e:
+            logger.error(f"Failed to get relationships for work item {work_item_id}: {e}")
             raise
 
 
