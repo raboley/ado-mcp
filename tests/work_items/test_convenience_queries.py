@@ -110,16 +110,14 @@ async def test_get_my_work_items_with_filters(client, project_id):
         "project_id": project_id,
         "work_item_type": "Bug",
         "title": "Test bug for filtering",
-        "assigned_to": current_user,
-        "state": "New"
+        "assigned_to": current_user
     })
     
     task_result = await client.call_tool("create_work_item", {
         "project_id": project_id,
         "work_item_type": "Task", 
         "title": "Test task for filtering",
-        "assigned_to": current_user,
-        "state": "Active"
+        "assigned_to": current_user
     })
     
     assert bug_result.is_error is False, f"Should create bug successfully but got error: {bug_result.content}"
@@ -127,6 +125,13 @@ async def test_get_my_work_items_with_filters(client, project_id):
     
     bug_id = bug_result.data["id"]
     task_id = task_result.data["id"]
+    
+    # Update the task to Active state (bugs are typically created as "New" by default)
+    await client.call_tool("update_work_item", {
+        "project_id": project_id,
+        "work_item_id": task_id,
+        "state": "Active"
+    })
     
     try:
         # Test filtering by work item type
