@@ -588,3 +588,88 @@ class WorkItemsClient:
         except Exception as e:
             logger.error(f"Failed to query work items: {e}")
             raise AdoError(f"Failed to query work items: {e}", "work_items_query_failed") from e
+            
+    def get_work_items_batch(
+        self,
+        project_id: str,
+        work_item_ids: List[int],
+        fields: Optional[List[str]] = None,
+        expand_relations: bool = False,
+        as_of: Optional[str] = None,
+        error_policy: str = "omit"
+    ) -> List[WorkItem]:
+        """
+        Get multiple work items by their IDs in a single API call.
+        
+        Args:
+            project_id: The ID or name of the project.
+            work_item_ids: List of work item IDs to retrieve (max 200).
+            fields: List of specific fields to return. If not specified, all fields are returned.
+            expand_relations: If true, include related work items information.
+            as_of: Retrieve work items as they were at a specific date/time (ISO 8601 format).
+            error_policy: How to handle errors for individual items. Options:
+                        - "omit" (default): Skip items that can't be retrieved
+                        - "fail": Fail the entire request if any item can't be retrieved
+                        
+        Returns:
+            List of WorkItem objects (may be fewer than requested if some IDs are invalid)
+            
+        Raises:
+            AdoError: If the API call fails or error_policy is "fail" and any item fails
+            ValueError: If more than 200 work item IDs are provided
+        """
+        if len(work_item_ids) > 200:
+            raise ValueError("Cannot retrieve more than 200 work items in a single batch request")
+            
+        if not work_item_ids:
+            logger.info("No work item IDs provided, returning empty list")
+            return []
+        
+        # Build parameters
+        params = {
+            "ids": ",".join(map(str, work_item_ids)),
+            "api-version": "7.1",
+            "errorPolicy": error_policy
+        }
+        
+        if fields:
+            params["fields"] = ",".join(fields)
+            
+        if expand_relations:
+            params["$expand"] = "relations"
+            
+        if as_of:
+            params["asOf"] = as_of
+        
+        url = f"{self.organization_url}/{project_id}/_apis/wit/workitems"
+        
+        logger.info(
+            f"Getting batch of {len(work_item_ids)} work items from project '{project_id}' "
+            f"(error_policy: {error_policy})"
+        )
+        
+        try:
+            data = self.client._send_request(
+                method="GET",
+                url=url,
+                params=params
+            )
+            
+            work_items = []
+            if data and "value" in data:
+                for item_data in data["value"]:
+                    try:
+                        work_items.append(WorkItem(**item_data))
+                    except Exception as e:
+                        logger.warning(f"Failed to parse work item data: {item_data}. Error: {e}")
+                        if error_policy == "fail":
+                            raise AdoError(f"Failed to parse work item data: {e}", "work_item_parse_failed") from e
+                        # If error_policy is "omit", just skip this item
+                        continue
+            
+            logger.info(f"Successfully retrieved {len(work_items)} work items out of {len(work_item_ids)} requested")
+            return work_items
+            
+        except Exception as e:
+            logger.error(f"Failed to get work items batch: {e}")
+            raise AdoError(f"Failed to get work items batch: {e}", "work_items_batch_failed") from e

@@ -1253,6 +1253,135 @@ def register_work_item_tools(mcp_instance, client_container):
             logger.error(f"Failed to get recent work items: {e}")
             raise
 
+    @mcp_instance.tool
+    def get_work_items_batch(
+        project_id: str,
+        work_item_ids: List[int],
+        fields: Optional[List[str]] = None,
+        expand_relations: bool = False,
+        as_of: Optional[str] = None,
+        error_policy: str = "omit"
+    ) -> Optional[List[WorkItem]]:
+        """
+        Get multiple work items by their IDs in a single API call.
+        
+        This tool provides efficient batch retrieval of work items, allowing you to
+        fetch up to 200 work items in a single request. Perfect for getting full
+        details of work items when you have their IDs from queries.
+        
+        Args:
+            project_id: The ID or name of the project.
+            work_item_ids: List of work item IDs to retrieve (max 200).
+            fields: List of specific fields to return (e.g., ["System.Title", "System.State"]).
+                   If not specified, all fields are returned.
+            expand_relations: If true, include related work items information.
+            as_of: Retrieve work items as they were at a specific date/time (ISO 8601 format).
+            error_policy: How to handle errors for individual items:
+                        - "omit" (default): Skip items that can't be retrieved
+                        - "fail": Fail the entire request if any item can't be retrieved
+                        
+        Returns:
+            List of WorkItem objects (may be fewer than requested if some IDs are invalid)
+            
+        Examples:
+            # Get basic info for multiple work items
+            get_work_items_batch(
+                project_id="MyProject",
+                work_item_ids=[123, 124, 125]
+            )
+            
+            # Get specific fields only
+            get_work_items_batch(
+                project_id="MyProject", 
+                work_item_ids=[123, 124],
+                fields=["System.Title", "System.State", "System.AssignedTo"]
+            )
+            
+            # Get with relationships and fail on any error
+            get_work_items_batch(
+                project_id="MyProject",
+                work_item_ids=[123, 124],
+                expand_relations=True,
+                error_policy="fail"
+            )
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+            
+        try:
+            import time
+            
+            # Validate inputs
+            if not work_item_ids:
+                logger.info("No work item IDs provided, returning empty list")
+                return []
+                
+            if len(work_item_ids) > 200:
+                raise ValueError("Cannot retrieve more than 200 work items in a single batch request")
+            
+            # Start performance timing
+            start_time = time.time()
+            
+            work_items_client = WorkItemsClient(ado_client_instance)
+            
+            # Log batch operation metrics
+            batch_metrics = {
+                "item_count": len(work_item_ids),
+                "has_field_filter": fields is not None,
+                "field_count": len(fields) if fields else 0,
+                "expand_relations": expand_relations,
+                "error_policy": error_policy,
+                "has_historical_query": as_of is not None
+            }
+            
+            logger.info(f"Getting batch of {len(work_item_ids)} work items from project: {project_id} - {batch_metrics}")
+            
+            # Execute batch retrieval with timing
+            api_start_time = time.time()
+            work_items = work_items_client.get_work_items_batch(
+                project_id=project_id,
+                work_item_ids=work_item_ids,
+                fields=fields,
+                expand_relations=expand_relations,
+                as_of=as_of,
+                error_policy=error_policy
+            )
+            api_duration = time.time() - api_start_time
+            
+            # Calculate performance metrics
+            total_duration = time.time() - start_time
+            result_count = len(work_items)
+            success_rate = (result_count / len(work_item_ids)) * 100 if work_item_ids else 100
+            
+            # Log comprehensive performance metrics
+            performance_metrics = {
+                "total_duration_ms": round(total_duration * 1000, 2),
+                "api_duration_ms": round(api_duration * 1000, 2),
+                "requested_count": len(work_item_ids),
+                "returned_count": result_count,
+                "success_rate_percent": round(success_rate, 1),
+                "throughput_items_per_sec": round(result_count / total_duration, 2) if total_duration > 0 else 0,
+                "avg_ms_per_item": round((total_duration * 1000) / result_count, 2) if result_count > 0 else 0,
+                **batch_metrics
+            }
+            
+            logger.info(f"Batch retrieval performance: {performance_metrics}")
+            
+            # Log warnings for inefficient operations
+            if success_rate < 80:
+                logger.warning(f"Low success rate: {success_rate:.1f}% - many work items may not exist")
+            if total_duration > 5.0:  # 5 second threshold for batch operations
+                logger.warning(f"Slow batch retrieval: {total_duration:.2f}s for {result_count} items")
+            
+            logger.info(f"Successfully retrieved {result_count} out of {len(work_item_ids)} requested work items")
+            return work_items
+            
+        except Exception as e:
+            logger.error(f"Failed to get work items batch: {e}")
+            raise
+
 
 def _build_wiql_from_filter(simple_filter: Dict[str, Any]) -> str:
     """

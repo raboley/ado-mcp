@@ -57,8 +57,8 @@
   - [x] 3.4 Add query performance logging and metrics
   - [x] 3.5 Implement get_my_work_items and get_recent_work_items tools
   - [x] 3.6 Write tests for pre-defined queries
-  - [ ] 3.7 Implement get_work_items_batch tool (up to 200 items)
-  - [ ] 3.8 Write tests for batch retrieval with error handling
+  - [x] 3.7 Implement get_work_items_batch tool (up to 200 items)
+  - [x] 3.8 Write tests for batch retrieval with error handling
   - [ ] 3.9 Implement update_work_items_batch with transaction behavior
   - [ ] 3.10 Write tests for bulk updates with partial failure scenarios
   - [ ] 3.11 Add comprehensive logging for batch operations
