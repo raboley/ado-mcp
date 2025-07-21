@@ -51,9 +51,9 @@
   - [x] 2.11 Document metadata tools and caching behavior
 
 - [ ] 3.0 Work Item Querying and Batch Operations
-  - [ ] 3.1 Implement query_work_items tool (simple filtering or WIQL)
-  - [ ] 3.2 Add pagination support for query results
-  - [ ] 3.3 Write tests for various query scenarios
+  - [x] 3.1 Implement query_work_items tool (simple filtering or WIQL)
+  - [x] 3.2 Add pagination support for query results
+  - [x] 3.3 Write tests for various query scenarios
   - [ ] 3.4 Add query performance logging and metrics
   - [ ] 3.5 Implement get_my_work_items and get_recent_work_items tools
   - [ ] 3.6 Write tests for pre-defined queries

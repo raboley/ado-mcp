@@ -944,6 +944,213 @@ def register_work_item_tools(mcp_instance, client_container):
             logger.error(f"Failed to get work items page: {e}")
             raise
 
+    @mcp_instance.tool
+    def get_my_work_items(
+        project_id: str,
+        assigned_to: str,
+        state: Optional[str] = None,
+        work_item_type: Optional[str] = None,
+        page_size: int = 50,
+        page_number: int = 1,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get work items assigned to a specific user.
+        
+        This is a convenience tool that provides a simple interface for getting
+        work items assigned to a specific user with common filtering options.
+        
+        Args:
+            project_id: The ID or name of the project.
+            assigned_to: Email address or display name of the assignee.
+            state: Optional filter by state (e.g., "Active", "New", "Closed").
+            work_item_type: Optional filter by work item type (e.g., "Bug", "Task").
+            page_size: Number of items per page (default: 50, max: 200).
+            page_number: Page number starting from 1 (default: 1).
+            
+        Returns:
+            Dictionary containing:
+            - work_items: List of work item references
+            - pagination: Metadata about pagination
+            - assignment_info: Information about the assignee filter
+            
+        Examples:
+            # Get all work items assigned to me
+            get_my_work_items(
+                project_id="MyProject",
+                assigned_to="user@example.com"
+            )
+            
+            # Get only active bugs assigned to me
+            get_my_work_items(
+                project_id="MyProject",
+                assigned_to="user@example.com",
+                state="Active",
+                work_item_type="Bug"
+            )
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+            
+        try:
+            # Build filter
+            simple_filter = {"assigned_to": assigned_to}
+            if state:
+                simple_filter["state"] = state
+            if work_item_type:
+                simple_filter["work_item_type"] = work_item_type
+            
+            logger.info(f"Getting work items assigned to '{assigned_to}' in project: {project_id}")
+            
+            # Use get_work_items_page for consistent pagination
+            result = get_work_items_page(
+                project_id=project_id,
+                page_number=page_number,
+                page_size=page_size,
+                work_item_type=work_item_type,
+                state=state,
+                assigned_to=assigned_to
+            )
+            
+            if result:
+                # Add assignment info to the result
+                result["assignment_info"] = {
+                    "assigned_to": assigned_to,
+                    "state_filter": state,
+                    "type_filter": work_item_type
+                }
+                
+                logger.info(f"Successfully retrieved {len(result['work_items'])} work items for '{assigned_to}'")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to get work items for '{assigned_to}': {e}")
+            raise
+
+    @mcp_instance.tool
+    def get_recent_work_items(
+        project_id: str,
+        days: int = 7,
+        work_item_type: Optional[str] = None,
+        state: Optional[str] = None,
+        page_size: int = 50,
+        page_number: int = 1,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get work items created or modified recently.
+        
+        This is a convenience tool that provides a simple interface for getting
+        recently created or modified work items with common filtering options.
+        
+        Args:
+            project_id: The ID or name of the project.
+            days: Number of days back to search (default: 7).
+            work_item_type: Optional filter by work item type (e.g., "Bug", "Task").
+            state: Optional filter by state (e.g., "Active", "New", "Closed").
+            page_size: Number of items per page (default: 50, max: 200).
+            page_number: Page number starting from 1 (default: 1).
+            
+        Returns:
+            Dictionary containing:
+            - work_items: List of work item references
+            - pagination: Metadata about pagination
+            - time_filter: Information about the time range used
+            
+        Examples:
+            # Get all work items from the last 7 days
+            get_recent_work_items(project_id="MyProject")
+            
+            # Get bugs created in the last 3 days
+            get_recent_work_items(
+                project_id="MyProject",
+                days=3,
+                work_item_type="Bug"
+            )
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+            
+        try:
+            from datetime import datetime, timedelta
+            
+            # Calculate the date range
+            end_date = datetime.utcnow()
+            start_date = end_date - timedelta(days=days)
+            
+            # Format dates for WIQL (ISO format)
+            start_date_str = start_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            
+            logger.info(f"Getting work items from the last {days} days in project: {project_id}")
+            
+            # Build filter with date range
+            simple_filter = {"created_after": start_date_str}
+            if work_item_type:
+                simple_filter["work_item_type"] = work_item_type
+            if state:
+                simple_filter["state"] = state
+            
+            # Use query_work_items for date filtering
+            work_items_client = WorkItemsClient(ado_client_instance)
+            
+            # Build WIQL query from filter
+            wiql_query = _build_wiql_from_filter(simple_filter)
+            
+            # Calculate skip value for pagination
+            skip = (page_number - 1) * page_size
+            top = page_size + 1  # Get one extra to check if there are more
+            
+            query_result = work_items_client.query_work_items(
+                project_id=project_id,
+                wiql_query=wiql_query,
+                top=top,
+                skip=skip
+            )
+            
+            work_items = query_result.workItems
+            has_more = len(work_items) > page_size
+            
+            # Remove the extra item if present
+            if has_more:
+                work_items = work_items[:page_size]
+            
+            # Build pagination metadata
+            pagination_info = {
+                "page_number": page_number,
+                "page_size": page_size,
+                "items_count": len(work_items),
+                "has_more": has_more,
+                "has_previous": page_number > 1,
+                "next_page": page_number + 1 if has_more else None,
+                "previous_page": page_number - 1 if page_number > 1 else None,
+            }
+            
+            result = {
+                "work_items": work_items,
+                "pagination": pagination_info,
+                "time_filter": {
+                    "days": days,
+                    "start_date": start_date_str,
+                    "end_date": end_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    "type_filter": work_item_type,
+                    "state_filter": state
+                },
+                "query_metadata": {
+                    "query_type": query_result.queryType,
+                    "columns": query_result.columns,
+                }
+            }
+            
+            logger.info(f"Successfully retrieved {len(work_items)} recent work items (last {days} days)")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to get recent work items: {e}")
+            raise
+
 
 def _build_wiql_from_filter(simple_filter: Dict[str, Any]) -> str:
     """
