@@ -989,3 +989,7 @@ def register_ado_tools(mcp_instance, client_container):
     
     # Register work item tools
     register_work_item_tools(mcp_instance, client_container)
+    
+    # Register process and template tools
+    from ado.processes.tools import register_process_tools
+    register_process_tools(mcp_instance, client_container)
