@@ -1,7 +1,7 @@
 """Data models for Azure DevOps processes and templates."""
 
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class Process(BaseModel):
@@ -67,9 +67,7 @@ class ProjectProcessInfo(BaseModel):
     processTemplateName: Optional[str] = Field(None, description="Process template name")
     processTemplateType: Optional[str] = Field(None, description="Process template type")
     
-    class Config:
-        """Pydantic configuration."""
-        extra = "allow"  # Allow additional fields from API response
+    model_config = ConfigDict(extra="allow")
 
 
 class TeamInfo(BaseModel):
