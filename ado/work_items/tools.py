@@ -4,7 +4,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from ado.work_items.client import WorkItemsClient
-from ado.work_items.models import JsonPatchOperation, WorkItem, WorkItemType, WorkItemField, ClassificationNode, WorkItemReference, WorkItemQueryResult
+from ado.work_items.models import JsonPatchOperation, WorkItem, WorkItemType, WorkItemField, ClassificationNode, WorkItemReference, WorkItemQueryResult, WorkItemComment, WorkItemRevision
 from ado.work_items.validation import WorkItemValidator
 
 logger = logging.getLogger(__name__)
@@ -1697,6 +1697,224 @@ def register_work_item_tools(mcp_instance, client_container):
             
         except Exception as e:
             logger.error(f"Failed to delete work items batch: {e}")
+            raise
+
+    @mcp_instance.tool
+    def add_work_item_comment(
+        project_id: str,
+        work_item_id: int,
+        text: str,
+        format_type: str = "html"
+    ) -> Optional[WorkItemComment]:
+        """
+        Add a comment to a work item.
+        
+        This tool allows you to add comments to work items with support for HTML
+        or Markdown formatting. Comments are useful for documenting automated actions,
+        providing status updates, or communicating with team members.
+        
+        Args:
+            project_id: The ID or name of the project.
+            work_item_id: The ID of the work item to add a comment to.
+            text: The comment text (supports HTML/Markdown formatting).
+            format_type: The format of the comment text ("html" or "markdown").
+                       Default is "html".
+            
+        Returns:
+            WorkItemComment: The created comment object, or None if client unavailable.
+            
+        Examples:
+            # Add a simple HTML comment
+            add_work_item_comment(
+                project_id="MyProject",
+                work_item_id=123,
+                text="<p>Updated the implementation to fix the login issue.</p>",
+                format_type="html"
+            )
+            
+            # Add a markdown comment
+            add_work_item_comment(
+                project_id="MyProject",
+                work_item_id=456,
+                text="**Status Update**: Testing completed successfully\n\n- All unit tests passing\n- Integration tests verified",
+                format_type="markdown"
+            )
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+            
+        try:
+            work_items_client = WorkItemsClient(ado_client_instance)
+            
+            comment = work_items_client.add_work_item_comment(
+                project_id=project_id,
+                work_item_id=work_item_id,
+                text=text,
+                format_type=format_type
+            )
+            
+            logger.info(f"Successfully added comment to work item #{work_item_id}")
+            return comment
+            
+        except Exception as e:
+            logger.error(f"Failed to add comment to work item {work_item_id}: {e}")
+            raise
+
+    @mcp_instance.tool
+    def get_work_item_comments(
+        project_id: str,
+        work_item_id: int,
+        top: Optional[int] = None,
+        skip: Optional[int] = None,
+        include_deleted: bool = False
+    ) -> Optional[List[WorkItemComment]]:
+        """
+        Get comments for a work item.
+        
+        This tool retrieves all comments for a specific work item, with support
+        for pagination and optional inclusion of deleted comments.
+        
+        Args:
+            project_id: The ID or name of the project.
+            work_item_id: The ID of the work item to get comments for.
+            top: Maximum number of comments to return (for pagination).
+            skip: Number of comments to skip (for pagination).
+            include_deleted: Whether to include deleted comments in the results.
+                           Default is False.
+            
+        Returns:
+            List[WorkItemComment]: List of comments for the work item, 
+                                 or None if client unavailable.
+            
+        Examples:
+            # Get all comments for a work item
+            get_work_item_comments(
+                project_id="MyProject",
+                work_item_id=123
+            )
+            
+            # Get paginated comments (10 comments starting from the 5th)
+            get_work_item_comments(
+                project_id="MyProject",
+                work_item_id=123,
+                top=10,
+                skip=5
+            )
+            
+            # Include deleted comments
+            get_work_item_comments(
+                project_id="MyProject",
+                work_item_id=123,
+                include_deleted=True
+            )
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+            
+        try:
+            work_items_client = WorkItemsClient(ado_client_instance)
+            
+            comments = work_items_client.get_work_item_comments(
+                project_id=project_id,
+                work_item_id=work_item_id,
+                top=top,
+                skip=skip,
+                include_deleted=include_deleted
+            )
+            
+            logger.info(f"Successfully retrieved {len(comments)} comments for work item #{work_item_id}")
+            return comments
+            
+        except Exception as e:
+            logger.error(f"Failed to get comments for work item {work_item_id}: {e}")
+            raise
+
+    @mcp_instance.tool
+    def get_work_item_history(
+        project_id: str,
+        work_item_id: int,
+        top: Optional[int] = None,
+        skip: Optional[int] = None,
+        expand: Optional[str] = None,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None
+    ) -> Optional[List[WorkItemRevision]]:
+        """
+        Get revision history for a work item with optional date filtering.
+        
+        This tool retrieves the complete revision history for a work item, showing
+        what changed, when, and by whom. Each revision represents a snapshot of
+        the work item at a specific point in time.
+        
+        Args:
+            project_id: The ID or name of the project.
+            work_item_id: The ID of the work item to get history for.
+            top: Maximum number of revisions to return (for pagination).
+            skip: Number of revisions to skip (for pagination).
+            expand: Additional data to include (e.g., "fields" for detailed field information).
+            from_date: Filter revisions from this date onwards (ISO 8601 format).
+            to_date: Filter revisions up to this date (ISO 8601 format).
+            
+        Returns:
+            List[WorkItemRevision]: List of revisions for the work item,
+                                  or None if client unavailable.
+            
+        Examples:
+            # Get full revision history
+            get_work_item_history(
+                project_id="MyProject",
+                work_item_id=123
+            )
+            
+            # Get recent revisions (last 5)
+            get_work_item_history(
+                project_id="MyProject",
+                work_item_id=123,
+                top=5
+            )
+            
+            # Get revisions with expanded field information
+            get_work_item_history(
+                project_id="MyProject",
+                work_item_id=123,
+                expand="fields"
+            )
+            
+            # Get revisions within a date range
+            get_work_item_history(
+                project_id="MyProject",
+                work_item_id=123,
+                from_date="2024-01-01T00:00:00Z",
+                to_date="2024-01-31T23:59:59Z"
+            )
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+            
+        try:
+            work_items_client = WorkItemsClient(ado_client_instance)
+            
+            revisions = work_items_client.get_work_item_revisions(
+                project_id=project_id,
+                work_item_id=work_item_id,
+                top=top,
+                skip=skip,
+                expand=expand,
+                from_date=from_date,
+                to_date=to_date
+            )
+            
+            logger.info(f"Successfully retrieved {len(revisions)} revisions for work item #{work_item_id}")
+            return revisions
+            
+        except Exception as e:
+            logger.error(f"Failed to get history for work item {work_item_id}: {e}")
             raise
 
 
