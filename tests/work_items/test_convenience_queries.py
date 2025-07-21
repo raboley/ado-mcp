@@ -69,7 +69,7 @@ async def test_get_my_work_items_basic_functionality(client, project_id):
         "assigned_to": current_user
     })
     
-    assert create_result.isError is False, f"Should create work item successfully but got error: {create_result.content}"
+    assert create_result.is_error is False, f"Should create work item successfully but got error: {create_result.content}"
     work_item_id = create_result.data["id"]
     
     try:
@@ -79,7 +79,7 @@ async def test_get_my_work_items_basic_functionality(client, project_id):
             "assigned_to": current_user
         })
         
-        assert result.isError is False, f"Should get my work items successfully but got error: {result.content}"
+        assert result.is_error is False, f"Should get my work items successfully but got error: {result.content}"
         assert "work_items" in result.data, f"Result should contain work_items but got: {result.data.keys()}"
         assert "pagination" in result.data, f"Result should contain pagination but got: {result.data.keys()}"
         assert "assignment_info" in result.data, f"Result should contain assignment_info but got: {result.data.keys()}"
@@ -122,8 +122,8 @@ async def test_get_my_work_items_with_filters(client, project_id):
         "state": "Active"
     })
     
-    assert bug_result.isError is False, f"Should create bug successfully but got error: {bug_result.content}"
-    assert task_result.isError is False, f"Should create task successfully but got error: {task_result.content}"
+    assert bug_result.is_error is False, f"Should create bug successfully but got error: {bug_result.content}"
+    assert task_result.is_error is False, f"Should create task successfully but got error: {task_result.content}"
     
     bug_id = bug_result.data["id"]
     task_id = task_result.data["id"]
@@ -136,7 +136,7 @@ async def test_get_my_work_items_with_filters(client, project_id):
             "work_item_type": "Bug"
         })
         
-        assert bugs_result.isError is False, f"Should get bugs successfully but got error: {bugs_result.content}"
+        assert bugs_result.is_error is False, f"Should get bugs successfully but got error: {bugs_result.content}"
         bug_ids = [item["id"] for item in bugs_result.data["work_items"]]
         assert bug_id in bug_ids, f"Should find bug {bug_id} in filtered results: {bug_ids}"
         
@@ -151,7 +151,7 @@ async def test_get_my_work_items_with_filters(client, project_id):
             "state": "New"
         })
         
-        assert new_items_result.isError is False, f"Should get new items successfully but got error: {new_items_result.content}"
+        assert new_items_result.is_error is False, f"Should get new items successfully but got error: {new_items_result.content}"
         new_item_ids = [item["id"] for item in new_items_result.data["work_items"]]
         assert bug_id in new_item_ids, f"Should find bug {bug_id} in new items: {new_item_ids}"
         
@@ -175,7 +175,7 @@ async def test_get_recent_work_items_basic_functionality(client, project_id):
         "title": "Test work item for get_recent_work_items"
     })
     
-    assert create_result.isError is False, f"Should create work item successfully but got error: {create_result.content}"
+    assert create_result.is_error is False, f"Should create work item successfully but got error: {create_result.content}"
     work_item_id = create_result.data["id"]
     
     try:
@@ -184,7 +184,7 @@ async def test_get_recent_work_items_basic_functionality(client, project_id):
             "project_id": project_id
         })
         
-        assert result.isError is False, f"Should get recent work items successfully but got error: {result.content}"
+        assert result.is_error is False, f"Should get recent work items successfully but got error: {result.content}"
         assert "work_items" in result.data, f"Result should contain work_items but got: {result.data.keys()}"
         assert "pagination" in result.data, f"Result should contain pagination but got: {result.data.keys()}"
         assert "time_filter" in result.data, f"Result should contain time_filter but got: {result.data.keys()}"
@@ -217,7 +217,7 @@ async def test_get_recent_work_items_with_custom_days(client, project_id):
         "title": "Test recent bug with custom days"
     })
     
-    assert create_result.isError is False, f"Should create work item successfully but got error: {create_result.content}"
+    assert create_result.is_error is False, f"Should create work item successfully but got error: {create_result.content}"
     work_item_id = create_result.data["id"]
     
     try:
@@ -228,7 +228,7 @@ async def test_get_recent_work_items_with_custom_days(client, project_id):
             "work_item_type": "Bug"
         })
         
-        assert result.isError is False, f"Should get recent work items successfully but got error: {result.content}"
+        assert result.is_error is False, f"Should get recent work items successfully but got error: {result.content}"
         
         # Verify time filter shows custom days
         time_filter = result.data["time_filter"]
@@ -258,7 +258,7 @@ async def test_get_recent_work_items_with_state_filter(client, project_id):
         "state": "New"
     })
     
-    assert new_item_result.isError is False, f"Should create new task successfully but got error: {new_item_result.content}"
+    assert new_item_result.is_error is False, f"Should create new task successfully but got error: {new_item_result.content}"
     new_item_id = new_item_result.data["id"]
     
     try:
@@ -269,7 +269,7 @@ async def test_get_recent_work_items_with_state_filter(client, project_id):
             "days": 1
         })
         
-        assert result.isError is False, f"Should get recent new items successfully but got error: {result.content}"
+        assert result.is_error is False, f"Should get recent new items successfully but got error: {result.content}"
         
         # Verify state filter
         time_filter = result.data["time_filter"]
@@ -297,7 +297,7 @@ async def test_get_recent_work_items_pagination(client, project_id):
         "page_number": 1
     })
     
-    assert result.isError is False, f"Should get recent work items with pagination successfully but got error: {result.content}"
+    assert result.is_error is False, f"Should get recent work items with pagination successfully but got error: {result.content}"
     
     # Verify pagination metadata
     pagination = result.data["pagination"]
@@ -317,11 +317,11 @@ async def test_convenience_tools_error_handling(client):
         "assigned_to": "test@example.com"
     })
     
-    assert result.isError is True, f"Should fail with invalid project but got success: {result.data}"
+    assert result.is_error is True, f"Should fail with invalid project but got success: {result.data}"
     
     # Test get_recent_work_items with invalid project
     result = await client.call_tool("get_recent_work_items", {
         "project_id": "00000000-0000-0000-0000-000000000000"
     })
     
-    assert result.isError is True, f"Should fail with invalid project but got success: {result.data}"
+    assert result.is_error is True, f"Should fail with invalid project but got success: {result.data}"

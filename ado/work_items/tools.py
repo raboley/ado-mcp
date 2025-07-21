@@ -779,6 +779,11 @@ def register_work_item_tools(mcp_instance, client_container):
             return None
             
         try:
+            import time
+            
+            # Start performance timing
+            start_time = time.time()
+            
             work_items_client = WorkItemsClient(ado_client_instance)
             
             # Handle pagination parameter conversion
@@ -790,19 +795,51 @@ def register_work_item_tools(mcp_instance, client_container):
                 logger.info(f"Pagination: page {page_number}, size {page_size} -> top={top}, skip={skip}")
             
             # Build WIQL query from simple filter if no custom query provided
+            query_type = "custom_wiql" if wiql_query else "simple_filter"
             if wiql_query is None and simple_filter:
                 wiql_query = _build_wiql_from_filter(simple_filter)
+                logger.info(f"Generated WIQL from simple filter: {len(simple_filter)} conditions")
             
-            logger.info(f"Querying work items for project: {project_id}")
+            # Log query complexity metrics
+            query_complexity = _analyze_query_complexity(wiql_query, simple_filter, top, skip)
+            logger.info(f"Query complexity metrics: {query_complexity}")
             
+            logger.info(f"Querying work items for project: {project_id} (type: {query_type})")
+            
+            # Execute query with timing
+            api_start_time = time.time()
             query_result = work_items_client.query_work_items(
                 project_id=project_id,
                 wiql_query=wiql_query,
                 top=top,
                 skip=skip
             )
+            api_duration = time.time() - api_start_time
             
-            logger.info(f"Successfully queried {len(query_result.workItems)} work items")
+            # Calculate total performance metrics
+            total_duration = time.time() - start_time
+            result_count = len(query_result.workItems)
+            
+            # Log comprehensive performance metrics
+            performance_metrics = {
+                "total_duration_ms": round(total_duration * 1000, 2),
+                "api_duration_ms": round(api_duration * 1000, 2),
+                "result_count": result_count,
+                "query_type": query_type,
+                "has_pagination": top is not None or skip is not None,
+                "page_size": top,
+                "skip_count": skip or 0,
+                "throughput_items_per_sec": round(result_count / total_duration, 2) if total_duration > 0 else 0,
+                **query_complexity
+            }
+            
+            logger.info(f"Query performance: {performance_metrics}")
+            
+            # Log warnings for slow queries
+            if total_duration > 2.0:  # 2 second threshold
+                logger.warning(f"Slow query detected: {total_duration:.2f}s for {result_count} items")
+            
+            logger.info(f"Successfully queried {result_count} work items")
             return query_result
             
         except Exception as e:
@@ -901,7 +938,19 @@ def register_work_item_tools(mcp_instance, client_container):
             # Get one extra item to check if there are more pages
             top = page_size + 1
             
-            logger.info(f"Getting page {page_number} of work items (size: {page_size})")
+            import time
+            start_time = time.time()
+            
+            # Log pagination-specific metrics
+            pagination_metrics = {
+                "page_number": page_number,
+                "page_size": page_size,
+                "skip_items": skip,
+                "filter_count": len(simple_filter),
+                "has_ordering": order_by != "System.Id"
+            }
+            
+            logger.info(f"Getting page {page_number} of work items (size: {page_size}) - {pagination_metrics}")
             
             query_result = work_items_client.query_work_items(
                 project_id=project_id,
@@ -928,15 +977,27 @@ def register_work_item_tools(mcp_instance, client_container):
                 "previous_page": page_number - 1 if page_number > 1 else None,
             }
             
+            # Calculate final performance metrics
+            total_duration = time.time() - start_time
+            final_pagination_metrics = {
+                **pagination_metrics,
+                "duration_ms": round(total_duration * 1000, 2),
+                "items_returned": len(work_items),
+                "has_more_pages": has_more,
+                "pagination_efficiency": round(len(work_items) / page_size * 100, 1) if page_size > 0 else 0
+            }
+            
             result = {
                 "work_items": work_items,
                 "pagination": pagination_info,
                 "query_metadata": {
                     "query_type": query_result.queryType,
                     "columns": query_result.columns,
-                }
+                },
+                "performance_metrics": final_pagination_metrics
             }
             
+            logger.info(f"Pagination performance: {final_pagination_metrics}")
             logger.info(f"Successfully retrieved page {page_number} with {len(work_items)} items (has_more: {has_more})")
             return result
             
@@ -1003,15 +1064,56 @@ def register_work_item_tools(mcp_instance, client_container):
             
             logger.info(f"Getting work items assigned to '{assigned_to}' in project: {project_id}")
             
-            # Use get_work_items_page for consistent pagination
-            result = get_work_items_page(
+            # Build filter for consistent filtering
+            simple_filter = {"assigned_to": assigned_to}
+            if state:
+                simple_filter["state"] = state
+            if work_item_type:
+                simple_filter["work_item_type"] = work_item_type
+            
+            # Use the work items client directly to avoid circular calls
+            work_items_client = WorkItemsClient(ado_client_instance)
+            
+            # Build WIQL query from filter
+            wiql_query = _build_wiql_from_filter(simple_filter)
+            
+            # Calculate pagination
+            skip = (page_number - 1) * page_size
+            top = page_size
+            
+            # Execute query
+            query_result = work_items_client.query_work_items(
                 project_id=project_id,
-                page_number=page_number,
-                page_size=page_size,
-                work_item_type=work_item_type,
-                state=state,
-                assigned_to=assigned_to
+                wiql_query=wiql_query,
+                top=top,
+                skip=skip
             )
+            
+            if not query_result:
+                return None
+                
+            # Build pagination info from query result
+            work_items = query_result.workItems
+            has_more = len(work_items) >= page_size  # Simplified check
+            
+            pagination_info = {
+                "page_number": page_number,
+                "page_size": page_size,
+                "items_count": len(work_items),
+                "has_more": has_more,
+                "has_previous": page_number > 1,
+                "next_page": page_number + 1 if has_more else None,
+                "previous_page": page_number - 1 if page_number > 1 else None,
+            }
+            
+            result = {
+                "work_items": work_items,
+                "pagination": pagination_info,
+                "query_metadata": {
+                    "query_type": query_result.queryType,
+                    "columns": query_result.columns,
+                }
+            }
             
             if result:
                 # Add assignment info to the result
@@ -1226,3 +1328,89 @@ def _build_wiql_from_filter(simple_filter: Dict[str, Any]) -> str:
     query += " ORDER BY [System.Id]"
     
     return query
+
+
+def _analyze_query_complexity(wiql_query: Optional[str], simple_filter: Optional[Dict[str, Any]], top: Optional[int], skip: Optional[int]) -> Dict[str, Any]:
+    """
+    Analyze query complexity for performance metrics.
+    
+    Args:
+        wiql_query: The WIQL query string
+        simple_filter: Simple filter dictionary  
+        top: Maximum results to return
+        skip: Number of results to skip
+        
+    Returns:
+        Dictionary with complexity metrics
+    """
+    complexity = {
+        "filter_condition_count": 0,
+        "has_text_search": False,
+        "has_date_filter": False,
+        "has_complex_joins": False,
+        "estimated_complexity": "low"
+    }
+    
+    # Analyze simple filter complexity
+    if simple_filter:
+        complexity["filter_condition_count"] = len(simple_filter)
+        
+        # Check for date filters
+        if any(key in simple_filter for key in ["created_after", "created_before"]):
+            complexity["has_date_filter"] = True
+            
+        # Check for text searches (tags, assigned_to)
+        if any(key in simple_filter for key in ["tags", "assigned_to"]):
+            complexity["has_text_search"] = True
+    
+    # Analyze WIQL query complexity
+    if wiql_query:
+        query_upper = wiql_query.upper()
+        
+        # Count WHERE conditions
+        where_count = query_upper.count(" AND ") + query_upper.count(" OR ") + (1 if " WHERE " in query_upper else 0)
+        complexity["filter_condition_count"] = max(complexity["filter_condition_count"], where_count)
+        
+        # Check for complex operations
+        complex_operations = ["JOIN", "UNION", "CONTAINS", "LIKE", "UNDER", "IN"]
+        for op in complex_operations:
+            if op in query_upper:
+                complexity["has_complex_joins"] = True
+                break
+                
+        # Check for date operations
+        if any(date_op in query_upper for date_op in ["CREATEDDATE", "CHANGEDDATE", ">", "<", ">=", "<="]):
+            complexity["has_date_filter"] = True
+            
+        # Check for text search operations
+        if any(text_op in query_upper for text_op in ["CONTAINS", "LIKE", "TAGS", "ASSIGNEDTO"]):
+            complexity["has_text_search"] = True
+    
+    # Determine overall complexity
+    complexity_score = 0
+    if complexity["filter_condition_count"] > 3:
+        complexity_score += 2
+    elif complexity["filter_condition_count"] > 1:
+        complexity_score += 1
+        
+    if complexity["has_text_search"]:
+        complexity_score += 1
+    if complexity["has_date_filter"]:
+        complexity_score += 1  
+    if complexity["has_complex_joins"]:
+        complexity_score += 2
+        
+    # Large pagination can be expensive
+    if skip and skip > 1000:
+        complexity_score += 1
+    if top and top > 500:
+        complexity_score += 1
+        
+    if complexity_score >= 4:
+        complexity["estimated_complexity"] = "high"
+    elif complexity_score >= 2:
+        complexity["estimated_complexity"] = "medium"
+    else:
+        complexity["estimated_complexity"] = "low"
+        
+    return complexity

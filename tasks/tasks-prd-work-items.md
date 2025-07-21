@@ -54,9 +54,9 @@
   - [x] 3.1 Implement query_work_items tool (simple filtering or WIQL)
   - [x] 3.2 Add pagination support for query results
   - [x] 3.3 Write tests for various query scenarios
-  - [ ] 3.4 Add query performance logging and metrics
-  - [ ] 3.5 Implement get_my_work_items and get_recent_work_items tools
-  - [ ] 3.6 Write tests for pre-defined queries
+  - [x] 3.4 Add query performance logging and metrics
+  - [x] 3.5 Implement get_my_work_items and get_recent_work_items tools
+  - [x] 3.6 Write tests for pre-defined queries
   - [ ] 3.7 Implement get_work_items_batch tool (up to 200 items)
   - [ ] 3.8 Write tests for batch retrieval with error handling
   - [ ] 3.9 Implement update_work_items_batch with transaction behavior
