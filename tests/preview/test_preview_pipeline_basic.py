@@ -1,4 +1,3 @@
-
 import os
 import pytest
 from fastmcp.client import Client
@@ -26,44 +25,47 @@ async def mcp_client():
 async def test_preview_pipeline_basic(mcp_client: Client):
     result = await mcp_client.call_tool(
         "preview_pipeline",
-        {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": BASIC_PREVIEW_PIPELINE_ID
-        }
+        {"project_id": TEST_PROJECT_ID, "pipeline_id": BASIC_PREVIEW_PIPELINE_ID},
     )
-    
+
     preview_data = result.data
     assert preview_data is not None, f"Expected preview data but got None"
     assert isinstance(preview_data, dict), f"Expected dict but got {type(preview_data)}"
-    assert "finalYaml" in preview_data, f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
+    assert "finalYaml" in preview_data, (
+        f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
+    )
     assert preview_data["finalYaml"] is not None, f"Expected non-None finalYaml but got None"
-    assert isinstance(preview_data["finalYaml"], str), f"Expected finalYaml to be string but got {type(preview_data['finalYaml'])}"
+    assert isinstance(preview_data["finalYaml"], str), (
+        f"Expected finalYaml to be string but got {type(preview_data['finalYaml'])}"
+    )
     assert len(preview_data["finalYaml"]) > 0, f"Expected non-empty finalYaml but got empty string"
 
 
 @requires_ado_creds
 async def test_preview_pipeline_with_variables(mcp_client: Client):
     parameterized_pipeline_id = 75
-    
+
     variables = {
         "testEnvironment": "preview-testing",
         "enableDebug": True,
-        "previewMode": "enabled"
+        "previewMode": "enabled",
     }
-    
+
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
             "project_id": TEST_PROJECT_ID,
             "pipeline_id": parameterized_pipeline_id,
-            "variables": variables
-        }
+            "variables": variables,
+        },
     )
-    
+
     preview_data = result.data
     assert preview_data is not None, f"Expected preview data with variables but got None"
-    assert "finalYaml" in preview_data, f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
-    
+    assert "finalYaml" in preview_data, (
+        f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
+    )
+
     final_yaml = preview_data["finalYaml"]
     assert final_yaml is not None, f"Expected non-None finalYaml but got None"
     assert len(final_yaml) > 0, f"Expected non-empty finalYaml but got empty string"
@@ -72,62 +74,64 @@ async def test_preview_pipeline_with_variables(mcp_client: Client):
 @requires_ado_creds
 async def test_preview_pipeline_with_empty_resources(mcp_client: Client):
     resources = {}
-    
+
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
             "project_id": TEST_PROJECT_ID,
             "pipeline_id": BASIC_PREVIEW_PIPELINE_ID,
-            "resources": resources
-        }
+            "resources": resources,
+        },
     )
-    
+
     preview_data = result.data
     assert preview_data is not None, f"Expected preview data with empty resources but got None"
-    assert "finalYaml" in preview_data, f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
+    assert "finalYaml" in preview_data, (
+        f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
+    )
 
 
 @requires_ado_creds
 async def test_preview_pipeline_with_stages_to_skip(mcp_client: Client):
     parameterized_pipeline_id = 75
-    
+
     stages_to_skip = ["TestStage", "DeploymentStage"]
-    
+
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
             "project_id": TEST_PROJECT_ID,
             "pipeline_id": parameterized_pipeline_id,
-            "stages_to_skip": stages_to_skip
-        }
+            "stages_to_skip": stages_to_skip,
+        },
     )
-    
+
     preview_data = result.data
     assert preview_data is not None, f"Expected preview data with stages to skip but got None"
-    assert "finalYaml" in preview_data, f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
-
-
+    assert "finalYaml" in preview_data, (
+        f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
+    )
 
 
 @requires_ado_creds
 async def test_preview_pipeline_nonexistent_pipeline(mcp_client: Client):
     pipeline_id = 99999
-    
+
     try:
         result = await mcp_client.call_tool(
-            "preview_pipeline",
-            {
-                "project_id": TEST_PROJECT_ID,
-                "pipeline_id": pipeline_id
-            }
+            "preview_pipeline", {"project_id": TEST_PROJECT_ID, "pipeline_id": pipeline_id}
         )
-        
+
         if result.data is None:
             assert True, "Non-existent pipeline correctly returned None"
         else:
-            assert isinstance(result.data, dict), f"Expected dict response or None for non-existent pipeline but got {type(result.data)}"
+            assert isinstance(result.data, dict), (
+                f"Expected dict response or None for non-existent pipeline but got {type(result.data)}"
+            )
     except Exception as e:
-        assert isinstance(e, Exception), f"Expected proper exception type for non-existent pipeline but got {type(e)}"
+        assert isinstance(e, Exception), (
+            f"Expected proper exception type for non-existent pipeline but got {type(e)}"
+        )
 
 
 async def test_preview_pipeline_tool_registration():
@@ -138,4 +142,6 @@ async def test_preview_pipeline_tool_registration():
         else:
             tools = tools_response
         tool_names = [tool.name for tool in tools]
-        assert "preview_pipeline" in tool_names, f"Expected 'preview_pipeline' tool to be registered. Available tools: {tool_names}"
+        assert "preview_pipeline" in tool_names, (
+            f"Expected 'preview_pipeline' tool to be registered. Available tools: {tool_names}"
+        )

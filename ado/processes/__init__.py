@@ -11,7 +11,7 @@ from .models import (
 __all__ = [
     "ProcessesClient",
     "Process",
-    "ProcessTemplate", 
+    "ProcessTemplate",
     "WorkItemTemplate",
     "ProjectProcessInfo",
 ]

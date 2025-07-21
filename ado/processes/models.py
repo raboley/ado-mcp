@@ -7,10 +7,11 @@ from pydantic import BaseModel, Field, ConfigDict
 class Process(BaseModel):
     """
     Represents a process template in Azure DevOps.
-    
+
     A process defines the work item types, states, fields, and rules
     that are available in projects that use this process template.
     """
+
     id: str = Field(..., description="Process unique identifier (UUID)")
     name: str = Field(..., description="Process name (e.g., 'Agile', 'Scrum')")
     description: Optional[str] = Field(None, description="Process description")
@@ -26,10 +27,11 @@ class Process(BaseModel):
 class ProcessTemplate(BaseModel):
     """
     Represents a process template reference.
-    
+
     Process templates are the blueprints that define work item types,
     workflow states, and rules for projects.
     """
+
     id: str = Field(..., description="Template unique identifier")
     name: str = Field(..., description="Template name")
     description: Optional[str] = Field(None, description="Template description")
@@ -41,10 +43,11 @@ class ProcessTemplate(BaseModel):
 class WorkItemTemplate(BaseModel):
     """
     Represents a work item template.
-    
+
     Work item templates contain predefined field values that can be
     applied when creating new work items to save time and ensure consistency.
     """
+
     id: str = Field(..., description="Template unique identifier")
     name: str = Field(..., description="Template name")
     description: Optional[str] = Field(None, description="Template description")
@@ -57,25 +60,29 @@ class WorkItemTemplate(BaseModel):
 class ProjectProcessInfo(BaseModel):
     """
     Represents process information for a project.
-    
+
     Contains the process template configuration details for a specific project,
     including the current process and any process history.
     """
+
     projectId: str = Field(..., description="Project unique identifier")
     currentProcessTemplateId: str = Field(..., description="Current process template ID")
-    originalProcessTemplateId: Optional[str] = Field(None, description="Original process template ID")
+    originalProcessTemplateId: Optional[str] = Field(
+        None, description="Original process template ID"
+    )
     processTemplateName: Optional[str] = Field(None, description="Process template name")
     processTemplateType: Optional[str] = Field(None, description="Process template type")
-    
+
     model_config = ConfigDict(extra="allow")
 
 
 class TeamInfo(BaseModel):
     """
     Represents basic team information needed for template operations.
-    
+
     Teams are required context for work item template operations.
     """
+
     id: str = Field(..., description="Team unique identifier")
     name: str = Field(..., description="Team name")
     description: Optional[str] = Field(None, description="Team description")

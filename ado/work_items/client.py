@@ -4,7 +4,13 @@ import logging
 from typing import Any, Dict, List, Optional, Union
 
 from ado.client import AdoClient
-from ado.errors import AdoError, AdoRateLimitError, AdoNetworkError, AdoTimeoutError, AdoAuthenticationError
+from ado.errors import (
+    AdoError,
+    AdoRateLimitError,
+    AdoNetworkError,
+    AdoTimeoutError,
+    AdoAuthenticationError,
+)
 from ado.cache import ado_cache
 from ado.retry import RetryManager
 from opentelemetry import trace
@@ -30,18 +36,18 @@ tracer = trace.get_tracer(__name__)
 
 class WorkItemsClient:
     """Client for Azure DevOps Work Items API operations."""
-    
+
     def __init__(self, client: AdoClient):
         """
         Initialize the WorkItemsClient.
-        
+
         Args:
             client: The AdoClient instance to use for API calls.
         """
         self.client = client
         self.auth_manager = client.auth_manager
         self.organization_url = client.organization_url
-        
+
     def create_work_item(
         self,
         project_id: str,
@@ -53,7 +59,7 @@ class WorkItemsClient:
     ) -> WorkItem:
         """
         Create a new work item in Azure DevOps.
-        
+
         Args:
             project_id: The ID or name of the project.
             work_item_type: The type of work item to create (e.g., "Bug", "Task").
@@ -61,10 +67,10 @@ class WorkItemsClient:
             validate_only: If true, only validate the request without creating.
             bypass_rules: If true, bypass rules validation.
             suppress_notifications: If true, suppress notifications.
-            
+
         Returns:
             The created WorkItem object.
-            
+
         Raises:
             AdoError: If the API request fails.
         """
@@ -72,97 +78,101 @@ class WorkItemsClient:
         operations = []
         for field_path, value in fields.items():
             operations.append(
-                JsonPatchOperation(
-                    op="add",
-                    path=f"/fields/{field_path}",
-                    value=value
-                )
+                JsonPatchOperation(op="add", path=f"/fields/{field_path}", value=value)
             )
-        
+
         patch_document = [op.model_dump(exclude_none=True, by_alias=True) for op in operations]
-        
+
         # Build query parameters
         params = {
             "validateOnly": validate_only,
             "bypassRules": bypass_rules,
             "suppressNotifications": suppress_notifications,
-            "api-version": "7.1"
+            "api-version": "7.1",
         }
-        
+
         url = f"{self.organization_url}/{project_id}/_apis/wit/workitems/${work_item_type}"
-        
+
         logger.info(
             f"Creating work item of type '{work_item_type}' in project '{project_id}' "
             f"with {len(operations)} fields"
         )
-        
+
         try:
             # Build merged headers with content type for JSON patch
             request_headers = self.client.headers.copy()
             request_headers["Content-Type"] = "application/json-patch+json"
-            
+
             # Use the client's retry-enabled _send_request method with proper headers
             with tracer.start_as_current_span("create_work_item") as span:
                 span.set_attribute("work_item.type", work_item_type)
                 span.set_attribute("work_item.project_id", project_id)
                 span.set_attribute("work_item.field_count", len(operations))
-                
+
                 # Use client's session for connection pooling with retry wrapper
                 import requests
-                
+
                 @self.client.retry_manager.retry_on_failure
                 def make_create_request():
                     # Use session for connection pooling if available
-                    request_func = self.client.session.request if hasattr(self.client, 'session') and self.client.session != requests else requests.request
+                    request_func = (
+                        self.client.session.request
+                        if hasattr(self.client, "session") and self.client.session != requests
+                        else requests.request
+                    )
                     response = request_func(
                         method="POST",
                         url=url,
                         headers=request_headers,
                         json=patch_document,
                         params=params,
-                        timeout=self.client.config.request_timeout_seconds
+                        timeout=self.client.config.request_timeout_seconds,
                     )
-                    
+
                     # Handle specific status codes with proper error types
                     if response.status_code == 401:
                         raise AdoAuthenticationError(
                             "Authentication failed for work item creation",
-                            context={"project_id": project_id, "work_item_type": work_item_type}
+                            context={"project_id": project_id, "work_item_type": work_item_type},
                         )
                     elif response.status_code == 429:
-                        retry_after = response.headers.get('Retry-After')
+                        retry_after = response.headers.get("Retry-After")
                         raise AdoRateLimitError(
                             "Rate limit exceeded during work item creation",
                             retry_after=int(retry_after) if retry_after else None,
-                            context={"project_id": project_id, "work_item_type": work_item_type}
+                            context={"project_id": project_id, "work_item_type": work_item_type},
                         )
                     elif response.status_code >= 500:
                         raise AdoNetworkError(
                             f"Server error during work item creation: {response.status_code}",
-                            context={"project_id": project_id, "work_item_type": work_item_type, "status_code": response.status_code}
+                            context={
+                                "project_id": project_id,
+                                "work_item_type": work_item_type,
+                                "status_code": response.status_code,
+                            },
                         )
-                    
+
                     response.raise_for_status()
                     return response.json() if response.content else None
-                
+
                 data = make_create_request()
-                span.set_attribute("work_item.id", data.get('id'))
-            
+                span.set_attribute("work_item.id", data.get("id"))
+
             logger.info(f"Successfully created work item ID: {data.get('id')}")
             return WorkItem(**data)
-            
+
         except (AdoAuthenticationError, AdoRateLimitError, AdoNetworkError, AdoTimeoutError):
             # Re-raise our structured exceptions
             raise
         except Exception as e:
             logger.error(f"Failed to create work item: {e}")
             raise AdoError(
-                f"Failed to create work item: {e}", 
+                f"Failed to create work item: {e}",
                 "work_item_creation_failed",
                 context={"project_id": project_id, "work_item_type": work_item_type},
-                original_exception=e
+                original_exception=e,
             ) from e
-    
+
     def get_work_item(
         self,
         project_id: str,
@@ -173,61 +183,55 @@ class WorkItemsClient:
     ) -> WorkItem:
         """
         Get a single work item by ID.
-        
+
         Args:
             project_id: The ID or name of the project.
             work_item_id: The ID of the work item.
             fields: List of field reference names to include.
             as_of: Get work item as of a specific date/time.
             expand: The expand parameters (e.g., "relations", "fields").
-            
+
         Returns:
             The WorkItem object.
-            
+
         Raises:
             AdoError: If the API request fails.
         """
-        params = {
-            "api-version": "7.1"
-        }
-        
+        params = {"api-version": "7.1"}
+
         if fields:
             params["fields"] = ",".join(fields)
         if as_of:
             params["asOf"] = as_of
         if expand:
             params["$expand"] = expand
-            
+
         url = f"{self.organization_url}/{project_id}/_apis/wit/workitems/{work_item_id}"
-        
+
         logger.info(f"Getting work item {work_item_id} from project '{project_id}'")
-        
+
         try:
             with tracer.start_as_current_span("get_work_item") as span:
                 span.set_attribute("work_item.id", work_item_id)
                 span.set_attribute("work_item.project_id", project_id)
-                
-                data = self.client._send_request(
-                    method="GET",
-                    url=url,
-                    params=params
-                )
-            
+
+                data = self.client._send_request(method="GET", url=url, params=params)
+
             logger.info(f"Successfully retrieved work item {work_item_id}")
             return WorkItem(**data)
-            
+
         except (AdoAuthenticationError, AdoRateLimitError, AdoNetworkError, AdoTimeoutError):
             # Re-raise our structured exceptions
             raise
         except Exception as e:
             logger.error(f"Failed to get work item {work_item_id}: {e}")
             raise AdoError(
-                f"Failed to get work item {work_item_id}: {e}", 
+                f"Failed to get work item {work_item_id}: {e}",
                 "work_item_get_failed",
                 context={"project_id": project_id, "work_item_id": work_item_id},
-                original_exception=e
+                original_exception=e,
             ) from e
-    
+
     def update_work_item(
         self,
         project_id: str,
@@ -239,7 +243,7 @@ class WorkItemsClient:
     ) -> WorkItem:
         """
         Update an existing work item.
-        
+
         Args:
             project_id: The ID or name of the project.
             work_item_id: The ID of the work item to update.
@@ -247,94 +251,106 @@ class WorkItemsClient:
             validate_only: If true, only validate the request.
             bypass_rules: If true, bypass rules validation.
             suppress_notifications: If true, suppress notifications.
-            
+
         Returns:
             The updated WorkItem object.
-            
+
         Raises:
             AdoError: If the API request fails.
         """
         patch_document = [op.model_dump(exclude_none=True, by_alias=True) for op in operations]
-        
+
         params = {
             "validateOnly": validate_only,
             "bypassRules": bypass_rules,
             "suppressNotifications": suppress_notifications,
-            "api-version": "7.1"
+            "api-version": "7.1",
         }
-        
+
         url = f"{self.organization_url}/{project_id}/_apis/wit/workitems/{work_item_id}"
-        
+
         logger.info(
             f"Updating work item {work_item_id} in project '{project_id}' "
             f"with {len(operations)} operations"
         )
-        
+
         try:
             with tracer.start_as_current_span("update_work_item") as span:
                 span.set_attribute("work_item.id", work_item_id)
                 span.set_attribute("work_item.project_id", project_id)
                 span.set_attribute("work_item.operations_count", len(operations))
-                
+
                 # Build merged headers with content type for JSON patch
                 request_headers = self.client.headers.copy()
                 request_headers["Content-Type"] = "application/json-patch+json"
-                
+
                 # Use retry wrapper for update operations
                 import requests
-                
+
                 @self.client.retry_manager.retry_on_failure
                 def make_update_request():
                     # Use session for connection pooling if available
-                    request_func = self.client.session.request if hasattr(self.client, 'session') and self.client.session != requests else requests.request
+                    request_func = (
+                        self.client.session.request
+                        if hasattr(self.client, "session") and self.client.session != requests
+                        else requests.request
+                    )
                     response = request_func(
                         method="PATCH",
                         url=url,
                         headers=request_headers,
                         json=patch_document,
                         params=params,
-                        timeout=self.client.config.request_timeout_seconds
+                        timeout=self.client.config.request_timeout_seconds,
                     )
-                    
+
                     # Handle specific status codes
                     if response.status_code == 401:
                         raise AdoAuthenticationError(
                             "Authentication failed for work item update",
-                            context={"project_id": project_id, "work_item_id": work_item_id}
+                            context={"project_id": project_id, "work_item_id": work_item_id},
                         )
                     elif response.status_code == 429:
-                        retry_after = response.headers.get('Retry-After')
+                        retry_after = response.headers.get("Retry-After")
                         raise AdoRateLimitError(
                             "Rate limit exceeded during work item update",
                             retry_after=int(retry_after) if retry_after else None,
-                            context={"project_id": project_id, "work_item_id": work_item_id}
+                            context={"project_id": project_id, "work_item_id": work_item_id},
                         )
                     elif response.status_code >= 500:
                         raise AdoNetworkError(
                             f"Server error during work item update: {response.status_code}",
-                            context={"project_id": project_id, "work_item_id": work_item_id, "status_code": response.status_code}
+                            context={
+                                "project_id": project_id,
+                                "work_item_id": work_item_id,
+                                "status_code": response.status_code,
+                            },
                         )
-                    
+
                     response.raise_for_status()
                     return response.json() if response.content else None
-                
+
                 data = make_update_request()
-            
+
             logger.info(f"Successfully updated work item {work_item_id}")
             return WorkItem(**data)
-            
+
         except (AdoAuthenticationError, AdoRateLimitError, AdoNetworkError, AdoTimeoutError):
             # Re-raise our structured exceptions
             raise
         except Exception as e:
             logger.error(f"Failed to update work item {work_item_id}: {e}")
             raise AdoError(
-                f"Failed to update work item {work_item_id}: {e}", 
+                f"Failed to update work item {work_item_id}: {e}",
                 "work_item_update_failed",
-                context={"project_id": project_id, "work_item_id": work_item_id, "operations_count": len(operations)},
-                original_exception=e
+                context={
+                    "project_id": project_id,
+                    "work_item_id": work_item_id,
+                    "operations_count": len(operations),
+                },
+                original_exception=e,
             ) from e
-    
+
     def delete_work_item(
         self,
         project_id: str,
@@ -343,83 +359,74 @@ class WorkItemsClient:
     ) -> bool:
         """
         Delete a work item.
-        
+
         Args:
             project_id: The ID or name of the project.
             work_item_id: The ID of the work item to delete.
             destroy: If true, permanently destroy the work item.
-            
+
         Returns:
             True if deletion was successful.
-            
+
         Raises:
             AdoError: If the API request fails.
         """
-        params = {
-            "destroy": destroy,
-            "api-version": "7.1"
-        }
-        
+        params = {"destroy": destroy, "api-version": "7.1"}
+
         url = f"{self.organization_url}/{project_id}/_apis/wit/workitems/{work_item_id}"
-        
+
         logger.info(
             f"{'Destroying' if destroy else 'Deleting'} work item {work_item_id} "
             f"from project '{project_id}'"
         )
-        
+
         try:
-            self.client._send_request(
-                method="DELETE",
-                url=url,
-                params=params
-            )
-            
+            self.client._send_request(method="DELETE", url=url, params=params)
+
             logger.info(f"Successfully deleted work item {work_item_id}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Failed to delete work item {work_item_id}: {e}")
-            raise AdoError(f"Failed to delete work item {work_item_id}: {e}", "work_item_delete_failed") from e
-    
+            raise AdoError(
+                f"Failed to delete work item {work_item_id}: {e}", "work_item_delete_failed"
+            ) from e
+
     def list_work_item_types(
         self,
         project_id: str,
     ) -> List[WorkItemType]:
         """
         Get all work item types for a project.
-        
+
         Args:
             project_id: The ID or name of the project.
-            
+
         Returns:
             List of WorkItemType objects.
-            
+
         Raises:
             AdoError: If the API request fails.
         """
         # Check cache first
         cached_types = ado_cache.get_work_item_types(project_id)
         if cached_types is not None:
-            logger.info(f"Returning {len(cached_types)} cached work item types for project '{project_id}'")
-            return cached_types
-        
-        url = f"{self.organization_url}/{project_id}/_apis/wit/workitemtypes"
-        params = {
-            "api-version": "7.1"
-        }
-        
-        logger.info(f"Getting work item types from API for project '{project_id}'")
-        
-        try:
-            data = self.client._send_request(
-                method="GET",
-                url=url,
-                params=params
+            logger.info(
+                f"Returning {len(cached_types)} cached work item types for project '{project_id}'"
             )
-            
+            return cached_types
+
+        url = f"{self.organization_url}/{project_id}/_apis/wit/workitemtypes"
+        params = {"api-version": "7.1"}
+
+        logger.info(f"Getting work item types from API for project '{project_id}'")
+
+        try:
+            data = self.client._send_request(method="GET", url=url, params=params)
+
             work_item_types_data = data.get("value", [])
             logger.info(f"Successfully retrieved {len(work_item_types_data)} work item types")
-            
+
             work_item_types = []
             for wit_data in work_item_types_data:
                 try:
@@ -427,16 +434,18 @@ class WorkItemsClient:
                     work_item_types.append(work_item_type)
                 except Exception as e:
                     logger.warning(f"Failed to parse work item type data: {wit_data}. Error: {e}")
-            
+
             # Cache the results
             ado_cache.set_work_item_types(project_id, work_item_types)
-            
+
             return work_item_types
-            
+
         except Exception as e:
             logger.error(f"Failed to get work item types: {e}")
-            raise AdoError(f"Failed to get work item types: {e}", "work_item_types_get_failed") from e
-    
+            raise AdoError(
+                f"Failed to get work item types: {e}", "work_item_types_get_failed"
+            ) from e
+
     def get_work_item_type(
         self,
         project_id: str,
@@ -444,17 +453,17 @@ class WorkItemsClient:
     ) -> WorkItemType:
         """
         Get detailed information about a specific work item type.
-        
+
         This returns comprehensive information including states, transitions,
         colors, icons, and field information for the specified work item type.
-        
+
         Args:
             project_id: The ID or name of the project.
             work_item_type: The name of the work item type (e.g., "Bug", "Task").
-            
+
         Returns:
             WorkItemType object with detailed information.
-            
+
         Raises:
             AdoError: If the API request fails.
         """
@@ -462,37 +471,39 @@ class WorkItemsClient:
         cache_key = f"work_item_type_detailed:{project_id}:{work_item_type}"
         cached_result = ado_cache._get(cache_key)
         if cached_result:
-            logger.info(f"Returning cached detailed work item type '{work_item_type}' for project '{project_id}'")
+            logger.info(
+                f"Returning cached detailed work item type '{work_item_type}' for project '{project_id}'"
+            )
             return WorkItemType(**cached_result)
-        
+
         url = f"{self.organization_url}/{project_id}/_apis/wit/workitemtypes/{work_item_type}"
         params = {
             "api-version": "7.1",
-            "expand": "states,transitions"  # Get detailed state and transition information
+            "expand": "states,transitions",  # Get detailed state and transition information
         }
-        
+
         logger.info(f"Getting detailed work item type '{work_item_type}' in project '{project_id}'")
-        
+
         try:
-            data = self.client._send_request(
-                method="GET",
-                url=url,
-                params=params
+            data = self.client._send_request(method="GET", url=url, params=params)
+
+            logger.info(
+                f"Successfully retrieved detailed information for work item type '{work_item_type}'"
             )
-            
-            logger.info(f"Successfully retrieved detailed information for work item type '{work_item_type}'")
-            
+
             work_item_type_obj = WorkItemType(**data)
-            
+
             # Cache the result for 1 hour
             ado_cache._set(cache_key, work_item_type_obj.model_dump(), 3600)
-            
+
             return work_item_type_obj
-            
+
         except Exception as e:
             logger.error(f"Failed to get work item type details: {e}")
-            raise AdoError(f"Failed to get work item type details: {e}", "work_item_type_details_get_failed") from e
-    
+            raise AdoError(
+                f"Failed to get work item type details: {e}", "work_item_type_details_get_failed"
+            ) from e
+
     def get_work_item_type_fields(
         self,
         project_id: str,
@@ -500,34 +511,34 @@ class WorkItemsClient:
     ) -> List[WorkItemField]:
         """
         Get all fields for a specific work item type.
-        
+
         Args:
             project_id: The ID or name of the project.
             work_item_type: The name of the work item type (e.g., "Bug", "Task").
-            
+
         Returns:
             List of WorkItemField objects.
-            
+
         Raises:
             AdoError: If the API request fails.
         """
-        url = f"{self.organization_url}/{project_id}/_apis/wit/workitemtypes/{work_item_type}/fields"
-        params = {
-            "api-version": "7.1"
-        }
-        
-        logger.info(f"Getting fields for work item type '{work_item_type}' in project '{project_id}'")
-        
+        url = (
+            f"{self.organization_url}/{project_id}/_apis/wit/workitemtypes/{work_item_type}/fields"
+        )
+        params = {"api-version": "7.1"}
+
+        logger.info(
+            f"Getting fields for work item type '{work_item_type}' in project '{project_id}'"
+        )
+
         try:
-            data = self.client._send_request(
-                method="GET",
-                url=url,
-                params=params
-            )
-            
+            data = self.client._send_request(method="GET", url=url, params=params)
+
             fields_data = data.get("value", [])
-            logger.info(f"Successfully retrieved {len(fields_data)} fields for work item type '{work_item_type}'")
-            
+            logger.info(
+                f"Successfully retrieved {len(fields_data)} fields for work item type '{work_item_type}'"
+            )
+
             fields = []
             for field_data in fields_data:
                 try:
@@ -535,13 +546,15 @@ class WorkItemsClient:
                     fields.append(field)
                 except Exception as e:
                     logger.warning(f"Failed to parse field data: {field_data}. Error: {e}")
-            
+
             return fields
-            
+
         except Exception as e:
             logger.error(f"Failed to get work item type fields: {e}")
-            raise AdoError(f"Failed to get work item type fields: {e}", "work_item_type_fields_get_failed") from e
-    
+            raise AdoError(
+                f"Failed to get work item type fields: {e}", "work_item_type_fields_get_failed"
+            ) from e
+
     def get_work_item_type_field(
         self,
         project_id: str,
@@ -550,18 +563,18 @@ class WorkItemsClient:
     ) -> WorkItemField:
         """
         Get detailed information about a specific field for a work item type.
-        
+
         This returns comprehensive information about a single field including
         allowed values, constraints, defaults, and validation rules.
-        
+
         Args:
             project_id: The ID or name of the project.
             work_item_type: The name of the work item type (e.g., "Bug", "Task").
             field_reference_name: The reference name of the field (e.g., "System.Title", "System.State").
-            
+
         Returns:
             WorkItemField object with detailed field information.
-            
+
         Raises:
             AdoError: If the API request fails.
         """
@@ -569,36 +582,38 @@ class WorkItemsClient:
         cache_key = f"work_item_type_field:{project_id}:{work_item_type}:{field_reference_name}"
         cached_result = ado_cache._get(cache_key)
         if cached_result:
-            logger.info(f"Returning cached field '{field_reference_name}' for work item type '{work_item_type}' in project '{project_id}'")
-            return WorkItemField(**cached_result)
-        
-        url = f"{self.organization_url}/{project_id}/_apis/wit/workitemtypes/{work_item_type}/fields/{field_reference_name}"
-        params = {
-            "api-version": "7.1"
-        }
-        
-        logger.info(f"Getting field '{field_reference_name}' for work item type '{work_item_type}' in project '{project_id}'")
-        
-        try:
-            data = self.client._send_request(
-                method="GET",
-                url=url,
-                params=params
+            logger.info(
+                f"Returning cached field '{field_reference_name}' for work item type '{work_item_type}' in project '{project_id}'"
             )
-            
-            logger.info(f"Successfully retrieved field '{field_reference_name}' for work item type '{work_item_type}'")
-            
+            return WorkItemField(**cached_result)
+
+        url = f"{self.organization_url}/{project_id}/_apis/wit/workitemtypes/{work_item_type}/fields/{field_reference_name}"
+        params = {"api-version": "7.1"}
+
+        logger.info(
+            f"Getting field '{field_reference_name}' for work item type '{work_item_type}' in project '{project_id}'"
+        )
+
+        try:
+            data = self.client._send_request(method="GET", url=url, params=params)
+
+            logger.info(
+                f"Successfully retrieved field '{field_reference_name}' for work item type '{work_item_type}'"
+            )
+
             field = WorkItemField(**data)
-            
+
             # Cache the result for 1 hour
             ado_cache._set(cache_key, field.model_dump(), 3600)
-            
+
             return field
-            
+
         except Exception as e:
             logger.error(f"Failed to get work item type field: {e}")
-            raise AdoError(f"Failed to get work item type field: {e}", "work_item_type_field_get_failed") from e
-    
+            raise AdoError(
+                f"Failed to get work item type field: {e}", "work_item_type_field_get_failed"
+            ) from e
+
     def list_area_paths(
         self,
         project_id: str,
@@ -606,14 +621,14 @@ class WorkItemsClient:
     ) -> List[ClassificationNode]:
         """
         Get area paths (classification nodes) for a project.
-        
+
         Args:
             project_id: The ID or name of the project.
             depth: The depth of the tree to retrieve.
-            
+
         Returns:
             List of area path dictionaries.
-            
+
         Raises:
             AdoError: If the API request fails.
         """
@@ -623,26 +638,20 @@ class WorkItemsClient:
             if cached_paths is not None:
                 logger.info(f"Returning cached area paths for project '{project_id}'")
                 return cached_paths
-        
+
         url = f"{self.organization_url}/{project_id}/_apis/wit/classificationnodes/areas"
-        params = {
-            "api-version": "7.1"
-        }
-        
+        params = {"api-version": "7.1"}
+
         if depth is not None:
             params["$depth"] = depth
-        
+
         logger.info(f"Getting area paths from API for project '{project_id}'")
-        
+
         try:
-            data = self.client._send_request(
-                method="GET",
-                url=url,
-                params=params
-            )
-            
+            data = self.client._send_request(method="GET", url=url, params=params)
+
             logger.info(f"Successfully retrieved area paths for project '{project_id}'")
-            
+
             # Parse as ClassificationNode
             result = []
             if data:
@@ -652,17 +661,17 @@ class WorkItemsClient:
                 except Exception as e:
                     logger.warning(f"Failed to parse area path data: {data}. Error: {e}")
                     result = []
-            
+
             # Cache the results if we got the full tree
             if depth is None and result:
                 ado_cache.set_area_paths(project_id, result)
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to get area paths: {e}")
             raise AdoError(f"Failed to get area paths: {e}", "area_paths_get_failed") from e
-    
+
     def list_iteration_paths(
         self,
         project_id: str,
@@ -670,14 +679,14 @@ class WorkItemsClient:
     ) -> List[ClassificationNode]:
         """
         Get iteration paths (classification nodes) for a project.
-        
+
         Args:
             project_id: The ID or name of the project.
             depth: The depth of the tree to retrieve.
-            
+
         Returns:
             List of iteration path dictionaries.
-            
+
         Raises:
             AdoError: If the API request fails.
         """
@@ -687,26 +696,20 @@ class WorkItemsClient:
             if cached_paths is not None:
                 logger.info(f"Returning cached iteration paths for project '{project_id}'")
                 return cached_paths
-        
+
         url = f"{self.organization_url}/{project_id}/_apis/wit/classificationnodes/iterations"
-        params = {
-            "api-version": "7.1"
-        }
-        
+        params = {"api-version": "7.1"}
+
         if depth is not None:
             params["$depth"] = depth
-        
+
         logger.info(f"Getting iteration paths from API for project '{project_id}'")
-        
+
         try:
-            data = self.client._send_request(
-                method="GET",
-                url=url,
-                params=params
-            )
-            
+            data = self.client._send_request(method="GET", url=url, params=params)
+
             logger.info(f"Successfully retrieved iteration paths for project '{project_id}'")
-            
+
             # Parse as ClassificationNode
             result = []
             if data:
@@ -716,17 +719,19 @@ class WorkItemsClient:
                 except Exception as e:
                     logger.warning(f"Failed to parse iteration path data: {data}. Error: {e}")
                     result = []
-            
+
             # Cache the results if we got the full tree
             if depth is None and result:
                 ado_cache.set_iteration_paths(project_id, result)
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to get iteration paths: {e}")
-            raise AdoError(f"Failed to get iteration paths: {e}", "iteration_paths_get_failed") from e
-    
+            raise AdoError(
+                f"Failed to get iteration paths: {e}", "iteration_paths_get_failed"
+            ) from e
+
     def query_work_items(
         self,
         project_id: str,
@@ -736,16 +741,16 @@ class WorkItemsClient:
     ) -> WorkItemQueryResult:
         """
         Query work items using WIQL (Work Item Query Language).
-        
+
         Args:
             project_id: The ID or name of the project.
             wiql_query: The WIQL query string. If None, returns all work items.
             top: Maximum number of results to return.
             skip: Number of results to skip (for pagination).
-            
+
         Returns:
             WorkItemQueryResult with query results.
-            
+
         Raises:
             AdoError: If the API request fails.
         """
@@ -756,34 +761,29 @@ class WorkItemsClient:
                 "[System.State], [System.AssignedTo], [System.CreatedDate] "
                 "FROM WorkItems ORDER BY [System.Id]"
             )
-        
+
         url = f"{self.organization_url}/{project_id}/_apis/wit/wiql"
-        params = {
-            "api-version": "7.1"
-        }
-        
+        params = {"api-version": "7.1"}
+
         if top is not None:
             params["$top"] = top
-        
+
         if skip is not None:
             params["$skip"] = skip
-        
-        request_body = {
-            "query": wiql_query
-        }
-        
-        logger.info(f"Querying work items in project '{project_id}' with query: {wiql_query[:100]}...")
-        
+
+        request_body = {"query": wiql_query}
+
+        logger.info(
+            f"Querying work items in project '{project_id}' with query: {wiql_query[:100]}..."
+        )
+
         try:
             data = self.client._send_request(
-                method="POST",
-                url=url,
-                params=params,
-                json=request_body
+                method="POST", url=url, params=params, json=request_body
             )
-            
+
             logger.info(f"Successfully queried work items for project '{project_id}'")
-            
+
             # Parse as WorkItemQueryResult
             if data:
                 try:
@@ -793,11 +793,11 @@ class WorkItemsClient:
                     return WorkItemQueryResult(queryType="flat", asOf="", columns=[], workItems=[])
             else:
                 return WorkItemQueryResult(queryType="flat", asOf="", columns=[], workItems=[])
-            
+
         except Exception as e:
             logger.error(f"Failed to query work items: {e}")
             raise AdoError(f"Failed to query work items: {e}", "work_items_query_failed") from e
-            
+
     def get_work_items_batch(
         self,
         project_id: str,
@@ -805,11 +805,11 @@ class WorkItemsClient:
         fields: Optional[List[str]] = None,
         expand_relations: bool = False,
         as_of: Optional[str] = None,
-        error_policy: str = "omit"
+        error_policy: str = "omit",
     ) -> List[WorkItem]:
         """
         Get multiple work items by their IDs in a single API call.
-        
+
         Args:
             project_id: The ID or name of the project.
             work_item_ids: List of work item IDs to retrieve (max 200).
@@ -819,51 +819,47 @@ class WorkItemsClient:
             error_policy: How to handle errors for individual items. Options:
                         - "omit" (default): Skip items that can't be retrieved
                         - "fail": Fail the entire request if any item can't be retrieved
-                        
+
         Returns:
             List of WorkItem objects (may be fewer than requested if some IDs are invalid)
-            
+
         Raises:
             AdoError: If the API call fails or error_policy is "fail" and any item fails
             ValueError: If more than 200 work item IDs are provided
         """
         if len(work_item_ids) > 200:
             raise ValueError("Cannot retrieve more than 200 work items in a single batch request")
-            
+
         if not work_item_ids:
             logger.info("No work item IDs provided, returning empty list")
             return []
-        
+
         # Build parameters
         params = {
             "ids": ",".join(map(str, work_item_ids)),
             "api-version": "7.1",
-            "errorPolicy": error_policy
+            "errorPolicy": error_policy,
         }
-        
+
         if fields:
             params["fields"] = ",".join(fields)
-            
+
         if expand_relations:
             params["$expand"] = "relations"
-            
+
         if as_of:
             params["asOf"] = as_of
-        
+
         url = f"{self.organization_url}/{project_id}/_apis/wit/workitems"
-        
+
         logger.info(
             f"Getting batch of {len(work_item_ids)} work items from project '{project_id}' "
             f"(error_policy: {error_policy})"
         )
-        
+
         try:
-            data = self.client._send_request(
-                method="GET",
-                url=url,
-                params=params
-            )
-            
+            data = self.client._send_request(method="GET", url=url, params=params)
+
             work_items = []
             if data and "value" in data:
                 for item_data in data["value"]:
@@ -872,17 +868,21 @@ class WorkItemsClient:
                     except Exception as e:
                         logger.warning(f"Failed to parse work item data: {item_data}. Error: {e}")
                         if error_policy == "fail":
-                            raise AdoError(f"Failed to parse work item data: {e}", "work_item_parse_failed") from e
+                            raise AdoError(
+                                f"Failed to parse work item data: {e}", "work_item_parse_failed"
+                            ) from e
                         # If error_policy is "omit", just skip this item
                         continue
-            
-            logger.info(f"Successfully retrieved {len(work_items)} work items out of {len(work_item_ids)} requested")
+
+            logger.info(
+                f"Successfully retrieved {len(work_items)} work items out of {len(work_item_ids)} requested"
+            )
             return work_items
-            
+
         except Exception as e:
             logger.error(f"Failed to get work items batch: {e}")
             raise AdoError(f"Failed to get work items batch: {e}", "work_items_batch_failed") from e
-    
+
     def update_work_items_batch(
         self,
         project_id: str,
@@ -890,14 +890,14 @@ class WorkItemsClient:
         validate_only: bool = False,
         bypass_rules: bool = False,
         suppress_notifications: bool = False,
-        error_policy: str = "fail"
+        error_policy: str = "fail",
     ) -> List[WorkItem]:
         """
         Update multiple work items in a batch operation using individual API calls.
-        
+
         Note: Azure DevOps doesn't have a true batch update API for work items,
         so this performs individual updates with transaction-like behavior based on error_policy.
-        
+
         Args:
             project_id: The ID or name of the project.
             work_item_updates: List of work item update operations, each containing:
@@ -909,30 +909,30 @@ class WorkItemsClient:
             error_policy: How to handle errors for individual items. Options:
                         - "fail" (default): Fail the entire request if any item fails
                         - "omit": Skip items that can't be updated
-                        
+
         Returns:
             List of updated WorkItem objects
-            
+
         Raises:
             AdoError: If the API call fails or error_policy is "fail" and any item fails
             ValueError: If more than 200 work item updates are provided
         """
         if len(work_item_updates) > 200:
             raise ValueError("Cannot update more than 200 work items in a single batch request")
-            
+
         if not work_item_updates:
             logger.info("No work item updates provided, returning empty list")
             return []
-        
+
         updated_work_items = []
         failed_updates = []
         processed_work_items = []  # Track successfully updated items for potential rollback
-        
+
         logger.info(
             f"Starting batch update of {len(work_item_updates)} work items in project '{project_id}' "
             f"(error_policy: {error_policy})"
         )
-        
+
         try:
             for i, update in enumerate(work_item_updates):
                 if "work_item_id" not in update:
@@ -943,7 +943,7 @@ class WorkItemsClient:
                         logger.warning(f"Skipping update {i}: missing work_item_id")
                         failed_updates.append(error_msg)
                         continue
-                        
+
                 if "operations" not in update:
                     error_msg = f"Update {i} missing required 'operations' field"
                     if error_policy == "fail":
@@ -952,10 +952,10 @@ class WorkItemsClient:
                         logger.warning(f"Skipping update {i}: missing operations")
                         failed_updates.append(error_msg)
                         continue
-                
+
                 work_item_id = update["work_item_id"]
                 operations = update["operations"]
-                
+
                 # Convert operations to JsonPatchOperation objects
                 patch_operations = []
                 for op in operations:
@@ -964,7 +964,7 @@ class WorkItemsClient:
                     else:
                         # Convert dict to JsonPatchOperation
                         patch_operations.append(JsonPatchOperation(**op))
-                
+
                 try:
                     # Use the existing update_work_item method
                     updated_work_item = self.update_work_item(
@@ -973,29 +973,33 @@ class WorkItemsClient:
                         operations=patch_operations,
                         validate_only=validate_only,
                         bypass_rules=bypass_rules,
-                        suppress_notifications=suppress_notifications
+                        suppress_notifications=suppress_notifications,
                     )
-                    
+
                     updated_work_items.append(updated_work_item)
                     processed_work_items.append((work_item_id, updated_work_item))
-                    
+
                 except Exception as e:
                     error_msg = f"Failed to update work item {work_item_id}: {e}"
                     failed_updates.append(error_msg)
-                    
+
                     if error_policy == "fail":
                         logger.error(f"Batch update failed on item {i} (ID: {work_item_id}): {e}")
-                        raise AdoError(f"Batch update failed on item {i}: {e}", "batch_update_failed") from e
+                        raise AdoError(
+                            f"Batch update failed on item {i}: {e}", "batch_update_failed"
+                        ) from e
                     else:
                         logger.warning(f"Skipping failed update for work item {work_item_id}: {e}")
                         continue
-            
+
             if failed_updates and error_policy == "omit":
                 logger.warning(f"Some updates failed but were omitted: {failed_updates}")
-            
-            logger.info(f"Successfully updated {len(updated_work_items)} work items out of {len(work_item_updates)} requested")
+
+            logger.info(
+                f"Successfully updated {len(updated_work_items)} work items out of {len(work_item_updates)} requested"
+            )
             return updated_work_items
-            
+
         except Exception as e:
             # If error_policy is "fail" and we've already updated some items,
             # we could implement rollback here, but Azure DevOps doesn't support transactions
@@ -1006,23 +1010,25 @@ class WorkItemsClient:
                     f"Updated work item IDs: {[item[0] for item in processed_work_items]}. "
                     f"Consider manual rollback if needed."
                 )
-            
+
             logger.error(f"Failed to update work items batch: {e}")
-            raise AdoError(f"Failed to update work items batch: {e}", "work_items_batch_update_failed") from e
-    
+            raise AdoError(
+                f"Failed to update work items batch: {e}", "work_items_batch_update_failed"
+            ) from e
+
     def delete_work_items_batch(
         self,
         project_id: str,
         work_item_ids: List[int],
         destroy: bool = False,
-        error_policy: str = "fail"
+        error_policy: str = "fail",
     ) -> List[bool]:
         """
         Delete multiple work items in a batch operation using individual API calls.
-        
+
         Note: Azure DevOps doesn't have a true batch delete API for work items,
         so this performs individual deletes with transaction-like behavior based on error_policy.
-        
+
         Args:
             project_id: The ID or name of the project.
             work_item_ids: List of work item IDs to delete (max 200).
@@ -1030,62 +1036,66 @@ class WorkItemsClient:
             error_policy: How to handle errors for individual items. Options:
                         - "fail" (default): Fail the entire request if any item fails
                         - "omit": Skip items that can't be deleted
-                        
+
         Returns:
             List of boolean values indicating success/failure for each work item
-            
+
         Raises:
             AdoError: If the API call fails or error_policy is "fail" and any item fails
             ValueError: If more than 200 work item IDs are provided
         """
         if len(work_item_ids) > 200:
             raise ValueError("Cannot delete more than 200 work items in a single batch request")
-            
+
         if not work_item_ids:
             logger.info("No work item IDs provided, returning empty list")
             return []
-        
+
         deletion_results = []
         failed_deletions = []
         processed_work_items = []  # Track successfully deleted items for potential rollback info
-        
+
         logger.info(
             f"Starting batch deletion of {len(work_item_ids)} work items in project '{project_id}' "
             f"(destroy: {destroy}, error_policy: {error_policy})"
         )
-        
+
         try:
             for i, work_item_id in enumerate(work_item_ids):
                 try:
                     # Use the existing delete_work_item method
                     success = self.delete_work_item(
-                        project_id=project_id,
-                        work_item_id=work_item_id,
-                        destroy=destroy
+                        project_id=project_id, work_item_id=work_item_id, destroy=destroy
                     )
-                    
+
                     deletion_results.append(success)
                     processed_work_items.append(work_item_id)
-                    
+
                 except Exception as e:
                     error_msg = f"Failed to delete work item {work_item_id}: {e}"
                     failed_deletions.append(error_msg)
-                    
+
                     if error_policy == "fail":
                         logger.error(f"Batch deletion failed on item {i} (ID: {work_item_id}): {e}")
-                        raise AdoError(f"Batch deletion failed on item {i}: {e}", "batch_delete_failed") from e
+                        raise AdoError(
+                            f"Batch deletion failed on item {i}: {e}", "batch_delete_failed"
+                        ) from e
                     else:
-                        logger.warning(f"Skipping failed deletion for work item {work_item_id}: {e}")
+                        logger.warning(
+                            f"Skipping failed deletion for work item {work_item_id}: {e}"
+                        )
                         deletion_results.append(False)
                         continue
-            
+
             if failed_deletions and error_policy == "omit":
                 logger.warning(f"Some deletions failed but were omitted: {failed_deletions}")
-            
+
             successful_deletions = sum(deletion_results)
-            logger.info(f"Successfully deleted {successful_deletions} work items out of {len(work_item_ids)} requested")
+            logger.info(
+                f"Successfully deleted {successful_deletions} work items out of {len(work_item_ids)} requested"
+            )
             return deletion_results
-            
+
         except Exception as e:
             # Log partial state for manual cleanup if needed
             if processed_work_items and error_policy == "fail":
@@ -1094,50 +1104,42 @@ class WorkItemsClient:
                     f"Deleted work item IDs: {processed_work_items}. "
                     f"Note: Deleted items cannot be automatically restored (check recycle bin if not destroyed)."
                 )
-            
+
             logger.error(f"Failed to delete work items batch: {e}")
-            raise AdoError(f"Failed to delete work items batch: {e}", "work_items_batch_delete_failed") from e
+            raise AdoError(
+                f"Failed to delete work items batch: {e}", "work_items_batch_delete_failed"
+            ) from e
 
     def add_work_item_comment(
-        self,
-        project_id: str,
-        work_item_id: int,
-        text: str,
-        format_type: str = "html"
+        self, project_id: str, work_item_id: int, text: str, format_type: str = "html"
     ) -> WorkItemComment:
         """
         Add a comment to a work item.
-        
+
         Args:
             project_id: The ID or name of the project
             work_item_id: The ID of the work item to add a comment to
             text: The comment text (supports HTML/Markdown formatting)
             format_type: The format of the comment text ("html" or "markdown")
-            
+
         Returns:
             WorkItemComment: The created comment
-            
+
         Raises:
             AdoError: If the API call fails
         """
         url = f"{self.organization_url}/{project_id}/_apis/wit/workitems/{work_item_id}/comments"
-        
+
         # Prepare comment data
-        comment_data = {
-            "text": text,
-            "format": format_type
-        }
-        
+        comment_data = {"text": text, "format": format_type}
+
         logger.info(f"Adding comment to work item {work_item_id} in project '{project_id}'")
-        
+
         try:
             data = self.client._send_request(
-                method="POST",
-                url=url,
-                params={"api-version": "7.1-preview.3"},
-                json=comment_data
+                method="POST", url=url, params={"api-version": "7.1-preview.3"}, json=comment_data
             )
-            
+
             # Convert response to WorkItemComment model
             comment = WorkItemComment(
                 id=data.get("id"),
@@ -1145,17 +1147,19 @@ class WorkItemsClient:
                 text=data.get("text", text),
                 created_by=data.get("createdBy"),
                 created_date=data.get("createdDate"),
-                modified_by=data.get("modifiedBy"), 
+                modified_by=data.get("modifiedBy"),
                 modified_date=data.get("modifiedDate"),
-                format=data.get("format", format_type)
+                format=data.get("format", format_type),
             )
-            
+
             logger.info(f"Successfully added comment {comment.id} to work item {work_item_id}")
             return comment
-            
+
         except Exception as e:
             logger.error(f"Failed to add comment to work item {work_item_id}: {e}")
-            raise AdoError(f"Failed to add comment to work item {work_item_id}: {e}", "add_comment_failed") from e
+            raise AdoError(
+                f"Failed to add comment to work item {work_item_id}: {e}", "add_comment_failed"
+            ) from e
 
     def get_work_item_comments(
         self,
@@ -1163,26 +1167,26 @@ class WorkItemsClient:
         work_item_id: int,
         top: Optional[int] = None,
         skip: Optional[int] = None,
-        include_deleted: bool = False
+        include_deleted: bool = False,
     ) -> List[WorkItemComment]:
         """
         Get comments for a work item.
-        
+
         Args:
             project_id: The ID or name of the project
             work_item_id: The ID of the work item to get comments for
             top: Maximum number of comments to return
             skip: Number of comments to skip (for pagination)
             include_deleted: Whether to include deleted comments
-            
+
         Returns:
             List[WorkItemComment]: List of comments for the work item
-            
+
         Raises:
             AdoError: If the API call fails
         """
         url = f"{self.organization_url}/{project_id}/_apis/wit/workitems/{work_item_id}/comments"
-        
+
         params = {"api-version": "7.1-preview.3"}
         if top is not None:
             params["$top"] = top
@@ -1190,16 +1194,12 @@ class WorkItemsClient:
             params["$skip"] = skip
         if include_deleted:
             params["includeDeleted"] = "true"
-        
+
         logger.info(f"Getting comments for work item {work_item_id} in project '{project_id}'")
-        
+
         try:
-            data = self.client._send_request(
-                method="GET",
-                url=url,
-                params=params
-            )
-            
+            data = self.client._send_request(method="GET", url=url, params=params)
+
             comments = []
             for comment_data in data.get("comments", []):
                 comment = WorkItemComment(
@@ -1210,25 +1210,27 @@ class WorkItemsClient:
                     created_date=comment_data.get("createdDate"),
                     modified_by=comment_data.get("modifiedBy"),
                     modified_date=comment_data.get("modifiedDate"),
-                    format=comment_data.get("format", "html")
+                    format=comment_data.get("format", "html"),
                 )
                 comments.append(comment)
-            
+
             # Add telemetry for comment access patterns
             telemetry_data = {
                 "comments_count": len(comments),
                 "has_pagination": bool(top or skip),
             }
-            
+
             logger.info(
                 f"Successfully retrieved {len(comments)} comments for work item {work_item_id} "
                 f"[has_pagination: {telemetry_data['has_pagination']}]"
             )
             return comments
-            
+
         except Exception as e:
             logger.error(f"Failed to get comments for work item {work_item_id}: {e}")
-            raise AdoError(f"Failed to get comments for work item {work_item_id}: {e}", "get_comments_failed") from e
+            raise AdoError(
+                f"Failed to get comments for work item {work_item_id}: {e}", "get_comments_failed"
+            ) from e
 
     def get_work_item_revisions(
         self,
@@ -1238,11 +1240,11 @@ class WorkItemsClient:
         skip: Optional[int] = None,
         expand: Optional[str] = None,
         from_date: Optional[str] = None,
-        to_date: Optional[str] = None
+        to_date: Optional[str] = None,
     ) -> List[WorkItemRevision]:
         """
         Get revision history for a work item with optional date filtering.
-        
+
         Args:
             project_id: The ID or name of the project
             work_item_id: The ID of the work item to get revisions for
@@ -1251,15 +1253,15 @@ class WorkItemsClient:
             expand: Additional data to include (e.g., "fields")
             from_date: Filter revisions from this date onwards (ISO 8601 format)
             to_date: Filter revisions up to this date (ISO 8601 format)
-            
+
         Returns:
             List[WorkItemRevision]: List of revisions for the work item
-            
+
         Raises:
             AdoError: If the API call fails
         """
         url = f"{self.organization_url}/{project_id}/_apis/wit/workitems/{work_item_id}/revisions"
-        
+
         params = {"api-version": "7.1"}
         if top is not None:
             params["$top"] = top
@@ -1267,16 +1269,14 @@ class WorkItemsClient:
             params["$skip"] = skip
         if expand is not None:
             params["$expand"] = expand
-        
-        logger.info(f"Getting revision history for work item {work_item_id} in project '{project_id}'")
-        
+
+        logger.info(
+            f"Getting revision history for work item {work_item_id} in project '{project_id}'"
+        )
+
         try:
-            data = self.client._send_request(
-                method="GET",
-                url=url,
-                params=params
-            )
-            
+            data = self.client._send_request(method="GET", url=url, params=params)
+
             revisions = []
             for revision_data in data.get("value", []):
                 revision = WorkItemRevision(
@@ -1285,10 +1285,10 @@ class WorkItemsClient:
                     fields=revision_data.get("fields", {}),
                     url=revision_data.get("url"),
                     revised_by=revision_data.get("fields", {}).get("System.ChangedBy"),
-                    revised_date=revision_data.get("fields", {}).get("System.ChangedDate")
+                    revised_date=revision_data.get("fields", {}).get("System.ChangedDate"),
                 )
                 revisions.append(revision)
-            
+
             # Filter by date range if specified
             if from_date or to_date:
                 filtered_revisions = []
@@ -1296,32 +1296,35 @@ class WorkItemsClient:
                     revision_date = revision.revised_date
                     if not revision_date:
                         continue
-                    
+
                     # Parse revision date if it's a string
                     from datetime import datetime
+
                     if isinstance(revision_date, str):
                         try:
-                            revision_dt = datetime.fromisoformat(revision_date.replace('Z', '+00:00'))
+                            revision_dt = datetime.fromisoformat(
+                                revision_date.replace("Z", "+00:00")
+                            )
                         except ValueError:
                             continue
                     else:
                         revision_dt = revision_date
-                    
+
                     # Check date filters
                     if from_date:
-                        from_dt = datetime.fromisoformat(from_date.replace('Z', '+00:00'))
+                        from_dt = datetime.fromisoformat(from_date.replace("Z", "+00:00"))
                         if revision_dt < from_dt:
                             continue
-                    
+
                     if to_date:
-                        to_dt = datetime.fromisoformat(to_date.replace('Z', '+00:00'))
+                        to_dt = datetime.fromisoformat(to_date.replace("Z", "+00:00"))
                         if revision_dt > to_dt:
                             continue
-                    
+
                     filtered_revisions.append(revision)
-                
+
                 revisions = filtered_revisions
-            
+
             # Add telemetry for history access patterns
             telemetry_data = {
                 "revisions_count": len(revisions),
@@ -1329,14 +1332,12 @@ class WorkItemsClient:
                 "has_pagination": bool(top or skip),
                 "expanded_fields": bool(expand),
             }
-            
+
             if from_date or to_date:
                 telemetry_data["filter_type"] = (
-                    "range" if from_date and to_date else 
-                    "from" if from_date else 
-                    "to"
+                    "range" if from_date and to_date else "from" if from_date else "to"
                 )
-            
+
             logger.info(
                 f"Successfully retrieved {len(revisions)} revisions for work item {work_item_id} "
                 f"[date_filtered: {telemetry_data['date_filtered']}, "
@@ -1344,10 +1345,12 @@ class WorkItemsClient:
                 f"expanded_fields: {telemetry_data['expanded_fields']}]"
             )
             return revisions
-            
+
         except Exception as e:
             logger.error(f"Failed to get revisions for work item {work_item_id}: {e}")
-            raise AdoError(f"Failed to get revisions for work item {work_item_id}: {e}", "get_revisions_failed") from e
+            raise AdoError(
+                f"Failed to get revisions for work item {work_item_id}: {e}", "get_revisions_failed"
+            ) from e
 
     def link_work_items(
         self,
@@ -1355,28 +1358,30 @@ class WorkItemsClient:
         source_work_item_id: int,
         target_work_item_id: int,
         relationship_type: str,
-        comment: Optional[str] = None
+        comment: Optional[str] = None,
     ) -> WorkItem:
         """
         Create a link between two work items.
-        
+
         Args:
             project_id: The ID or name of the project
             source_work_item_id: The ID of the source work item
             target_work_item_id: The ID of the target work item
-            relationship_type: The type of relationship (e.g., "System.LinkTypes.Hierarchy-Forward", 
+            relationship_type: The type of relationship (e.g., "System.LinkTypes.Hierarchy-Forward",
                              "System.LinkTypes.Related", "System.LinkTypes.Dependency-Forward")
             comment: Optional comment for the link
-            
+
         Returns:
             WorkItem: The updated source work item
-            
+
         Raises:
             AdoError: If the API call fails
         """
         # Build the target work item URL
-        target_url = f"{self.organization_url}/{project_id}/_apis/wit/workitems/{target_work_item_id}"
-        
+        target_url = (
+            f"{self.organization_url}/{project_id}/_apis/wit/workitems/{target_work_item_id}"
+        )
+
         # Create the relationship operation
         operations = [
             JsonPatchOperation(
@@ -1385,71 +1390,69 @@ class WorkItemsClient:
                 value={
                     "rel": relationship_type,
                     "url": target_url,
-                    "attributes": {"comment": comment} if comment else {}
-                }
+                    "attributes": {"comment": comment} if comment else {},
+                },
             )
         ]
-        
+
         logger.info(
             f"Linking work item {source_work_item_id} to {target_work_item_id} "
             f"with relationship '{relationship_type}' in project '{project_id}'"
         )
-        
+
         try:
             # Use the existing update method to add the relationship
             updated_work_item = self.update_work_item(
-                project_id=project_id,
-                work_item_id=source_work_item_id,
-                operations=operations
+                project_id=project_id, work_item_id=source_work_item_id, operations=operations
             )
-            
+
             logger.info(
                 f"Successfully linked work item {source_work_item_id} to {target_work_item_id} "
                 f"with relationship '{relationship_type}'"
             )
             return updated_work_item
-            
+
         except Exception as e:
-            logger.error(f"Failed to link work items {source_work_item_id} -> {target_work_item_id}: {e}")
-            raise AdoError(f"Failed to link work items {source_work_item_id} -> {target_work_item_id}: {e}", "link_work_items_failed") from e
+            logger.error(
+                f"Failed to link work items {source_work_item_id} -> {target_work_item_id}: {e}"
+            )
+            raise AdoError(
+                f"Failed to link work items {source_work_item_id} -> {target_work_item_id}: {e}",
+                "link_work_items_failed",
+            ) from e
 
     def get_work_item_relations(
-        self,
-        project_id: str,
-        work_item_id: int,
-        depth: int = 1
+        self, project_id: str, work_item_id: int, depth: int = 1
     ) -> List[WorkItemRelation]:
         """
         Get relationships for a work item.
-        
+
         Args:
             project_id: The ID or name of the project
             work_item_id: The ID of the work item
             depth: Depth of relationships to retrieve (1 = direct relationships only)
-            
+
         Returns:
             List[WorkItemRelation]: List of relationships
-            
+
         Raises:
             AdoError: If the API call fails
         """
         # Get the work item with relations expanded
         work_item = self.get_work_item(
-            project_id=project_id,
-            work_item_id=work_item_id,
-            expand="relations"
+            project_id=project_id, work_item_id=work_item_id, expand="relations"
         )
-        
+
         relations = []
         # Check if work item has relations in the raw data
         raw_relations = None
-        if hasattr(work_item, 'relations') and work_item.relations:
+        if hasattr(work_item, "relations") and work_item.relations:
             raw_relations = work_item.relations
-        elif hasattr(work_item, '__dict__') and 'relations' in work_item.__dict__:
-            raw_relations = work_item.__dict__['relations']
-        elif isinstance(work_item, dict) and 'relations' in work_item:
-            raw_relations = work_item['relations']
-            
+        elif hasattr(work_item, "__dict__") and "relations" in work_item.__dict__:
+            raw_relations = work_item.__dict__["relations"]
+        elif isinstance(work_item, dict) and "relations" in work_item:
+            raw_relations = work_item["relations"]
+
         if raw_relations:
             for relation_data in raw_relations:
                 # Handle both dict and WorkItemRelation objects
@@ -1457,12 +1460,14 @@ class WorkItemsClient:
                     relation = WorkItemRelation(
                         rel=relation_data.get("rel", ""),
                         url=relation_data.get("url", ""),
-                        attributes=relation_data.get("attributes", {})
+                        attributes=relation_data.get("attributes", {}),
                     )
                 else:
                     # Already a WorkItemRelation object
                     relation = relation_data
                 relations.append(relation)
-        
-        logger.info(f"Successfully retrieved {len(relations)} relationships for work item {work_item_id}")
+
+        logger.info(
+            f"Successfully retrieved {len(relations)} relationships for work item {work_item_id}"
+        )
         return relations

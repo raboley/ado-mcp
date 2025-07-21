@@ -67,10 +67,18 @@ async def test_list_pipelines_returns_valid_list(mcp_client: Client):
             pipelines_found = True
             pipeline = pipelines[0]
             assert isinstance(pipeline, dict), f"Expected pipeline to be dict, got {type(pipeline)}"
-            assert "id" in pipeline, f"Pipeline missing 'id' field, has keys: {list(pipeline.keys())}"
-            assert "name" in pipeline, f"Pipeline missing 'name' field, has keys: {list(pipeline.keys())}"
-            assert isinstance(pipeline["id"], int), f"Expected pipeline id to be int, got {type(pipeline['id'])}"
-            assert isinstance(pipeline["name"], str), f"Expected pipeline name to be str, got {type(pipeline['name'])}"
+            assert "id" in pipeline, (
+                f"Pipeline missing 'id' field, has keys: {list(pipeline.keys())}"
+            )
+            assert "name" in pipeline, (
+                f"Pipeline missing 'name' field, has keys: {list(pipeline.keys())}"
+            )
+            assert isinstance(pipeline["id"], int), (
+                f"Expected pipeline id to be int, got {type(pipeline['id'])}"
+            )
+            assert isinstance(pipeline["name"], str), (
+                f"Expected pipeline name to be str, got {type(pipeline['name'])}"
+            )
             break
 
     if not pipelines_found:
@@ -128,30 +136,52 @@ async def test_create_pipeline_creates_valid_pipeline(mcp_client: Client):
     if hasattr(pipeline, "id"):
         pipeline_id = pipeline.id
         pipeline_name_returned = pipeline.name
-        assert isinstance(pipeline_id, int), f"Expected pipeline id to be int, got {type(pipeline_id)}"
-        assert isinstance(pipeline_name_returned, str), f"Expected pipeline name to be str, got {type(pipeline_name_returned)}"
-        assert pipeline_name_returned == pipeline_name, f"Expected pipeline name '{pipeline_name}', got '{pipeline_name_returned}'"
+        assert isinstance(pipeline_id, int), (
+            f"Expected pipeline id to be int, got {type(pipeline_id)}"
+        )
+        assert isinstance(pipeline_name_returned, str), (
+            f"Expected pipeline name to be str, got {type(pipeline_name_returned)}"
+        )
+        assert pipeline_name_returned == pipeline_name, (
+            f"Expected pipeline name '{pipeline_name}', got '{pipeline_name_returned}'"
+        )
     else:
-        assert isinstance(pipeline, dict), f"Expected created pipeline to be dict, got {type(pipeline)}"
-        assert "id" in pipeline, f"Created pipeline missing 'id' field, has keys: {list(pipeline.keys())}"
-        assert "name" in pipeline, f"Created pipeline missing 'name' field, has keys: {list(pipeline.keys())}"
+        assert isinstance(pipeline, dict), (
+            f"Expected created pipeline to be dict, got {type(pipeline)}"
+        )
+        assert "id" in pipeline, (
+            f"Created pipeline missing 'id' field, has keys: {list(pipeline.keys())}"
+        )
+        assert "name" in pipeline, (
+            f"Created pipeline missing 'name' field, has keys: {list(pipeline.keys())}"
+        )
         pipeline_id = pipeline["id"]
         pipeline_name_returned = pipeline["name"]
-        assert pipeline_name_returned == pipeline_name, f"Expected pipeline name '{pipeline_name}', got '{pipeline_name_returned}'"
-        assert isinstance(pipeline_id, int), f"Expected pipeline id to be int, got {type(pipeline_id)}"
+        assert pipeline_name_returned == pipeline_name, (
+            f"Expected pipeline name '{pipeline_name}', got '{pipeline_name_returned}'"
+        )
+        assert isinstance(pipeline_id, int), (
+            f"Expected pipeline id to be int, got {type(pipeline_id)}"
+        )
 
     pipelines_list = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
     pipeline_ids = [p["id"] for p in pipelines_list.data]
-    assert pipeline_id in pipeline_ids, f"Created pipeline {pipeline_id} should appear in pipelines list but was not found"
+    assert pipeline_id in pipeline_ids, (
+        f"Created pipeline {pipeline_id} should appear in pipelines list but was not found"
+    )
 
     delete_result = await mcp_client.call_tool(
         "delete_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
     )
-    assert delete_result.data is True, f"Pipeline deletion should return True but got {delete_result.data}"
+    assert delete_result.data is True, (
+        f"Pipeline deletion should return True but got {delete_result.data}"
+    )
 
     pipelines_list_after = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
     pipeline_ids_after = [p["id"] for p in pipelines_list_after.data]
-    assert pipeline_id not in pipeline_ids_after, f"Pipeline {pipeline_id} should be deleted but still appears in list"
+    assert pipeline_id not in pipeline_ids_after, (
+        f"Pipeline {pipeline_id} should be deleted but still appears in list"
+    )
 
 
 @requires_ado_creds
@@ -173,7 +203,9 @@ async def test_list_service_connections_returns_valid_list(mcp_client: Client):
     result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
     connections = result.data
 
-    assert isinstance(connections, list), f"Expected list of service connections, got {type(connections)}"
+    assert isinstance(connections, list), (
+        f"Expected list of service connections, got {type(connections)}"
+    )
 
 
 @requires_ado_creds
@@ -228,16 +260,22 @@ async def test_delete_pipeline_removes_pipeline(mcp_client: Client):
 
     pipelines_before = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
     pipeline_ids_before = [p["id"] for p in pipelines_before.data]
-    assert pipeline_id in pipeline_ids_before, f"Created pipeline {pipeline_id} should exist before deletion but was not found"
+    assert pipeline_id in pipeline_ids_before, (
+        f"Created pipeline {pipeline_id} should exist before deletion but was not found"
+    )
 
     delete_result = await mcp_client.call_tool(
         "delete_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
     )
-    assert delete_result.data is True, f"Pipeline deletion should return True but got {delete_result.data}"
+    assert delete_result.data is True, (
+        f"Pipeline deletion should return True but got {delete_result.data}"
+    )
 
     pipelines_after = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
     pipeline_ids_after = [p["id"] for p in pipelines_after.data]
-    assert pipeline_id not in pipeline_ids_after, f"Pipeline {pipeline_id} should be deleted but still appears in list"
+    assert pipeline_id not in pipeline_ids_after, (
+        f"Pipeline {pipeline_id} should be deleted but still appears in list"
+    )
 
 
 @requires_ado_creds
@@ -264,7 +302,9 @@ async def test_get_pipeline_returns_valid_details(mcp_client: Client):
         )
     ).data
     assert isinstance(details, dict), f"Expected pipeline details to be dict, got {type(details)}"
-    assert details.get("id") == pipeline_id, f"Expected pipeline id {pipeline_id}, got {details.get('id')}"
+    assert details.get("id") == pipeline_id, (
+        f"Expected pipeline id {pipeline_id}, got {details.get('id')}"
+    )
 
 
 @requires_ado_creds
@@ -278,9 +318,15 @@ async def test_run_and_get_pipeline_run_details(mcp_client: Client):
         )
     ).data
     assert run_details is not None, "Pipeline run should not be None but was None"
-    assert isinstance(run_details, dict), f"Expected pipeline run to be dict, got {type(run_details)}"
-    assert "id" in run_details, f"Pipeline run missing 'id' field, has keys: {list(run_details.keys())}"
-    assert isinstance(run_details["id"], int), f"Expected pipeline run id to be int, got {type(run_details['id'])}"
+    assert isinstance(run_details, dict), (
+        f"Expected pipeline run to be dict, got {type(run_details)}"
+    )
+    assert "id" in run_details, (
+        f"Pipeline run missing 'id' field, has keys: {list(run_details.keys())}"
+    )
+    assert isinstance(run_details["id"], int), (
+        f"Expected pipeline run id to be int, got {type(run_details['id'])}"
+    )
 
     run_id = run_details["id"]
 
@@ -293,14 +339,20 @@ async def test_run_and_get_pipeline_run_details(mcp_client: Client):
         )
     ).data
     assert run_status is not None, "Pipeline run status should not be None but was None"
-    assert isinstance(run_status, dict), f"Expected pipeline run status to be dict, got {type(run_status)}"
-    assert "id" in run_status, f"Pipeline run status missing 'id' field, has keys: {list(run_status.keys())}"
+    assert isinstance(run_status, dict), (
+        f"Expected pipeline run status to be dict, got {type(run_status)}"
+    )
+    assert "id" in run_status, (
+        f"Pipeline run status missing 'id' field, has keys: {list(run_status.keys())}"
+    )
     assert run_status["id"] == run_id, f"Expected run_id {run_id}, got {run_status['id']}"
 
 
 async def test_no_client_check_authentication(mcp_client_with_unset_ado_env: Client):
     result = await mcp_client_with_unset_ado_env.call_tool("check_ado_authentication")
-    assert result.data is False, f"Expected authentication to fail (False) when no client available, got {result.data}"
+    assert result.data is False, (
+        f"Expected authentication to fail (False) when no client available, got {result.data}"
+    )
 
 
 async def test_no_client_list_projects(mcp_client_with_unset_ado_env: Client):
@@ -340,27 +392,39 @@ async def test_set_organization_failure_and_recovery(mcp_client: Client):
     assert initial_auth.data is True, "Should start with valid client but authentication failed"
 
     initial_projects = await mcp_client.call_tool("list_projects")
-    assert isinstance(initial_projects.data, list), f"Expected list of projects initially, got {type(initial_projects.data)}"
+    assert isinstance(initial_projects.data, list), (
+        f"Expected list of projects initially, got {type(initial_projects.data)}"
+    )
 
     invalid_org_url = "https://dev.azure.com/this-org-does-not-exist-for-sure"
     with pytest.raises(ToolError, match="Authentication check failed"):
         await mcp_client.call_tool("set_ado_organization", {"organization_url": invalid_org_url})
 
     auth_result = await mcp_client.call_tool("check_ado_authentication")
-    assert auth_result.data is True, "Authentication should still succeed after failed switch - client should remain in previous state"
+    assert auth_result.data is True, (
+        "Authentication should still succeed after failed switch - client should remain in previous state"
+    )
 
     list_result = await mcp_client.call_tool("list_projects")
-    assert isinstance(list_result.data, list), f"Expected to still be able to list projects after failed switch, got {type(list_result.data)}"
-    assert list_result.data == initial_projects.data, "Should get same projects as before failed switch"
+    assert isinstance(list_result.data, list), (
+        f"Expected to still be able to list projects after failed switch, got {type(list_result.data)}"
+    )
+    assert list_result.data == initial_projects.data, (
+        "Should get same projects as before failed switch"
+    )
 
     valid_org_url = os.environ.get("ADO_ORGANIZATION_URL", "https://dev.azure.com/RussellBoley")
     set_result = await mcp_client.call_tool(
         "set_ado_organization", {"organization_url": valid_org_url}
     )
-    assert set_result.data.get("result") is True, f"Expected successful organization switch (True), got {set_result.data.get('result')}"
+    assert set_result.data.get("result") is True, (
+        f"Expected successful organization switch (True), got {set_result.data.get('result')}"
+    )
 
     auth_result_after_recovery = await mcp_client.call_tool("check_ado_authentication")
-    assert auth_result_after_recovery.data is True, "Authentication should succeed after switching to valid org but failed"
+    assert auth_result_after_recovery.data is True, (
+        "Authentication should succeed after switching to valid org but failed"
+    )
 
 
 @requires_ado_creds
@@ -375,14 +439,24 @@ async def test_pipeline_lifecycle_fire_and_forget(mcp_client: Client):
     pipeline_run = run_result.data
     assert pipeline_run is not None, "Pipeline run should not be None but was None"
 
-    assert isinstance(pipeline_run, dict), f"Expected pipeline run to be dict, got {type(pipeline_run)}"
-    assert "id" in pipeline_run, f"Pipeline run missing 'id' field, has keys: {list(pipeline_run.keys())}"
-    assert "state" in pipeline_run, f"Pipeline run missing 'state' field, has keys: {list(pipeline_run.keys())}"
-    assert isinstance(pipeline_run["id"], int), f"Expected run ID to be int, got {type(pipeline_run['id'])}"
+    assert isinstance(pipeline_run, dict), (
+        f"Expected pipeline run to be dict, got {type(pipeline_run)}"
+    )
+    assert "id" in pipeline_run, (
+        f"Pipeline run missing 'id' field, has keys: {list(pipeline_run.keys())}"
+    )
+    assert "state" in pipeline_run, (
+        f"Pipeline run missing 'state' field, has keys: {list(pipeline_run.keys())}"
+    )
+    assert isinstance(pipeline_run["id"], int), (
+        f"Expected run ID to be int, got {type(pipeline_run['id'])}"
+    )
     assert pipeline_run["state"] is not None, "Run state should not be None but was None"
 
     accepted_states = ["inProgress", "completed", "unknown"]
-    assert pipeline_run["state"] in accepted_states, f"Expected state to be one of {accepted_states}, got '{pipeline_run['state']}'"
+    assert pipeline_run["state"] in accepted_states, (
+        f"Expected state to be one of {accepted_states}, got '{pipeline_run['state']}'"
+    )
 
 
 @requires_ado_creds
@@ -395,8 +469,12 @@ async def test_pipeline_lifecycle_wait_for_completion(mcp_client: Client):
     )
 
     pipeline_run = run_result.data
-    assert isinstance(pipeline_run, dict), f"Expected pipeline run to be dict, got {type(pipeline_run)}"
-    assert "id" in pipeline_run, f"Pipeline run missing 'id' field, has keys: {list(pipeline_run.keys())}"
+    assert isinstance(pipeline_run, dict), (
+        f"Expected pipeline run to be dict, got {type(pipeline_run)}"
+    )
+    assert "id" in pipeline_run, (
+        f"Pipeline run missing 'id' field, has keys: {list(pipeline_run.keys())}"
+    )
     run_id = pipeline_run["id"]
 
     max_attempts = 24
@@ -413,18 +491,28 @@ async def test_pipeline_lifecycle_wait_for_completion(mcp_client: Client):
         )
 
         current_run = status_result.data
-        assert isinstance(current_run, dict), f"Expected pipeline run status to be dict, got {type(current_run)}"
-        assert "state" in current_run, f"Pipeline run status missing 'state' field, has keys: {list(current_run.keys())}"
+        assert isinstance(current_run, dict), (
+            f"Expected pipeline run status to be dict, got {type(current_run)}"
+        )
+        assert "state" in current_run, (
+            f"Pipeline run status missing 'state' field, has keys: {list(current_run.keys())}"
+        )
 
         if current_run["state"] == "completed":
             final_run = current_run
             break
 
-    assert final_run is not None, f"Pipeline run {run_id} should have completed within 2 minutes but did not"
+    assert final_run is not None, (
+        f"Pipeline run {run_id} should have completed within 2 minutes but did not"
+    )
 
-    assert "result" in final_run, f"Pipeline run missing 'result' field, has keys: {list(final_run.keys())}"
+    assert "result" in final_run, (
+        f"Pipeline run missing 'result' field, has keys: {list(final_run.keys())}"
+    )
 
-    assert final_run["result"] in ["succeeded", "failed"], f"Expected result to be 'succeeded' or 'failed', got '{final_run['result']}'"
+    assert final_run["result"] in ["succeeded", "failed"], (
+        f"Expected result to be 'succeeded' or 'failed', got '{final_run['result']}'"
+    )
 
 
 @requires_ado_creds
@@ -440,8 +528,12 @@ async def test_multiple_pipeline_runs(mcp_client: Client):
         )
 
         pipeline_run = run_result.data
-        assert isinstance(pipeline_run, dict), f"Expected pipeline run to be dict, got {type(pipeline_run)}"
-        assert "id" in pipeline_run, f"Pipeline run missing 'id' field, has keys: {list(pipeline_run.keys())}"
+        assert isinstance(pipeline_run, dict), (
+            f"Expected pipeline run to be dict, got {type(pipeline_run)}"
+        )
+        assert "id" in pipeline_run, (
+            f"Pipeline run missing 'id' field, has keys: {list(pipeline_run.keys())}"
+        )
         run_ids.append(pipeline_run["id"])
 
         await __import__("asyncio").sleep(2)
@@ -455,10 +547,18 @@ async def test_multiple_pipeline_runs(mcp_client: Client):
         )
 
         current_run = status_result.data
-        assert current_run is not None, f"Should be able to get status for run {run_id} but got None"
-        assert isinstance(current_run, dict), f"Expected run {run_id} to be dict, got {type(current_run)}"
-        assert "state" in current_run, f"Run {run_id} missing 'state' field, has keys: {list(current_run.keys())}"
-        assert current_run["state"] is not None, f"Run {run_id} should have a non-None state but got None"
+        assert current_run is not None, (
+            f"Should be able to get status for run {run_id} but got None"
+        )
+        assert isinstance(current_run, dict), (
+            f"Expected run {run_id} to be dict, got {type(current_run)}"
+        )
+        assert "state" in current_run, (
+            f"Run {run_id} missing 'state' field, has keys: {list(current_run.keys())}"
+        )
+        assert current_run["state"] is not None, (
+            f"Run {run_id} should have a non-None state but got None"
+        )
 
 
 @requires_ado_creds
@@ -471,8 +571,12 @@ async def test_pipeline_run_status_progression(mcp_client: Client):
     )
 
     pipeline_run = run_result.data
-    assert isinstance(pipeline_run, dict), f"Expected pipeline run to be dict, got {type(pipeline_run)}"
-    assert "id" in pipeline_run, f"Pipeline run missing 'id' field, has keys: {list(pipeline_run.keys())}"
+    assert isinstance(pipeline_run, dict), (
+        f"Expected pipeline run to be dict, got {type(pipeline_run)}"
+    )
+    assert "id" in pipeline_run, (
+        f"Pipeline run missing 'id' field, has keys: {list(pipeline_run.keys())}"
+    )
     run_id = pipeline_run["id"]
 
     previous_state = None
@@ -485,9 +589,15 @@ async def test_pipeline_run_status_progression(mcp_client: Client):
         )
 
         current_run = status_result.data
-        assert isinstance(current_run, dict), f"Expected pipeline run status to be dict, got {type(current_run)}"
-        assert "state" in current_run, f"Pipeline run missing 'state' field, has keys: {list(current_run.keys())}"
-        assert "result" in current_run, f"Pipeline run missing 'result' field, has keys: {list(current_run.keys())}"
+        assert isinstance(current_run, dict), (
+            f"Expected pipeline run status to be dict, got {type(current_run)}"
+        )
+        assert "state" in current_run, (
+            f"Pipeline run missing 'state' field, has keys: {list(current_run.keys())}"
+        )
+        assert "result" in current_run, (
+            f"Pipeline run missing 'result' field, has keys: {list(current_run.keys())}"
+        )
 
         if current_run["state"] != previous_state:
             status_changes.append(
@@ -504,7 +614,9 @@ async def test_pipeline_run_status_progression(mcp_client: Client):
 
     final_status = status_changes[-1]
     valid_states = ["inProgress", "completed", "unknown"]
-    assert final_status["state"] in valid_states, f"Expected final state to be one of {valid_states}, got '{final_status['state']}'"
+    assert final_status["state"] in valid_states, (
+        f"Expected final state to be one of {valid_states}, got '{final_status['state']}'"
+    )
 
 
 # --- Tests for pipeline preview functionality ---
@@ -512,7 +624,6 @@ async def test_pipeline_run_status_progression(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_valid_yaml(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 74  # preview-test-valid pipeline
 
@@ -530,10 +641,8 @@ async def test_preview_pipeline_valid_yaml(mcp_client: Client):
     assert len(preview_data["finalYaml"]) > 0, "Final YAML should not be empty"
 
 
-
 @requires_ado_creds
 async def test_preview_pipeline_with_yaml_override(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 74  # preview-test-valid pipeline
 
@@ -562,10 +671,8 @@ steps:
     assert "This is an override!" in final_yaml, "Final YAML should contain override script"
 
 
-
 @requires_ado_creds
 async def test_preview_pipeline_with_variables(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 75  # preview-test-parameterized pipeline
 
@@ -586,10 +693,8 @@ async def test_preview_pipeline_with_variables(mcp_client: Client):
     assert len(final_yaml) > 0, "Final YAML should not be empty"
 
 
-
 @requires_ado_creds
 async def test_preview_pipeline_with_template_parameters(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 75  # preview-test-parameterized pipeline
 
@@ -610,10 +715,8 @@ async def test_preview_pipeline_with_template_parameters(mcp_client: Client):
     assert "finalYaml" in preview_data, "Preview should contain finalYaml field"
 
 
-
 @requires_ado_creds
 async def test_preview_pipeline_error_handling(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 76  # preview-test-invalid pipeline
 
@@ -636,7 +739,6 @@ async def test_preview_pipeline_error_handling(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_nonexistent_pipeline(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 99999  # Non-existent pipeline ID
 
@@ -648,14 +750,15 @@ async def test_preview_pipeline_nonexistent_pipeline(mcp_client: Client):
         if result.data is None:
             pass
         else:
-            assert isinstance(result.data, dict), f"Expected response to be dict, got {type(result.data)}"
+            assert isinstance(result.data, dict), (
+                f"Expected response to be dict, got {type(result.data)}"
+            )
 
     except Exception as e:
         assert isinstance(e, Exception), "Should raise a proper exception type"
 
 
 async def test_preview_pipeline_no_client(mcp_client_with_unset_ado_env: Client):
-
     result = await mcp_client_with_unset_ado_env.call_tool(
         "preview_pipeline", {"project_id": "any", "pipeline_id": 1}
     )
@@ -667,7 +770,6 @@ async def test_preview_pipeline_no_client(mcp_client_with_unset_ado_env: Client)
 
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_simple_pipeline(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 83  # log-test-failing pipeline
     run_id = 323  # Known failed run
@@ -696,10 +798,8 @@ async def test_get_pipeline_failure_summary_simple_pipeline(mcp_client: Client):
     assert len(root_cause["log_content"]) > 0, "Log content should not be empty"
 
 
-
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_complex_pipeline(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 84  # log-test-complex pipeline
     run_id = 324  # Known failed run
@@ -733,10 +833,8 @@ async def test_get_pipeline_failure_summary_complex_pipeline(mcp_client: Client)
     assert "UserService.validateEmail" in log_content, "Log should contain specific error details"
 
 
-
 @requires_ado_creds
 async def test_get_failed_step_logs_with_filter(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 84  # log-test-complex pipeline
     run_id = 324  # Known failed run
@@ -763,10 +861,8 @@ async def test_get_failed_step_logs_with_filter(mcp_client: Client):
     assert unit_tests_step["log_content"] is not None, "Should have log content"
 
 
-
 @requires_ado_creds
 async def test_get_failed_step_logs_all_steps(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 83  # log-test-failing pipeline
     run_id = 323  # Known failed run
@@ -791,10 +887,8 @@ async def test_get_failed_step_logs_all_steps(mcp_client: Client):
         assert step["result"] == "failed", "All steps should be failed"
 
 
-
 @requires_ado_creds
 async def test_get_pipeline_timeline(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 83  # log-test-failing pipeline
     run_id = 323  # Known failed run
@@ -825,10 +919,8 @@ async def test_get_pipeline_timeline(mcp_client: Client):
     assert failed_task["log"]["id"] is not None, "Should have log ID"
 
 
-
 @requires_ado_creds
 async def test_list_pipeline_logs(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 83  # log-test-failing pipeline
     run_id = 323  # Known failed run
@@ -856,10 +948,8 @@ async def test_list_pipeline_logs(mcp_client: Client):
         assert log_entry["lineCount"] >= 0, "Line count should be non-negative"
 
 
-
 @requires_ado_creds
 async def test_get_log_content_by_id(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 83  # log-test-failing pipeline
     run_id = 323  # Known failed run
@@ -882,10 +972,8 @@ async def test_get_log_content_by_id(mcp_client: Client):
     assert "Bash exited with code '1'" in log_content, "Log should contain exit code info"
 
 
-
 @requires_ado_creds
 async def test_get_log_content_by_id_with_line_limit(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 83  # log-test-failing pipeline
     run_id = 323  # Known failed run
@@ -951,10 +1039,8 @@ async def test_get_log_content_by_id_with_line_limit(mcp_client: Client):
         assert limited_lines == expected_limited_lines, "Limited lines should be the last 10 lines"
 
 
-
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_with_line_limit(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 83  # log-test-failing pipeline
     run_id = 323  # Known failed run
@@ -1007,10 +1093,8 @@ async def test_get_pipeline_failure_summary_with_line_limit(mcp_client: Client):
         )
 
 
-
 @requires_ado_creds
 async def test_get_failed_step_logs_with_line_limit(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 83  # log-test-failing pipeline
     run_id = 323  # Known failed run
@@ -1061,9 +1145,7 @@ async def test_get_failed_step_logs_with_line_limit(mcp_client: Client):
         )
 
 
-
 async def test_logs_tools_no_client(mcp_client_with_unset_ado_env: Client):
-
     # Test failure summary
     result = await mcp_client_with_unset_ado_env.call_tool(
         "get_pipeline_failure_summary", {"project_id": "any", "pipeline_id": 1, "run_id": 1}
@@ -1085,7 +1167,6 @@ async def test_logs_tools_no_client(mcp_client_with_unset_ado_env: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_and_get_outcome_success(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 59  # test_run_and_get_pipeline_run_details (quick success pipeline)
 
@@ -1118,10 +1199,8 @@ async def test_run_pipeline_and_get_outcome_success(mcp_client: Client):
     assert outcome["execution_time_seconds"] < 300, "Should complete within timeout"
 
 
-
 @requires_ado_creds
 async def test_run_pipeline_and_get_outcome_failure(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 83  # log-test-failing pipeline (designed to fail)
 
@@ -1171,10 +1250,8 @@ async def test_run_pipeline_and_get_outcome_failure(mcp_client: Client):
     assert root_cause["result"] == "failed", "Root cause should be failed"
 
 
-
 @requires_ado_creds
 async def test_run_pipeline_and_get_outcome_custom_timeout(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     pipeline_id = 59  # test_run_and_get_pipeline_run_details (quick success pipeline)
 
@@ -1193,9 +1270,7 @@ async def test_run_pipeline_and_get_outcome_custom_timeout(mcp_client: Client):
     assert outcome["execution_time_seconds"] < 600, "Should complete well within timeout"
 
 
-
 async def test_run_pipeline_and_get_outcome_no_client(mcp_client_with_unset_ado_env: Client):
-
     result = await mcp_client_with_unset_ado_env.call_tool(
         "run_pipeline_and_get_outcome",
         {"project_id": "any", "pipeline_id": 1, "timeout_seconds": 300},
@@ -1203,9 +1278,7 @@ async def test_run_pipeline_and_get_outcome_no_client(mcp_client_with_unset_ado_
     assert result.data is None, "Should return None when client unavailable"
 
 
-
 async def test_run_pipeline_and_get_outcome_tool_registration(mcp_client: Client):
-
     # List available tools
     tools_response = await mcp_client.list_tools()
 
@@ -1244,10 +1317,8 @@ async def test_run_pipeline_and_get_outcome_tool_registration(mcp_client: Client
     # timeout_seconds should have a default, so not required
 
 
-
 @requires_ado_creds
 async def test_get_build_by_id_success(mcp_client: Client):
-
     project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
     build_id = 324  # Known build/run ID from URL buildId=324
 
@@ -1279,9 +1350,7 @@ async def test_get_build_by_id_success(mcp_client: Client):
     )
 
 
-
 async def test_get_build_by_id_no_client(mcp_client_with_unset_ado_env: Client):
-
     result = await mcp_client_with_unset_ado_env.call_tool(
         "get_build_by_id", {"project_id": "any", "build_id": 1}
     )
@@ -1289,7 +1358,6 @@ async def test_get_build_by_id_no_client(mcp_client_with_unset_ado_env: Client):
 
 
 async def test_get_build_by_id_tool_registration(mcp_client: Client):
-
     # List available tools
     tools_response = await mcp_client.list_tools()
 
@@ -1325,8 +1393,8 @@ async def test_get_build_by_id_tool_registration(mcp_client: Client):
     assert "build_id" in required, "build_id should be required"
 
 
-
 # ========== MCP CACHING TESTS ==========
+
 
 @pytest.fixture
 async def fresh_cache():
@@ -1336,85 +1404,86 @@ async def fresh_cache():
 
 
 @requires_ado_creds
-async def test_list_available_projects_mcp_caching(mcp_client: Client, telemetry_setup, fresh_cache):
-
+async def test_list_available_projects_mcp_caching(
+    mcp_client: Client, telemetry_setup, fresh_cache
+):
     memory_exporter = telemetry_setup
-    
+
     # First call - should hit API
     result1 = await mcp_client.call_tool("list_available_projects")
     analyzer1 = analyze_spans(memory_exporter)
-    
+
     # Should have made an API call
     assert analyzer1.was_data_fetched_from_api("projects")
     assert analyzer1.count_api_calls("list_projects") == 1
     assert result1.data is not None
     assert len(result1.data) > 0
-    
+
     clear_spans(memory_exporter)
-    
+
     # Second call - should use cache
     result2 = await mcp_client.call_tool("list_available_projects")
     analyzer2 = analyze_spans(memory_exporter)
-    
+
     # Should have used cache, no new API calls
     assert analyzer2.was_data_fetched_from_cache("projects")
     assert analyzer2.count_api_calls("list_projects") == 0
-    
+
     # Data should be consistent
     assert result1.data == result2.data
 
 
 @requires_ado_creds
-async def test_list_available_pipelines_mcp_caching(mcp_client: Client, telemetry_setup, fresh_cache):
-
+async def test_list_available_pipelines_mcp_caching(
+    mcp_client: Client, telemetry_setup, fresh_cache
+):
     memory_exporter = telemetry_setup
-    
+
     # Get a project first
     projects_result = await mcp_client.call_tool("list_available_projects")
     if not projects_result.data:
         pytest.skip("No projects available for testing")
-    
+
     project_name = projects_result.data[0]
     clear_spans(memory_exporter)
-    
+
     # First pipeline call - should hit API
     result1 = await mcp_client.call_tool("list_available_pipelines", {"project_name": project_name})
     analyzer1 = analyze_spans(memory_exporter)
-    
+
     # Should have made an API call for pipelines
     assert analyzer1.count_api_calls("list_pipelines") == 1
-    
+
     clear_spans(memory_exporter)
-    
+
     # Second pipeline call - should use cache
     result2 = await mcp_client.call_tool("list_available_pipelines", {"project_name": project_name})
     analyzer2 = analyze_spans(memory_exporter)
-    
+
     # Should have used cache, no new API calls
     assert analyzer2.was_data_fetched_from_cache("pipelines")
     assert analyzer2.count_api_calls("list_pipelines") == 0
-    
+
     # Data should be consistent
     assert result1.data == result2.data
 
 
 @requires_ado_creds
 async def test_find_project_by_name_mcp_caching(mcp_client: Client, telemetry_setup, fresh_cache):
-
     memory_exporter = telemetry_setup
-    
+
     # Prime the cache
     projects_result = await mcp_client.call_tool("list_available_projects")
     if not projects_result.data:
         pytest.skip("No projects available for testing")
-    
+
     project_name = projects_result.data[0]
     clear_spans(memory_exporter)
-    
+
     # Find project by name - should use cached data
     result = await mcp_client.call_tool("find_project_by_name", {"name": project_name})
     analyzer = analyze_spans(memory_exporter)
-    
+
     # Should have cache hits, no API calls
     assert analyzer.count_cache_hits() > 0
     assert analyzer.count_api_calls("list_projects") == 0
@@ -1424,37 +1493,37 @@ async def test_find_project_by_name_mcp_caching(mcp_client: Client, telemetry_se
 
 @requires_ado_creds
 async def test_find_pipeline_by_name_mcp_caching(mcp_client: Client, telemetry_setup, fresh_cache):
-
     memory_exporter = telemetry_setup
-    
+
     # Get projects and pipelines
     projects_result = await mcp_client.call_tool("list_available_projects")
     if not projects_result.data:
         pytest.skip("No projects available for testing")
-    
+
     # Find a project with pipelines
     project_name = None
     pipeline_name = None
-    
+
     for proj_name in projects_result.data:
-        pipelines_result = await mcp_client.call_tool("list_available_pipelines", {"project_name": proj_name})
+        pipelines_result = await mcp_client.call_tool(
+            "list_available_pipelines", {"project_name": proj_name}
+        )
         if pipelines_result.data:
             project_name = proj_name
             pipeline_name = pipelines_result.data[0]
             break
-    
+
     if not pipeline_name:
         pytest.skip("No pipelines found in any project")
-    
+
     clear_spans(memory_exporter)
-    
+
     # Find pipeline by name - should use cached data
-    result = await mcp_client.call_tool("find_pipeline_by_name", {
-        "project_name": project_name,
-        "pipeline_name": pipeline_name
-    })
+    result = await mcp_client.call_tool(
+        "find_pipeline_by_name", {"project_name": project_name, "pipeline_name": pipeline_name}
+    )
     analyzer = analyze_spans(memory_exporter)
-    
+
     # Should have cache hits, no API calls for cached operations
     assert analyzer.count_cache_hits() > 0
     assert result.data is not None
@@ -1462,82 +1531,83 @@ async def test_find_pipeline_by_name_mcp_caching(mcp_client: Client, telemetry_s
     assert result.data["project"]["name"] == project_name
 
 
-@requires_ado_creds  
+@requires_ado_creds
 async def test_mcp_cache_expiration_behavior(mcp_client: Client, telemetry_setup, fresh_cache):
-
     memory_exporter = telemetry_setup
-    
+
     # Temporarily reduce cache TTL for testing
     original_ttl = ado_cache.PROJECT_TTL
     ado_cache.PROJECT_TTL = 2  # 2 seconds for testing
-    
+
     try:
         # First call
         result1 = await mcp_client.call_tool("list_available_projects")
         clear_spans(memory_exporter)
-        
+
         # Second call immediately - should use cache
         result2 = await mcp_client.call_tool("list_available_projects")
         analyzer_cached = analyze_spans(memory_exporter)
         assert analyzer_cached.was_data_fetched_from_cache("projects")
-        
+
         # Wait for cache to expire
         time.sleep(2.5)
         clear_spans(memory_exporter)
-        
+
         # Third call after expiration - should hit API again
         result3 = await mcp_client.call_tool("list_available_projects")
         analyzer_expired = analyze_spans(memory_exporter)
         assert analyzer_expired.was_data_fetched_from_api("projects")
-        
+
         # Data should still be consistent
         assert result1.data == result3.data
-        
+
     finally:
         # Restore original TTL
         ado_cache.PROJECT_TTL = original_ttl
 
 
 @requires_ado_creds
-async def test_name_based_pipeline_operations_caching(mcp_client: Client, telemetry_setup, fresh_cache):
-
+async def test_name_based_pipeline_operations_caching(
+    mcp_client: Client, telemetry_setup, fresh_cache
+):
     memory_exporter = telemetry_setup
-    
+
     # Get projects and pipelines to prime cache
     projects_result = await mcp_client.call_tool("list_available_projects")
     if not projects_result.data:
         pytest.skip("No projects available for testing")
-    
+
     # Find a project with pipelines
     project_name = None
     pipeline_name = None
-    
+
     for proj_name in projects_result.data:
-        pipelines_result = await mcp_client.call_tool("list_available_pipelines", {"project_name": proj_name})
+        pipelines_result = await mcp_client.call_tool(
+            "list_available_pipelines", {"project_name": proj_name}
+        )
         if pipelines_result.data:
             project_name = proj_name
             pipeline_name = pipelines_result.data[0]
             break
-    
+
     if not pipeline_name:
         pytest.skip("No pipelines found in any project")
-    
+
     clear_spans(memory_exporter)
-    
+
     # Test run_pipeline_by_name (just check the lookup part, don't actually run)
     # We can't test actual execution easily, but we can test the name resolution uses cache
     try:
-        result = await mcp_client.call_tool("run_pipeline_by_name", {
-            "project_name": project_name,
-            "pipeline_name": pipeline_name
-        })
+        result = await mcp_client.call_tool(
+            "run_pipeline_by_name", {"project_name": project_name, "pipeline_name": pipeline_name}
+        )
         # If it succeeds great, if it fails due to permissions etc, that's also fine
         # The important thing is that we should see cache operations
     except Exception:
         # Expected - might not have permissions to run pipelines
         pass
-    
+
     analyzer = analyze_spans(memory_exporter)
-    
+
     # Should have cache operations (hits or misses), indicating cache was used for lookups
     assert analyzer.has_cache_operations()
