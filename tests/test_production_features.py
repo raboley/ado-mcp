@@ -469,14 +469,19 @@ class TestClientIntegration:
             organization_url="https://test.visualstudio.com", pat="test-pat", config=config
         )
 
-        mock_response = Mock()
+        mock_response = MagicMock()
         mock_response.status_code = 429
         mock_response.headers = {"Retry-After": "1"}
         mock_response.text = ""
         mock_response.url = "https://test.visualstudio.com/_apis/test"
-        mock_response.raise_for_status.side_effect = HTTPError("Rate limited")
+        mock_response.content = b""
+        mock_response.raise_for_status.return_value = None
 
+        # Patch both requests.request and remove session to trigger fallback
         with patch("requests.request", return_value=mock_response):
+            # Ensure we don't have a session to trigger the fallback path
+            if hasattr(client, 'session'):
+                delattr(client, 'session')
             with pytest.raises(AdoRateLimitError) as exc_info:
                 client._send_request("GET", "https://test.visualstudio.com/_apis/test")
 
@@ -498,7 +503,13 @@ class TestClientIntegration:
             organization_url="https://test.visualstudio.com", pat="test-pat", config=config
         )
 
-        with patch("requests.request", side_effect=RequestException("Network error")):
+        # Create a RequestException without response attribute to trigger network error handling
+        network_error = RequestException("Network error")
+        
+        with patch("requests.request", side_effect=network_error):
+            # Ensure we don't have a session to trigger the fallback path
+            if hasattr(client, 'session'):
+                delattr(client, 'session')
             with pytest.raises(AdoNetworkError) as exc_info:
                 client._send_request("GET", "https://test.visualstudio.com/_apis/test")
 
@@ -520,7 +531,12 @@ class TestClientIntegration:
             organization_url="https://test.visualstudio.com", pat="test-pat", config=config
         )
 
-        with patch("requests.request", side_effect=Timeout("Request timeout")):
+        timeout_error = Timeout("Request timeout")
+        
+        with patch("requests.request", side_effect=timeout_error):
+            # Ensure we don't have a session to trigger the fallback path
+            if hasattr(client, 'session'):
+                delattr(client, 'session')
             with pytest.raises(AdoTimeoutError) as exc_info:
                 client._send_request("GET", "https://test.visualstudio.com/_apis/test")
 

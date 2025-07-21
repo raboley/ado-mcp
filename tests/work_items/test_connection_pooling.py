@@ -100,6 +100,8 @@ class TestConnectionPooling:
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.content = True
+            mock_response.text = '{"test": "data"}'
+            mock_response.url = "https://dev.azure.com/test/_apis/test"
             mock_response.json.return_value = {"test": "data"}
             mock_response.raise_for_status.return_value = None
             mock_session.request.return_value = mock_response
@@ -265,7 +267,19 @@ class TestConnectionPooling:
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.content = True
-            mock_response.json.return_value = {"test": "data"}
+            mock_response.text = '{"id": 123, "rev": 1}'
+            mock_response.url = "https://dev.azure.com/test/_apis/wit/workitems/Bug"
+            mock_response.json.return_value = {
+                "id": 123,
+                "rev": 1,
+                "url": "https://dev.azure.com/test/_apis/wit/workItems/123",
+                "fields": {
+                    "System.Title": "Test Bug",
+                    "System.WorkItemType": "Bug",
+                    "System.State": "New",
+                },
+            }
+            mock_response.raise_for_status.return_value = None
             mock_requests_request.return_value = mock_response
 
             client = AdoClient(
