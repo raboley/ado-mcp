@@ -50,7 +50,7 @@
   - [ ] 2.10 Add validation helpers for paths in work item operations
   - [x] 2.11 Document metadata tools and caching behavior
 
-- [ ] 3.0 Work Item Querying and Batch Operations
+- [x] 3.0 Work Item Querying and Batch Operations
   - [x] 3.1 Implement query_work_items tool (simple filtering or WIQL)
   - [x] 3.2 Add pagination support for query results
   - [x] 3.3 Write tests for various query scenarios
@@ -59,12 +59,12 @@
   - [x] 3.6 Write tests for pre-defined queries
   - [x] 3.7 Implement get_work_items_batch tool (up to 200 items)
   - [x] 3.8 Write tests for batch retrieval with error handling
-  - [ ] 3.9 Implement update_work_items_batch with transaction behavior
-  - [ ] 3.10 Write tests for bulk updates with partial failure scenarios
-  - [ ] 3.11 Add comprehensive logging for batch operations
-  - [ ] 3.12 Implement delete_work_items_batch tool
-  - [ ] 3.13 Write tests for batch deletion
-  - [ ] 3.14 Document query syntax and batch operation limits
+  - [x] 3.9 Implement update_work_items_batch with transaction behavior
+  - [x] 3.10 Write tests for bulk updates with partial failure scenarios
+  - [x] 3.11 Add comprehensive logging for batch operations
+  - [x] 3.12 Implement delete_work_items_batch tool
+  - [x] 3.13 Write tests for batch deletion
+  - [x] 3.14 Document query syntax and batch operation limits
 
 - [ ] 4.0 Work Item Comments and History Tracking
   - [ ] 4.1 Define WorkItemComment and WorkItemRevision models
@@ -96,3 +96,31 @@
   - [ ] 5.13 Write integration tests for end-to-end workflows
   - [ ] 5.14 Document relationship types and validation rules
   - [ ] 5.15 Update main tools.py to register all work item tools
+
+- [ ] 6.0 Process and Templates Management (Based on Reference Implementation)
+  - [ ] 6.1 Define Process and Template models (Process, ProcessTemplate, WorkItemTemplate)
+  - [ ] 6.2 Implement get_project_process_id tool to identify project process
+  - [ ] 6.3 Implement get_process_details tool for process configuration
+  - [ ] 6.4 Implement list_processes tool for available process templates
+  - [ ] 6.5 Write tests for process discovery and details
+  - [ ] 6.6 Implement get_work_item_templates tool for team templates
+  - [ ] 6.7 Implement get_work_item_template tool for specific template details
+  - [ ] 6.8 Write tests for template retrieval and validation
+  - [ ] 6.9 Add caching for process and template data (1 hour TTL)
+  - [ ] 6.10 Document process and template tools
+
+- [ ] 7.0 Enhanced Work Item Types and Field Introspection
+  - [ ] 7.1 Implement get_work_item_type tool for detailed type information (states, colors, icons)
+  - [ ] 7.2 Implement get_work_item_type_field tool for comprehensive field details
+  - [ ] 7.3 Add support for field constraints and allowed values in existing tools
+  - [ ] 7.4 Write tests for enhanced type introspection
+  - [ ] 7.5 Add validation using detailed field constraints
+  - [ ] 7.6 Document enhanced type and field discovery features
+
+- [ ] 8.0 Additional Advanced Features (Future Enhancements)
+  - [ ] 8.1 Implement work item attachments support
+  - [ ] 8.2 Add work item tags management
+  - [ ] 8.3 Implement work item templates creation and management
+  - [ ] 8.4 Add advanced WIQL query builder helpers
+  - [ ] 8.5 Implement cross-project work item operations
+  - [ ] 8.6 Add work item board and sprint management tools
