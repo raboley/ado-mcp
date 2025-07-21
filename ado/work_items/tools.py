@@ -1367,6 +1367,16 @@ def register_work_item_tools(mcp_instance, client_container):
             result_count = len(work_items)
             success_rate = (result_count / len(work_item_ids)) * 100 if work_item_ids else 100
             
+            # Calculate additional batch metrics
+            batch_metrics = {
+                "batch_size": len(work_item_ids),
+                "batch_efficiency": round((result_count / len(work_item_ids)) * 100, 1) if work_item_ids else 100,
+                "fields_requested": len(fields) if fields else 0,
+                "has_field_filtering": fields is not None,
+                "has_relations": expand_relations,
+                "is_historical_query": as_of is not None
+            }
+            
             # Log comprehensive performance metrics
             performance_metrics = {
                 "total_duration_ms": round(total_duration * 1000, 2),
