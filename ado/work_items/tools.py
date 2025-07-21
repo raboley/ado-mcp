@@ -4,7 +4,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from ado.work_items.client import WorkItemsClient
-from ado.work_items.models import JsonPatchOperation, WorkItem, WorkItemType, WorkItemField, ClassificationNode, WorkItemReference
+from ado.work_items.models import JsonPatchOperation, WorkItem, WorkItemType, WorkItemField, ClassificationNode, WorkItemReference, WorkItemQueryResult
 from ado.work_items.validation import WorkItemValidator
 
 logger = logging.getLogger(__name__)
@@ -716,3 +716,306 @@ def register_work_item_tools(mcp_instance, client_container):
         except Exception as e:
             logger.error(f"Failed to list work items: {e}")
             raise
+    
+    @mcp_instance.tool
+    def query_work_items(
+        project_id: str,
+        wiql_query: Optional[str] = None,
+        top: Optional[int] = None,
+        skip: Optional[int] = None,
+        simple_filter: Optional[Dict[str, Any]] = None,
+        page_size: Optional[int] = None,
+        page_number: Optional[int] = None,
+    ) -> Optional[WorkItemQueryResult]:
+        """
+        Query work items using WIQL or simple filtering with pagination support.
+        
+        This tool provides flexible work item querying with support for both
+        custom WIQL queries and simple field-based filtering. Returns complete
+        query results including metadata and column information. Supports
+        pagination through multiple parameter options.
+        
+        Args:
+            project_id: The ID or name of the project.
+            wiql_query: Custom WIQL query string. Takes precedence over simple_filter.
+            top: Maximum number of results to return (direct API parameter).
+            skip: Number of results to skip (direct API parameter).
+            simple_filter: Simple filtering options (alternative to WIQL):
+                - work_item_type: Filter by work item type (e.g., "Bug", "Task")
+                - state: Filter by state (e.g., "Active", "Closed")
+                - assigned_to: Filter by assignee email or display name
+                - area_path: Filter by area path
+                - iteration_path: Filter by iteration path
+                - tags: Filter by tags (semicolon-separated)
+                - created_after: Filter by creation date (ISO format)
+                - created_before: Filter by creation date (ISO format)
+            page_size: Number of items per page (alternative to top/skip).
+            page_number: Page number starting from 1 (alternative to top/skip).
+            
+        Returns:
+            WorkItemQueryResult: Complete query results with metadata.
+            
+        Examples:
+            # Custom WIQL query
+            query_work_items(
+                project_id="MyProject",
+                wiql_query="SELECT [System.Id], [System.Title] FROM WorkItems WHERE [System.State] = 'Active'"
+            )
+            
+            # Simple filtering with pagination
+            query_work_items(
+                project_id="MyProject",
+                simple_filter={"work_item_type": "Bug"},
+                page_size=20,
+                page_number=2
+            )
+            
+            # Direct pagination parameters
+            query_work_items(project_id="MyProject", top=50, skip=100)
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+            
+        try:
+            work_items_client = WorkItemsClient(ado_client_instance)
+            
+            # Handle pagination parameter conversion
+            if page_size is not None and page_number is not None:
+                if top is not None or skip is not None:
+                    logger.warning("Both page_size/page_number and top/skip provided. Using page_size/page_number.")
+                top = page_size
+                skip = (page_number - 1) * page_size
+                logger.info(f"Pagination: page {page_number}, size {page_size} -> top={top}, skip={skip}")
+            
+            # Build WIQL query from simple filter if no custom query provided
+            if wiql_query is None and simple_filter:
+                wiql_query = _build_wiql_from_filter(simple_filter)
+            
+            logger.info(f"Querying work items for project: {project_id}")
+            
+            query_result = work_items_client.query_work_items(
+                project_id=project_id,
+                wiql_query=wiql_query,
+                top=top,
+                skip=skip
+            )
+            
+            logger.info(f"Successfully queried {len(query_result.workItems)} work items")
+            return query_result
+            
+        except Exception as e:
+            logger.error(f"Failed to query work items: {e}")
+            raise
+    
+    @mcp_instance.tool
+    def get_work_items_page(
+        project_id: str,
+        page_number: int = 1,
+        page_size: int = 50,
+        work_item_type: Optional[str] = None,
+        state: Optional[str] = None,
+        assigned_to: Optional[str] = None,
+        area_path: Optional[str] = None,
+        order_by: str = "System.Id",
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get a paginated list of work items with metadata about pagination.
+        
+        This tool provides a simplified interface for getting paginated work items
+        with common filtering options. Returns both the work items and pagination
+        metadata to help with building pagination UIs.
+        
+        Args:
+            project_id: The ID or name of the project.
+            page_number: Page number starting from 1 (default: 1).
+            page_size: Number of items per page (default: 50, max: 200).
+            work_item_type: Filter by work item type (e.g., "Bug", "Task").
+            state: Filter by state (e.g., "Active", "Closed").
+            assigned_to: Filter by assignee email or display name.
+            area_path: Filter by area path.
+            order_by: Field to order by (default: "System.Id").
+            
+        Returns:
+            Dictionary containing:
+            - work_items: List of work item references
+            - pagination: Metadata about pagination (page, size, has_more, etc.)
+            
+        Examples:
+            # Get first page of all work items
+            get_work_items_page(project_id="MyProject")
+            
+            # Get second page of bugs
+            get_work_items_page(
+                project_id="MyProject",
+                page_number=2,
+                page_size=25,
+                work_item_type="Bug"
+            )
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+            
+        try:
+            # Validate pagination parameters
+            if page_number < 1:
+                page_number = 1
+            if page_size < 1:
+                page_size = 50
+            if page_size > 200:
+                page_size = 200
+                
+            # Build filter for simple cases
+            simple_filter = {}
+            if work_item_type:
+                simple_filter["work_item_type"] = work_item_type
+            if state:
+                simple_filter["state"] = state
+            if assigned_to:
+                simple_filter["assigned_to"] = assigned_to
+            if area_path:
+                simple_filter["area_path"] = area_path
+            
+            # Use query_work_items to get the results
+            work_items_client = WorkItemsClient(ado_client_instance)
+            
+            # Build WIQL query from filter
+            if simple_filter:
+                wiql_query = _build_wiql_from_filter(simple_filter)
+            else:
+                wiql_query = (
+                    "SELECT [System.Id], [System.Title], [System.WorkItemType], "
+                    "[System.State], [System.AssignedTo], [System.CreatedDate] "
+                    "FROM WorkItems"
+                )
+            
+            # Add ordering
+            wiql_query += f" ORDER BY [{order_by}]"
+            
+            # Calculate skip value
+            skip = (page_number - 1) * page_size
+            
+            # Get one extra item to check if there are more pages
+            top = page_size + 1
+            
+            logger.info(f"Getting page {page_number} of work items (size: {page_size})")
+            
+            query_result = work_items_client.query_work_items(
+                project_id=project_id,
+                wiql_query=wiql_query,
+                top=top,
+                skip=skip
+            )
+            
+            work_items = query_result.workItems
+            has_more = len(work_items) > page_size
+            
+            # Remove the extra item if present
+            if has_more:
+                work_items = work_items[:page_size]
+            
+            # Build pagination metadata
+            pagination_info = {
+                "page_number": page_number,
+                "page_size": page_size,
+                "items_count": len(work_items),
+                "has_more": has_more,
+                "has_previous": page_number > 1,
+                "next_page": page_number + 1 if has_more else None,
+                "previous_page": page_number - 1 if page_number > 1 else None,
+            }
+            
+            result = {
+                "work_items": work_items,
+                "pagination": pagination_info,
+                "query_metadata": {
+                    "query_type": query_result.queryType,
+                    "columns": query_result.columns,
+                }
+            }
+            
+            logger.info(f"Successfully retrieved page {page_number} with {len(work_items)} items (has_more: {has_more})")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to get work items page: {e}")
+            raise
+
+
+def _build_wiql_from_filter(simple_filter: Dict[str, Any]) -> str:
+    """
+    Build a WIQL query from simple filter parameters.
+    
+    Args:
+        simple_filter: Dictionary of filter criteria
+        
+    Returns:
+        WIQL query string
+    """
+    # Base SELECT clause with common fields
+    select_clause = (
+        "SELECT [System.Id], [System.Title], [System.WorkItemType], "
+        "[System.State], [System.AssignedTo], [System.CreatedDate], "
+        "[System.AreaPath], [System.IterationPath], [System.Tags] "
+        "FROM WorkItems"
+    )
+    
+    conditions = []
+    
+    # Add conditions based on filter parameters
+    if "work_item_type" in simple_filter:
+        work_item_type = simple_filter["work_item_type"]
+        conditions.append(f"[System.WorkItemType] = '{work_item_type}'")
+    
+    if "state" in simple_filter:
+        state = simple_filter["state"]
+        conditions.append(f"[System.State] = '{state}'")
+    
+    if "assigned_to" in simple_filter:
+        assigned_to = simple_filter["assigned_to"]
+        conditions.append(f"[System.AssignedTo] = '{assigned_to}'")
+    
+    if "area_path" in simple_filter:
+        area_path = simple_filter["area_path"]
+        conditions.append(f"[System.AreaPath] UNDER '{area_path}'")
+    
+    if "iteration_path" in simple_filter:
+        iteration_path = simple_filter["iteration_path"]
+        conditions.append(f"[System.IterationPath] UNDER '{iteration_path}'")
+    
+    if "tags" in simple_filter:
+        tags = simple_filter["tags"]
+        # Handle both single tag and semicolon-separated tags
+        if ";" in tags:
+            tag_conditions = []
+            for tag in tags.split(";"):
+                tag = tag.strip()
+                if tag:
+                    tag_conditions.append(f"[System.Tags] CONTAINS '{tag}'")
+            if tag_conditions:
+                conditions.append(f"({' OR '.join(tag_conditions)})")
+        else:
+            conditions.append(f"[System.Tags] CONTAINS '{tags.strip()}'")
+    
+    if "created_after" in simple_filter:
+        created_after = simple_filter["created_after"]
+        conditions.append(f"[System.CreatedDate] >= '{created_after}'")
+    
+    if "created_before" in simple_filter:
+        created_before = simple_filter["created_before"]
+        conditions.append(f"[System.CreatedDate] <= '{created_before}'")
+    
+    # Build final query
+    if conditions:
+        where_clause = " WHERE " + " AND ".join(conditions)
+        query = select_clause + where_clause
+    else:
+        query = select_clause
+    
+    # Add ordering
+    query += " ORDER BY [System.Id]"
+    
+    return query

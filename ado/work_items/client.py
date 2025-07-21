@@ -523,6 +523,7 @@ class WorkItemsClient:
         project_id: str,
         wiql_query: Optional[str] = None,
         top: Optional[int] = None,
+        skip: Optional[int] = None,
     ) -> WorkItemQueryResult:
         """
         Query work items using WIQL (Work Item Query Language).
@@ -531,6 +532,7 @@ class WorkItemsClient:
             project_id: The ID or name of the project.
             wiql_query: The WIQL query string. If None, returns all work items.
             top: Maximum number of results to return.
+            skip: Number of results to skip (for pagination).
             
         Returns:
             WorkItemQueryResult with query results.
@@ -553,6 +555,9 @@ class WorkItemsClient:
         
         if top is not None:
             params["$top"] = top
+        
+        if skip is not None:
+            params["$skip"] = skip
         
         request_body = {
             "query": wiql_query
