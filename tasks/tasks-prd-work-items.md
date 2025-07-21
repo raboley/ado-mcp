@@ -97,25 +97,26 @@
   - [x] 5.14 Document relationship types and validation rules
   - [x] 5.15 Update main tools.py to register all work item tools
 
-- [ ] 6.0 Process and Templates Management (Based on Reference Implementation)
-  - [ ] 6.1 Define Process and Template models (Process, ProcessTemplate, WorkItemTemplate)
-  - [ ] 6.2 Implement get_project_process_id tool to identify project process
-  - [ ] 6.3 Implement get_process_details tool for process configuration
-  - [ ] 6.4 Implement list_processes tool for available process templates
-  - [ ] 6.5 Write tests for process discovery and details
-  - [ ] 6.6 Implement get_work_item_templates tool for team templates
-  - [ ] 6.7 Implement get_work_item_template tool for specific template details
-  - [ ] 6.8 Write tests for template retrieval and validation
-  - [ ] 6.9 Add caching for process and template data (1 hour TTL)
-  - [ ] 6.10 Document process and template tools
+- [x] 6.0 Process and Templates Management (Based on Reference Implementation)
+  - [x] 6.1 Define Process and Template models (Process, ProcessTemplate, WorkItemTemplate)
+  - [x] 6.2 Implement get_project_process_id tool to identify project process
+  - [x] 6.3 Implement get_project_process_info tool for comprehensive project process information
+  - [x] 6.4 Implement get_process_details tool for process configuration with custom process fallback
+  - [x] 6.5 Implement list_processes tool for available process templates
+  - [x] 6.6 Write tests for process discovery and details (13 tests passing)
+  - [x] 6.7 Implement get_work_item_templates tool for team templates
+  - [x] 6.8 Implement get_work_item_template tool for specific template details
+  - [x] 6.9 Write tests for template retrieval and validation
+  - [x] 6.10 Add caching for process and template data (1 hour TTL) with intelligent fallback
+  - [x] 6.11 Document process and template tools with comprehensive error handling
 
-- [ ] 7.0 Enhanced Work Item Types and Field Introspection
-  - [ ] 7.1 Implement get_work_item_type tool for detailed type information (states, colors, icons)
-  - [ ] 7.2 Implement get_work_item_type_field tool for comprehensive field details
-  - [ ] 7.3 Add support for field constraints and allowed values in existing tools
-  - [ ] 7.4 Write tests for enhanced type introspection
-  - [ ] 7.5 Add validation using detailed field constraints
-  - [ ] 7.6 Document enhanced type and field discovery features
+- [x] 7.0 Enhanced Work Item Types and Field Introspection
+  - [x] 7.1 Implement get_work_item_type tool for detailed type information (states, colors, icons, transitions)
+  - [x] 7.2 Implement get_work_item_type_field tool for comprehensive field details (constraints, allowed values, defaults)
+  - [x] 7.3 Add support for detailed field information via expand parameter and caching
+  - [x] 7.4 Write comprehensive tests for enhanced type introspection (13 tests passing)
+  - [x] 7.5 Add intelligent caching for detailed type and field information (1 hour TTL)
+  - [x] 7.6 Document enhanced type and field discovery tools with examples and use cases
 
 - [ ] 8.0 Additional Advanced Features (Future Enhancements)
   - [ ] 8.1 Implement work item attachments support

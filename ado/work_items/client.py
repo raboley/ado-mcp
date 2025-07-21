@@ -342,6 +342,62 @@ class WorkItemsClient:
             logger.error(f"Failed to get work item types: {e}")
             raise AdoError(f"Failed to get work item types: {e}", "work_item_types_get_failed") from e
     
+    def get_work_item_type(
+        self,
+        project_id: str,
+        work_item_type: str,
+    ) -> WorkItemType:
+        """
+        Get detailed information about a specific work item type.
+        
+        This returns comprehensive information including states, transitions,
+        colors, icons, and field information for the specified work item type.
+        
+        Args:
+            project_id: The ID or name of the project.
+            work_item_type: The name of the work item type (e.g., "Bug", "Task").
+            
+        Returns:
+            WorkItemType object with detailed information.
+            
+        Raises:
+            AdoError: If the API request fails.
+        """
+        # Check cache first
+        cache_key = f"work_item_type_detailed:{project_id}:{work_item_type}"
+        cached_result = ado_cache._get(cache_key)
+        if cached_result:
+            logger.info(f"Returning cached detailed work item type '{work_item_type}' for project '{project_id}'")
+            return WorkItemType(**cached_result)
+        
+        url = f"{self.organization_url}/{project_id}/_apis/wit/workitemtypes/{work_item_type}"
+        params = {
+            "api-version": "7.1",
+            "expand": "states,transitions"  # Get detailed state and transition information
+        }
+        
+        logger.info(f"Getting detailed work item type '{work_item_type}' in project '{project_id}'")
+        
+        try:
+            data = self.client._send_request(
+                method="GET",
+                url=url,
+                params=params
+            )
+            
+            logger.info(f"Successfully retrieved detailed information for work item type '{work_item_type}'")
+            
+            work_item_type_obj = WorkItemType(**data)
+            
+            # Cache the result for 1 hour
+            ado_cache._set(cache_key, work_item_type_obj.model_dump(), 3600)
+            
+            return work_item_type_obj
+            
+        except Exception as e:
+            logger.error(f"Failed to get work item type details: {e}")
+            raise AdoError(f"Failed to get work item type details: {e}", "work_item_type_details_get_failed") from e
+    
     def get_work_item_type_fields(
         self,
         project_id: str,
@@ -390,6 +446,63 @@ class WorkItemsClient:
         except Exception as e:
             logger.error(f"Failed to get work item type fields: {e}")
             raise AdoError(f"Failed to get work item type fields: {e}", "work_item_type_fields_get_failed") from e
+    
+    def get_work_item_type_field(
+        self,
+        project_id: str,
+        work_item_type: str,
+        field_reference_name: str,
+    ) -> WorkItemField:
+        """
+        Get detailed information about a specific field for a work item type.
+        
+        This returns comprehensive information about a single field including
+        allowed values, constraints, defaults, and validation rules.
+        
+        Args:
+            project_id: The ID or name of the project.
+            work_item_type: The name of the work item type (e.g., "Bug", "Task").
+            field_reference_name: The reference name of the field (e.g., "System.Title", "System.State").
+            
+        Returns:
+            WorkItemField object with detailed field information.
+            
+        Raises:
+            AdoError: If the API request fails.
+        """
+        # Check cache first
+        cache_key = f"work_item_type_field:{project_id}:{work_item_type}:{field_reference_name}"
+        cached_result = ado_cache._get(cache_key)
+        if cached_result:
+            logger.info(f"Returning cached field '{field_reference_name}' for work item type '{work_item_type}' in project '{project_id}'")
+            return WorkItemField(**cached_result)
+        
+        url = f"{self.organization_url}/{project_id}/_apis/wit/workitemtypes/{work_item_type}/fields/{field_reference_name}"
+        params = {
+            "api-version": "7.1"
+        }
+        
+        logger.info(f"Getting field '{field_reference_name}' for work item type '{work_item_type}' in project '{project_id}'")
+        
+        try:
+            data = self.client._send_request(
+                method="GET",
+                url=url,
+                params=params
+            )
+            
+            logger.info(f"Successfully retrieved field '{field_reference_name}' for work item type '{work_item_type}'")
+            
+            field = WorkItemField(**data)
+            
+            # Cache the result for 1 hour
+            ado_cache._set(cache_key, field.model_dump(), 3600)
+            
+            return field
+            
+        except Exception as e:
+            logger.error(f"Failed to get work item type field: {e}")
+            raise AdoError(f"Failed to get work item type field: {e}", "work_item_type_field_get_failed") from e
     
     def list_area_paths(
         self,

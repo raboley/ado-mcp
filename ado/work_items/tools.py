@@ -539,6 +539,120 @@ def register_work_item_tools(mcp_instance, client_container):
             raise
     
     @mcp_instance.tool
+    def get_work_item_type(
+        project_id: str,
+        work_item_type: str,
+    ) -> WorkItemType:
+        """
+        Get detailed information about a specific work item type.
+        
+        This tool returns comprehensive information about a single work item type
+        including states, transitions, colors, icons, and field information.
+        This is more detailed than list_work_item_types which provides basic info
+        for all types.
+        
+        Args:
+            project_id: The ID or name of the project.
+            work_item_type: The name of the work item type (e.g., "Bug", "Task").
+            
+        Returns:
+            WorkItemType: Detailed work item type information.
+            
+        Examples:
+            # Get detailed info for Bug work item type
+            get_work_item_type(project_id="MyProject", work_item_type="Bug")
+            
+            # Get detailed info for User Story work item type
+            get_work_item_type(project_id="MyProject", work_item_type="User Story")
+            
+            # The result includes:
+            # - States and their colors/categories
+            # - Valid state transitions
+            # - Work item type color and icon
+            # - Associated fields and constraints
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+            
+        try:
+            work_items_client = WorkItemsClient(ado_client_instance)
+            
+            logger.info(f"Getting detailed work item type '{work_item_type}' in project: {project_id}")
+            
+            work_item_type_details = work_items_client.get_work_item_type(project_id, work_item_type)
+            
+            logger.info(f"Successfully retrieved detailed information for work item type '{work_item_type}'")
+            return work_item_type_details
+            
+        except Exception as e:
+            logger.error(f"Failed to get work item type details: {e}")
+            raise
+    
+    @mcp_instance.tool
+    def get_work_item_type_field(
+        project_id: str,
+        work_item_type: str,
+        field_reference_name: str,
+    ) -> WorkItemField:
+        """
+        Get detailed information about a specific field for a work item type.
+        
+        This tool returns comprehensive information about a single field including
+        allowed values, constraints, defaults, and validation rules. This is more
+        detailed than get_work_item_type_fields which returns basic info for all fields.
+        
+        Args:
+            project_id: The ID or name of the project.
+            work_item_type: The name of the work item type (e.g., "Bug", "Task").
+            field_reference_name: The reference name of the field (e.g., "System.Title", "System.State").
+            
+        Returns:
+            WorkItemField: Detailed field information.
+            
+        Examples:
+            # Get detailed info for the State field of Bug work items
+            get_work_item_type_field(
+                project_id="MyProject",
+                work_item_type="Bug", 
+                field_reference_name="System.State"
+            )
+            
+            # Get detailed info for the Priority field
+            get_work_item_type_field(
+                project_id="MyProject",
+                work_item_type="Task",
+                field_reference_name="Microsoft.VSTS.Common.Priority"
+            )
+            
+            # The result includes:
+            # - Field type and constraints
+            # - Allowed values for dropdown fields
+            # - Default values
+            # - Validation rules
+            # - Help text and descriptions
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+            
+        try:
+            work_items_client = WorkItemsClient(ado_client_instance)
+            
+            logger.info(f"Getting field '{field_reference_name}' for work item type '{work_item_type}' in project: {project_id}")
+            
+            field_details = work_items_client.get_work_item_type_field(project_id, work_item_type, field_reference_name)
+            
+            logger.info(f"Successfully retrieved field details for '{field_reference_name}' in work item type '{work_item_type}'")
+            return field_details
+            
+        except Exception as e:
+            logger.error(f"Failed to get work item type field details: {e}")
+            raise
+    
+    @mcp_instance.tool
     def list_area_paths(
         project_id: str,
         depth: Optional[int] = None,
