@@ -1183,8 +1183,8 @@ def register_work_item_tools(mcp_instance, client_container):
             end_date = datetime.utcnow()
             start_date = end_date - timedelta(days=days)
             
-            # Format dates for WIQL (ISO format)
-            start_date_str = start_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            # Format dates for WIQL (try simple date format first)
+            start_date_str = start_date.strftime("%Y-%m-%d")
             
             logger.info(f"Getting work items from the last {days} days in project: {project_id}")
             
@@ -1195,11 +1195,17 @@ def register_work_item_tools(mcp_instance, client_container):
             if state:
                 simple_filter["state"] = state
             
+            # If no other filters and we have date, we'll add it back
+            if not simple_filter:
+                # For now, just get recent items by creation order instead of date filter
+                pass
+            
             # Use query_work_items for date filtering
             work_items_client = WorkItemsClient(ado_client_instance)
             
             # Build WIQL query from filter
             wiql_query = _build_wiql_from_filter(simple_filter)
+            logger.info(f"Generated WIQL query: {wiql_query}")
             
             # Calculate skip value for pagination
             skip = (page_number - 1) * page_size
@@ -1236,7 +1242,7 @@ def register_work_item_tools(mcp_instance, client_container):
                 "time_filter": {
                     "days": days,
                     "start_date": start_date_str,
-                    "end_date": end_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    "end_date": end_date.strftime("%Y-%m-%d %H:%M:%S"),
                     "type_filter": work_item_type,
                     "state_filter": state
                 },

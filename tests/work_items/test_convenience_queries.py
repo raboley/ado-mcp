@@ -312,16 +312,18 @@ async def test_get_recent_work_items_pagination(client, project_id):
 async def test_convenience_tools_error_handling(client):
     """Test error handling in convenience tools"""
     # Test with invalid project
-    result = await client.call_tool("get_my_work_items", {
-        "project_id": "00000000-0000-0000-0000-000000000000",
-        "assigned_to": "test@example.com"
-    })
+    with pytest.raises(Exception) as exc_info:
+        await client.call_tool("get_my_work_items", {
+            "project_id": "00000000-0000-0000-0000-000000000000",
+            "assigned_to": "test@example.com"
+        })
     
-    assert result.is_error is True, f"Should fail with invalid project but got success: {result.data}"
+    assert "400" in str(exc_info.value) or "not found" in str(exc_info.value).lower(), f"Should get bad request error but got: {exc_info.value}"
     
     # Test get_recent_work_items with invalid project
-    result = await client.call_tool("get_recent_work_items", {
-        "project_id": "00000000-0000-0000-0000-000000000000"
-    })
+    with pytest.raises(Exception) as exc_info:
+        await client.call_tool("get_recent_work_items", {
+            "project_id": "00000000-0000-0000-0000-000000000000"
+        })
     
-    assert result.is_error is True, f"Should fail with invalid project but got success: {result.data}"
+    assert "400" in str(exc_info.value) or "not found" in str(exc_info.value).lower(), f"Should get bad request error but got: {exc_info.value}"
