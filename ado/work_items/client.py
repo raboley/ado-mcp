@@ -4,10 +4,10 @@ import logging
 from typing import Any, Dict, List, Optional, Union
 
 from ado.client import AdoClient
-from ado.errors import AdoError
+from ado.errors import AdoError, AdoRateLimitError, AdoNetworkError, AdoTimeoutError, AdoAuthenticationError
 from ado.cache import ado_cache
-# Retry is handled by the client's _send_request method
-# Telemetry is optional for now
+from ado.retry import RetryManager
+from opentelemetry import trace
 from ado.work_items.models import (
     ClassificationNode,
     JsonPatchDocument,
@@ -25,6 +25,7 @@ from ado.work_items.models import (
 )
 
 logger = logging.getLogger(__name__)
+tracer = trace.get_tracer(__name__)
 
 
 class WorkItemsClient:
@@ -100,25 +101,67 @@ class WorkItemsClient:
             request_headers = self.client.headers.copy()
             request_headers["Content-Type"] = "application/json-patch+json"
             
-            # Use requests directly like the client's _send_request but with our headers
-            import requests
-            response = requests.request(
-                method="POST",
-                url=url,
-                headers=request_headers,
-                json=patch_document,
-                params=params,
-                timeout=self.client.config.request_timeout_seconds
-            )
-            response.raise_for_status()
-            data = response.json() if response.content else None
+            # Use the client's retry-enabled _send_request method with proper headers
+            with tracer.start_as_current_span("create_work_item") as span:
+                span.set_attribute("work_item.type", work_item_type)
+                span.set_attribute("work_item.project_id", project_id)
+                span.set_attribute("work_item.field_count", len(operations))
+                
+                # Use client's session for connection pooling with retry wrapper
+                import requests
+                
+                @self.client.retry_manager.retry_on_failure
+                def make_create_request():
+                    # Use session for connection pooling if available
+                    request_func = self.client.session.request if hasattr(self.client, 'session') and self.client.session != requests else requests.request
+                    response = request_func(
+                        method="POST",
+                        url=url,
+                        headers=request_headers,
+                        json=patch_document,
+                        params=params,
+                        timeout=self.client.config.request_timeout_seconds
+                    )
+                    
+                    # Handle specific status codes with proper error types
+                    if response.status_code == 401:
+                        raise AdoAuthenticationError(
+                            "Authentication failed for work item creation",
+                            context={"project_id": project_id, "work_item_type": work_item_type}
+                        )
+                    elif response.status_code == 429:
+                        retry_after = response.headers.get('Retry-After')
+                        raise AdoRateLimitError(
+                            "Rate limit exceeded during work item creation",
+                            retry_after=int(retry_after) if retry_after else None,
+                            context={"project_id": project_id, "work_item_type": work_item_type}
+                        )
+                    elif response.status_code >= 500:
+                        raise AdoNetworkError(
+                            f"Server error during work item creation: {response.status_code}",
+                            context={"project_id": project_id, "work_item_type": work_item_type, "status_code": response.status_code}
+                        )
+                    
+                    response.raise_for_status()
+                    return response.json() if response.content else None
+                
+                data = make_create_request()
+                span.set_attribute("work_item.id", data.get('id'))
             
             logger.info(f"Successfully created work item ID: {data.get('id')}")
             return WorkItem(**data)
             
+        except (AdoAuthenticationError, AdoRateLimitError, AdoNetworkError, AdoTimeoutError):
+            # Re-raise our structured exceptions
+            raise
         except Exception as e:
             logger.error(f"Failed to create work item: {e}")
-            raise AdoError(f"Failed to create work item: {e}", "work_item_creation_failed") from e
+            raise AdoError(
+                f"Failed to create work item: {e}", 
+                "work_item_creation_failed",
+                context={"project_id": project_id, "work_item_type": work_item_type},
+                original_exception=e
+            ) from e
     
     def get_work_item(
         self,
@@ -160,18 +203,30 @@ class WorkItemsClient:
         logger.info(f"Getting work item {work_item_id} from project '{project_id}'")
         
         try:
-            data = self.client._send_request(
-                method="GET",
-                url=url,
-                params=params
-            )
+            with tracer.start_as_current_span("get_work_item") as span:
+                span.set_attribute("work_item.id", work_item_id)
+                span.set_attribute("work_item.project_id", project_id)
+                
+                data = self.client._send_request(
+                    method="GET",
+                    url=url,
+                    params=params
+                )
             
             logger.info(f"Successfully retrieved work item {work_item_id}")
             return WorkItem(**data)
             
+        except (AdoAuthenticationError, AdoRateLimitError, AdoNetworkError, AdoTimeoutError):
+            # Re-raise our structured exceptions
+            raise
         except Exception as e:
             logger.error(f"Failed to get work item {work_item_id}: {e}")
-            raise AdoError(f"Failed to get work item {work_item_id}: {e}", "work_item_get_failed") from e
+            raise AdoError(
+                f"Failed to get work item {work_item_id}: {e}", 
+                "work_item_get_failed",
+                context={"project_id": project_id, "work_item_id": work_item_id},
+                original_exception=e
+            ) from e
     
     def update_work_item(
         self,
@@ -216,29 +271,69 @@ class WorkItemsClient:
         )
         
         try:
-            # Build merged headers with content type for JSON patch
-            request_headers = self.client.headers.copy()
-            request_headers["Content-Type"] = "application/json-patch+json"
-            
-            # Use requests directly like the client's _send_request but with our headers
-            import requests
-            response = requests.request(
-                method="PATCH",
-                url=url,
-                headers=request_headers,
-                json=patch_document,
-                params=params,
-                timeout=self.client.config.request_timeout_seconds
-            )
-            response.raise_for_status()
-            data = response.json() if response.content else None
+            with tracer.start_as_current_span("update_work_item") as span:
+                span.set_attribute("work_item.id", work_item_id)
+                span.set_attribute("work_item.project_id", project_id)
+                span.set_attribute("work_item.operations_count", len(operations))
+                
+                # Build merged headers with content type for JSON patch
+                request_headers = self.client.headers.copy()
+                request_headers["Content-Type"] = "application/json-patch+json"
+                
+                # Use retry wrapper for update operations
+                import requests
+                
+                @self.client.retry_manager.retry_on_failure
+                def make_update_request():
+                    # Use session for connection pooling if available
+                    request_func = self.client.session.request if hasattr(self.client, 'session') and self.client.session != requests else requests.request
+                    response = request_func(
+                        method="PATCH",
+                        url=url,
+                        headers=request_headers,
+                        json=patch_document,
+                        params=params,
+                        timeout=self.client.config.request_timeout_seconds
+                    )
+                    
+                    # Handle specific status codes
+                    if response.status_code == 401:
+                        raise AdoAuthenticationError(
+                            "Authentication failed for work item update",
+                            context={"project_id": project_id, "work_item_id": work_item_id}
+                        )
+                    elif response.status_code == 429:
+                        retry_after = response.headers.get('Retry-After')
+                        raise AdoRateLimitError(
+                            "Rate limit exceeded during work item update",
+                            retry_after=int(retry_after) if retry_after else None,
+                            context={"project_id": project_id, "work_item_id": work_item_id}
+                        )
+                    elif response.status_code >= 500:
+                        raise AdoNetworkError(
+                            f"Server error during work item update: {response.status_code}",
+                            context={"project_id": project_id, "work_item_id": work_item_id, "status_code": response.status_code}
+                        )
+                    
+                    response.raise_for_status()
+                    return response.json() if response.content else None
+                
+                data = make_update_request()
             
             logger.info(f"Successfully updated work item {work_item_id}")
             return WorkItem(**data)
             
+        except (AdoAuthenticationError, AdoRateLimitError, AdoNetworkError, AdoTimeoutError):
+            # Re-raise our structured exceptions
+            raise
         except Exception as e:
             logger.error(f"Failed to update work item {work_item_id}: {e}")
-            raise AdoError(f"Failed to update work item {work_item_id}: {e}", "work_item_update_failed") from e
+            raise AdoError(
+                f"Failed to update work item {work_item_id}: {e}", 
+                "work_item_update_failed",
+                context={"project_id": project_id, "work_item_id": work_item_id, "operations_count": len(operations)},
+                original_exception=e
+            ) from e
     
     def delete_work_item(
         self,

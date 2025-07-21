@@ -9,6 +9,8 @@ from base64 import b64encode
 from typing import Any, Optional
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
@@ -68,6 +70,9 @@ class AdoClient:
         # Initialize retry manager
         self.retry_manager = RetryManager(self.config.retry)
         
+        # Initialize connection pooling session if enabled
+        self.session = self._create_session() if self.config.connection_pool.enabled else requests
+        
         # Generate correlation ID for this client instance
         self.correlation_id = str(uuid.uuid4())
         
@@ -97,6 +102,8 @@ class AdoClient:
         self._builds = BuildOperations(self)
         self._logs = LogOperations(self)
         self._lookups = AdoLookups(self)
+        
+        logger.info(f"AdoClient initialized with connection_pool_enabled={self.config.connection_pool.enabled}")
     
     def _get_compatible_auth_method(self) -> str:
         """Get authentication method name compatible with existing tests."""
@@ -112,6 +119,53 @@ class AdoClient:
         }
         
         return method_mapping.get(actual_method, actual_method)
+    
+    def _create_session(self) -> requests.Session:
+        """
+        Create a requests session with connection pooling and retry configuration.
+        
+        Returns:
+            requests.Session: Configured session with pooling
+        """
+        session = requests.Session()
+        
+        # Configure HTTP adapter with connection pooling
+        adapter = HTTPAdapter(
+            pool_connections=self.config.connection_pool.max_pool_connections,
+            pool_maxsize=self.config.connection_pool.max_pool_size,
+            pool_block=self.config.connection_pool.block,
+        )
+        
+        # Mount adapters for HTTP and HTTPS
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        
+        logger.info(
+            f"Connection pool configured: max_connections={self.config.connection_pool.max_pool_connections}, "
+            f"max_size={self.config.connection_pool.max_pool_size}, "
+            f"block={self.config.connection_pool.block}"
+        )
+        
+        return session
+    
+    def close(self):
+        """
+        Close the connection pool session if it exists.
+        
+        This method should be called when the client is no longer needed
+        to properly clean up connection pool resources.
+        """
+        if hasattr(self, 'session') and self.session != requests and hasattr(self.session, 'close'):
+            logger.info("Closing connection pool session")
+            self.session.close()
+    
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit with cleanup."""
+        self.close()
 
     def _setup_pat_auth(self, pat: str) -> None:
         """Set up PAT-based authentication headers."""
@@ -325,7 +379,9 @@ class AdoClient:
         @self.retry_manager.retry_on_failure
         def make_request():
             try:
-                response = requests.request(method, url, headers=self.headers, **kwargs)
+                # Use session for connection pooling if enabled, otherwise fall back to requests
+                request_func = self.session.request if hasattr(self, 'session') and self.session != requests else requests.request
+                response = request_func(method, url, headers=self.headers, **kwargs)
                 self._validate_response(response)
                 
                 # Handle rate limiting

@@ -76,6 +76,37 @@ class AuthConfig:
 
 
 @dataclass
+class ConnectionPoolConfig:
+    """Configuration for HTTP connection pooling and session management."""
+    
+    enabled: bool = True
+    max_pool_connections: int = 20
+    max_pool_size: int = 100
+    block: bool = False
+    pool_timeout: float = 5.0
+    
+    def __post_init__(self):
+        """Validate connection pool configuration values."""
+        if self.max_pool_connections <= 0:
+            raise AdoConfigurationError(
+                "max_pool_connections must be positive",
+                context={"max_pool_connections": self.max_pool_connections}
+            )
+        
+        if self.max_pool_size <= 0:
+            raise AdoConfigurationError(
+                "max_pool_size must be positive",
+                context={"max_pool_size": self.max_pool_size}
+            )
+        
+        if self.pool_timeout <= 0:
+            raise AdoConfigurationError(
+                "pool_timeout must be positive",
+                context={"pool_timeout": self.pool_timeout}
+            )
+
+
+@dataclass
 class TelemetryConfig:
     """Configuration for telemetry and observability."""
     
@@ -111,6 +142,7 @@ class AdoMcpConfig:
     retry: RetryConfig = field(default_factory=RetryConfig)
     auth: AuthConfig = field(default_factory=AuthConfig)
     telemetry: TelemetryConfig = field(default_factory=TelemetryConfig)
+    connection_pool: ConnectionPoolConfig = field(default_factory=ConnectionPoolConfig)
     
     # Request settings
     request_timeout_seconds: int = 30
@@ -141,6 +173,13 @@ class AdoMcpConfig:
         self.telemetry.trace_sampling_rate = float(os.getenv("ADO_TELEMETRY_TRACE_SAMPLING_RATE", self.telemetry.trace_sampling_rate))
         self.telemetry.metrics_enabled = os.getenv("ADO_TELEMETRY_METRICS_ENABLED", "true").lower() == "true"
         
+        # Override connection pool config from environment
+        self.connection_pool.enabled = os.getenv("ADO_CONNECTION_POOL_ENABLED", "true").lower() == "true"
+        self.connection_pool.max_pool_connections = int(os.getenv("ADO_CONNECTION_POOL_MAX_CONNECTIONS", self.connection_pool.max_pool_connections))
+        self.connection_pool.max_pool_size = int(os.getenv("ADO_CONNECTION_POOL_MAX_SIZE", self.connection_pool.max_pool_size))
+        self.connection_pool.block = os.getenv("ADO_CONNECTION_POOL_BLOCK", "false").lower() == "true"
+        self.connection_pool.pool_timeout = float(os.getenv("ADO_CONNECTION_POOL_TIMEOUT", self.connection_pool.pool_timeout))
+        
         # Override request timeout from environment
         self.request_timeout_seconds = int(os.getenv("ADO_REQUEST_TIMEOUT", self.request_timeout_seconds))
         
@@ -149,7 +188,8 @@ class AdoMcpConfig:
         
         logger.info(f"Configuration loaded: retry_max={self.retry.max_retries}, "
                    f"auth_timeout={self.auth.timeout_seconds}, "
-                   f"telemetry_enabled={self.telemetry.enabled}")
+                   f"telemetry_enabled={self.telemetry.enabled}, "
+                   f"connection_pool_enabled={self.connection_pool.enabled}")
     
     def _validate(self):
         """Validate the complete configuration."""
@@ -157,6 +197,16 @@ class AdoMcpConfig:
             raise AdoConfigurationError(
                 "request_timeout_seconds must be positive",
                 context={"request_timeout_seconds": self.request_timeout_seconds}
+            )
+        
+        # Ensure connection pool config is valid
+        if self.connection_pool.enabled and self.connection_pool.max_pool_size < self.connection_pool.max_pool_connections:
+            raise AdoConfigurationError(
+                "connection_pool.max_pool_size must be >= max_pool_connections",
+                context={
+                    "max_pool_size": self.connection_pool.max_pool_size,
+                    "max_pool_connections": self.connection_pool.max_pool_connections
+                }
             )
     
     @classmethod
