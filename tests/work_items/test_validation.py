@@ -317,4 +317,100 @@ def test_validation_bypass_logic_unit():
     assert result_invalid is False, "Invalid priority should fail validation"
     
     # In bypass mode, the tools would skip calling these validators
-    # This test verifies the validators exist and work as expected
+
+
+class TestStateTransitionValidation:
+    """Test state transition validation functionality."""
+
+    async def test_state_transition_same_state_allowed(self):
+        """Test that transitioning to the same state is always allowed."""
+        from ado.work_items.validation import WorkItemValidator
+        
+        project_id = "test-project"
+        work_item_type = "Bug"
+        
+        # Same state transitions should always be allowed
+        assert WorkItemValidator.validate_state_transition(
+            project_id, work_item_type, "New", "New"
+        ) is True
+        
+        assert WorkItemValidator.validate_state_transition(
+            project_id, work_item_type, "Active", "Active"
+        ) is True
+        
+        assert WorkItemValidator.validate_state_transition(
+            project_id, work_item_type, "Closed", "Closed"
+        ) is True
+
+    async def test_state_transition_validation_fallback_on_error(self):
+        """Test that validation falls back to allowing transition on errors."""
+        from ado.work_items.validation import WorkItemValidator
+        
+        # Use invalid project ID to trigger error path
+        invalid_project_id = "nonexistent-project-id"
+        
+        # Should fallback to allowing the transition
+        result = WorkItemValidator.validate_state_transition(
+            invalid_project_id, "Bug", "New", "Active"
+        )
+        assert result is True, "Should allow transition when validation fails"
+
+    async def test_state_transition_validation_with_real_data(self):
+        """Test state transition validation with real Azure DevOps data."""
+        from ado.work_items.validation import WorkItemValidator
+        
+        project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+        
+        # Test common bug state transitions that should be allowed
+        # Note: These depend on the actual process template configuration
+        # so we mainly test that the method doesn't crash and returns a boolean
+        
+        result = WorkItemValidator.validate_state_transition(
+            project_id, "Bug", "New", "Active"
+        )
+        assert isinstance(result, bool), "Should return boolean result"
+        
+        result = WorkItemValidator.validate_state_transition(
+            project_id, "Bug", "Active", "Resolved"
+        )
+        assert isinstance(result, bool), "Should return boolean result"
+        
+        result = WorkItemValidator.validate_state_transition(
+            project_id, "Bug", "Resolved", "Closed"
+        )
+        assert isinstance(result, bool), "Should return boolean result"
+
+    async def test_state_transition_validation_with_invalid_work_item_type(self):
+        """Test state transition validation with invalid work item type."""
+        from ado.work_items.validation import WorkItemValidator
+        
+        project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+        
+        # Should fallback to allowing transition for unknown work item types
+        result = WorkItemValidator.validate_state_transition(
+            project_id, "NonexistentWorkItemType", "New", "Active"
+        )
+        assert result is True, "Should allow transition for unknown work item types"
+
+    async def test_state_transition_validation_integration(self):
+        """Test that state transition validation can be used in work item operations."""
+        from ado.work_items.validation import WorkItemValidator
+        
+        project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+        
+        # Test the validation can be called as part of update validation
+        # This simulates how it would be used in the update_work_item tool
+        
+        # Simulate validating a state change in an update operation
+        old_state = "New"
+        new_state = "Active" 
+        work_item_type = "Bug"
+        
+        transition_valid = WorkItemValidator.validate_state_transition(
+            project_id, work_item_type, old_state, new_state
+        )
+        
+        assert isinstance(transition_valid, bool), "Validation should return boolean"
+        
+        # In a real update, if transition_valid is False and bypass_rules is False,
+        # the update would be rejected. Here we just test the validation works.

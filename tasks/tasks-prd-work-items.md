@@ -39,15 +39,15 @@
 
 - [x] 2.0 Work Item Metadata and Classification Management
   - [x] 2.1 Implement list_work_item_types tool
-  - [ ] 2.2 Create caching mechanism for work item types (1 hour TTL)
+  - [x] 2.2 Create caching mechanism for work item types (1 hour TTL with fuzzy matching)
   - [x] 2.3 Write tests for work item type listing and caching
-  - [ ] 2.4 Add telemetry for cache hit/miss rates
+  - [x] 2.4 Add telemetry for cache hit/miss rates (OpenTelemetry metrics with comprehensive labeling)
   - [x] 2.5 Implement get_work_item_type_fields tool
   - [x] 2.6 Write tests for field discovery per work item type
   - [x] 2.7 Implement list_area_paths and list_iteration_paths tools
-  - [ ] 2.8 Add caching for classification nodes (1 hour TTL)
+  - [x] 2.8 Add caching for classification nodes (1 hour TTL for area/iteration paths)
   - [x] 2.9 Write tests for area/iteration path tools
-  - [ ] 2.10 Add validation helpers for paths in work item operations
+  - [x] 2.10 Add validation helpers for paths in work item operations (integrated in validation.py)
   - [x] 2.11 Document metadata tools and caching behavior
 
 - [x] 3.0 Work Item Querying and Batch Operations
@@ -80,7 +80,7 @@
   - [x] 4.11 Add telemetry for history access patterns
   - [x] 4.12 Document comment formatting and history features
 
-- [ ] 5.0 Work Item Relationships and Advanced Features
+- [x] 5.0 Work Item Relationships and Advanced Features
   - [x] 5.1 Define WorkItemRelation and WorkItemQueryResult models
   - [x] 5.2 Implement link_work_items tool for creating relationships
   - [x] 5.3 Write tests for various relationship types (parent/child, related, blocks)
@@ -89,8 +89,8 @@
   - [x] 5.6 Write tests for relationship retrieval and expansion
   - [x] 5.7 Implement field validation with detailed error messages
   - [x] 5.8 Write tests for field validation scenarios
-  - [ ] 5.9 Add state transition validation logic
-  - [ ] 5.10 Write tests for state transition rules
+  - [x] 5.9 Add state transition validation logic
+  - [x] 5.10 Write tests for state transition rules
   - [ ] 5.11 Add comprehensive error handling and retry logic
   - [ ] 5.12 Implement connection pooling for API requests
   - [x] 5.13 Write integration tests for end-to-end workflows

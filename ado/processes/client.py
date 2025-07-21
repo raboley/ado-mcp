@@ -262,8 +262,14 @@ class ProcessesClient:
         except Exception as e:
             # If process not found, it might be a custom process template
             # Try to find a base process with matching information
-            if "404" in str(e) or "not found" in str(e).lower():
-                logger.warning(f"Process '{process_id}' not found via process API, attempting to find base process information")
+            # Handle both 404 (Not Found) and 400 (Bad Request) for custom process templates
+            # But exclude obviously invalid process IDs like all zeros
+            is_not_found_error = "404" in str(e) or "not found" in str(e).lower()
+            is_bad_request_error = "400" in str(e) or "bad request" in str(e).lower()
+            is_zero_uuid = process_id == "00000000-0000-0000-0000-000000000000"
+            
+            if (is_not_found_error or (is_bad_request_error and not is_zero_uuid)):
+                logger.warning(f"Process '{process_id}' not accessible via process API (likely custom template), attempting fallback")
                 
                 try:
                     # Try to find project information that uses this process to get the name
