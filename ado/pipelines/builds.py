@@ -34,12 +34,12 @@ class BuildOperations:
             requests.exceptions.RequestException: For network-related errors.
         """
         url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs?api-version=7.2-preview.1"
-        
+
         # Prepare request data
         request_data = {}
         if request:
             request_dict = request.model_dump(exclude_none=True)
-            
+
             # Handle variables: convert Union[str, Variable] to proper Azure DevOps format
             if "variables" in request_dict and request_dict["variables"]:
                 processed_variables = {}
@@ -54,7 +54,7 @@ class BuildOperations:
                         # Fallback: treat as string value
                         processed_variables[key] = {"value": str(value)}
                 request_dict["variables"] = processed_variables
-            
+
             # Handle resources and branch - branch needs to be merged into resources.repositories.self.refName
             resources = request_dict.get("resources", {})
             if request.branch:
@@ -65,20 +65,20 @@ class BuildOperations:
                 resources["repositories"]["self"] = {"refName": request.branch}
                 # Remove branch from the dict as we've handled it
                 request_dict.pop("branch", None)
-            
+
             # Set resources in request_data if they exist (either from original request or from branch handling)
             if resources:
                 request_data["resources"] = resources
                 # Remove resources from request_dict to avoid overwrite in update()
                 request_dict.pop("resources", None)
-            
+
             # Add other fields
             request_data.update(request_dict)
-        
+
         logger.info(f"Running pipeline {pipeline_id} in project {project_id}")
         if request_data:
             logger.debug(f"Pipeline run request data: {request_data}")
-        
+
         response = self._client._send_request("POST", url, json=request_data)
         logger.info(
             f"Pipeline run started: {response.get('id')} with state: {response.get('state')}"

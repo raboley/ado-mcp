@@ -1,4 +1,3 @@
-
 import os
 import pytest
 from fastmcp.client import Client
@@ -19,26 +18,28 @@ async def mcp_client():
         yield client
 
 
-
 @requires_ado_creds
 async def test_check_authentication_success(mcp_client: Client):
     result = await mcp_client.call_tool("check_ado_authentication")
-    
+
     auth_result = result.data
-    assert auth_result is True, f"Expected authentication to succeed with valid credentials but got: {auth_result}"
+    assert auth_result is True, (
+        f"Expected authentication to succeed with valid credentials but got: {auth_result}"
+    )
 
 
-
-@requires_ado_creds 
+@requires_ado_creds
 async def test_check_authentication_after_org_change(mcp_client: Client):
     result = await mcp_client.call_tool("check_ado_authentication")
     assert result.data is True, f"Expected initial authentication to work but got: {result.data}"
-    
+
     org_url = os.environ.get("ADO_ORGANIZATION_URL", "https://dev.azure.com/RussellBoley")
     await mcp_client.call_tool("set_ado_organization", {"organization_url": org_url})
-    
+
     result = await mcp_client.call_tool("check_ado_authentication")
-    assert result.data is True, f"Expected authentication to still work after organization change but got: {result.data}"
+    assert result.data is True, (
+        f"Expected authentication to still work after organization change but got: {result.data}"
+    )
 
 
 async def test_check_authentication_tool_registration():
@@ -49,4 +50,6 @@ async def test_check_authentication_tool_registration():
         else:
             tools = tools_response
         tool_names = [tool.name for tool in tools]
-        assert "check_ado_authentication" in tool_names, f"Expected 'check_ado_authentication' tool to be registered but found tools: {tool_names}"
+        assert "check_ado_authentication" in tool_names, (
+            f"Expected 'check_ado_authentication' tool to be registered but found tools: {tool_names}"
+        )

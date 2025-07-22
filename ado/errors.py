@@ -13,7 +13,7 @@ class AdoError(Exception):
     ):
         """
         Initialize structured ADO error.
-        
+
         Args:
             message: Human-readable error message
             error_code: Structured error code for programmatic handling
@@ -56,7 +56,7 @@ class AdoRateLimitError(AdoError):
         context = context or {}
         if retry_after:
             context["retry_after"] = retry_after
-        
+
         super().__init__(
             message=message,
             error_code="ADO_RATE_LIMIT",
@@ -79,7 +79,7 @@ class AdoTimeoutError(AdoError):
         context = context or {}
         if timeout_seconds:
             context["timeout_seconds"] = timeout_seconds
-        
+
         super().__init__(
             message=message,
             error_code="ADO_TIMEOUT",
