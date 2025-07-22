@@ -1,5 +1,3 @@
-"""Tests for work item querying functionality."""
-
 import os
 import pytest
 from fastmcp.client import Client
@@ -23,12 +21,11 @@ async def mcp_client():
 
 @pytest.fixture
 def project_id():
-    return "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    return "49e895da-15c6-4211-97df-65c547a59c22"
 
 
 @pytest.fixture(autouse=True)
 def clear_cache():
-    """Clear cache before and after each test."""
     ado_cache.clear_all()
     yield
     ado_cache.clear_all()
@@ -37,7 +34,6 @@ def clear_cache():
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_default_query(mcp_client, project_id):
-    """Test query_work_items with default query returns all work items."""
     result = await mcp_client.call_tool("query_work_items", {"project_id": project_id})
 
     assert result.data is not None, "Query should return data"
@@ -52,7 +48,6 @@ async def test_query_work_items_default_query(mcp_client, project_id):
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_with_wiql(mcp_client, project_id):
-    """Test query_work_items with custom WIQL query."""
     wiql_query = (
         "SELECT [System.Id], [System.Title] "
         "FROM WorkItems "
@@ -74,7 +69,6 @@ async def test_query_work_items_with_wiql(mcp_client, project_id):
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_with_simple_filter(mcp_client, project_id):
-    """Test query_work_items with simple filter parameters."""
     result = await mcp_client.call_tool(
         "query_work_items",
         {"project_id": project_id, "simple_filter": {"work_item_type": "Task", "state": "New"}},
@@ -89,13 +83,10 @@ async def test_query_work_items_with_simple_filter(mcp_client, project_id):
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_with_pagination(mcp_client, project_id):
-    """Test query_work_items with skip and top parameters."""
-    # Test with top parameter only
     result1 = await mcp_client.call_tool("query_work_items", {"project_id": project_id, "top": 5})
 
     assert result1.data is not None, "Query with top should return data"
 
-    # Test with skip and top parameters
     result2 = await mcp_client.call_tool(
         "query_work_items", {"project_id": project_id, "skip": 0, "top": 3}
     )
@@ -106,7 +97,6 @@ async def test_query_work_items_with_pagination(mcp_client, project_id):
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_with_page_parameters(mcp_client, project_id):
-    """Test query_work_items with page_size and page_number parameters."""
     result = await mcp_client.call_tool(
         "query_work_items", {"project_id": project_id, "page_size": 10, "page_number": 1}
     )
@@ -120,7 +110,6 @@ async def test_query_work_items_with_page_parameters(mcp_client, project_id):
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_items_page_default(mcp_client, project_id):
-    """Test get_work_items_page with default parameters."""
     result = await mcp_client.call_tool("get_work_items_page", {"project_id": project_id})
 
     assert result.data is not None, "Page query should return data"
@@ -140,8 +129,6 @@ async def test_get_work_items_page_default(mcp_client, project_id):
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_items_page_basic_functionality(mcp_client, project_id):
-    """Test basic get_work_items_page functionality without filters."""
-    # Test without any filters first to ensure basic functionality works
     result = await mcp_client.call_tool(
         "get_work_items_page", {"project_id": project_id, "page_number": 1, "page_size": 20}
     )
@@ -157,8 +144,6 @@ async def test_get_work_items_page_basic_functionality(mcp_client, project_id):
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_items_page_pagination_navigation(mcp_client, project_id):
-    """Test pagination navigation with get_work_items_page."""
-    # Get first page without filters
     result1 = await mcp_client.call_tool(
         "get_work_items_page", {"project_id": project_id, "page_number": 1, "page_size": 5}
     )
@@ -169,7 +154,6 @@ async def test_get_work_items_page_pagination_navigation(mcp_client, project_id)
     assert page1["pagination"]["page_number"] == 1, "Should be page 1"
     assert page1["pagination"]["has_previous"] is False, "First page should not have previous"
 
-    # Get second page if it exists
     if page1["pagination"]["has_more"]:
         result2 = await mcp_client.call_tool(
             "get_work_items_page", {"project_id": project_id, "page_number": 2, "page_size": 5}
@@ -185,18 +169,15 @@ async def test_get_work_items_page_pagination_navigation(mcp_client, project_id)
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_invalid_wiql(mcp_client, project_id):
-    """Test query_work_items with invalid WIQL query."""
     invalid_wiql = "INVALID WIQL SYNTAX"
 
     try:
         result = await mcp_client.call_tool(
             "query_work_items", {"project_id": project_id, "wiql_query": invalid_wiql}
         )
-        # If no exception is raised, the result should indicate failure
         if result.data is not None:
             assert False, "Invalid WIQL should not return valid data"
     except Exception as e:
-        # Expected behavior - invalid WIQL should raise an exception
         assert "failed" in str(e).lower() or "error" in str(e).lower(), (
             f"Should get meaningful error for invalid WIQL: {e}"
         )
@@ -205,19 +186,16 @@ async def test_query_work_items_invalid_wiql(mcp_client, project_id):
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_invalid_project(mcp_client):
-    """Test query_work_items with invalid project ID."""
     invalid_project_id = "00000000-0000-0000-0000-000000000000"
 
     try:
         result = await mcp_client.call_tool("query_work_items", {"project_id": invalid_project_id})
-        # Should either raise exception or return empty result
         if result.data is not None:
             query_result = result.data
             assert isinstance(query_result["workItems"], list), (
                 "Should return empty list for invalid project"
             )
     except Exception as e:
-        # Expected behavior - invalid project should raise an exception
         assert "failed" in str(e).lower() or "not found" in str(e).lower(), (
             f"Should get meaningful error for invalid project: {e}"
         )
@@ -226,7 +204,6 @@ async def test_query_work_items_invalid_project(mcp_client):
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_large_skip_value(mcp_client, project_id):
-    """Test query_work_items with skip value larger than available items."""
     result = await mcp_client.call_tool(
         "query_work_items", {"project_id": project_id, "skip": 10000, "top": 10}
     )
@@ -234,15 +211,12 @@ async def test_query_work_items_large_skip_value(mcp_client, project_id):
     assert result.data is not None, "Query with large skip should return data (possibly empty)"
     query_result = result.data
 
-    # Should return empty results or handle gracefully
     assert isinstance(query_result["workItems"], list), "workItems should be a list"
 
 
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_custom_wiql_simple(mcp_client, project_id):
-    """Test query_work_items with simple custom WIQL."""
-    # Test with a very simple WIQL query that should work
     wiql_query = "SELECT [System.Id], [System.Title] FROM WorkItems ORDER BY [System.Id]"
 
     result = await mcp_client.call_tool(
@@ -259,7 +233,6 @@ async def test_query_work_items_custom_wiql_simple(mcp_client, project_id):
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_items_page_parameter_validation(mcp_client, project_id):
-    """Test get_work_items_page parameter validation and defaults."""
     result = await mcp_client.call_tool(
         "get_work_items_page", {"project_id": project_id, "page_size": 15}
     )
@@ -274,32 +247,28 @@ async def test_get_work_items_page_parameter_validation(mcp_client, project_id):
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_small_top_parameter(mcp_client, project_id):
-    """Test query_work_items with small top parameter."""
     result = await mcp_client.call_tool("query_work_items", {"project_id": project_id, "top": 1})
 
     assert result.data is not None, "Query with top=1 should return data"
     query_result = result.data
 
-    # With top=1, should return at most 1 result
     assert len(query_result["workItems"]) <= 1, "Should return at most 1 workItem when top=1"
 
 
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_items_page_small_page_size(mcp_client, project_id):
-    """Test get_work_items_page with small page_size (should be auto-corrected)."""
     result = await mcp_client.call_tool(
         "get_work_items_page",
         {
             "project_id": project_id,
-            "page_size": 0,  # Should be auto-corrected to minimum
+            "page_size": 0,
         },
     )
 
     assert result.data is not None, "Query with page_size=0 should return data"
     page_result = result.data
 
-    # Should handle gracefully by using minimum page size
     assert isinstance(page_result["work_items"], list), "work_items should be a list"
     assert page_result["pagination"]["page_size"] >= 1, (
         "Should auto-correct page_size to minimum value"
@@ -309,7 +278,6 @@ async def test_get_work_items_page_small_page_size(mcp_client, project_id):
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_both_wiql_and_filter(mcp_client, project_id):
-    """Test query_work_items with both WIQL and simple filter (WIQL should take precedence)."""
     wiql_query = "SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = 'Task'"
 
     result = await mcp_client.call_tool(
@@ -318,7 +286,7 @@ async def test_query_work_items_both_wiql_and_filter(mcp_client, project_id):
             "project_id": project_id,
             "wiql_query": wiql_query,
             "simple_filter": {
-                "work_item_type": "Bug"  # This should be ignored
+                "work_item_type": "Bug"
             },
         },
     )
@@ -326,22 +294,17 @@ async def test_query_work_items_both_wiql_and_filter(mcp_client, project_id):
     assert result.data is not None, "Query with both WIQL and filter should return data"
     query_result = result.data
 
-    # WIQL should take precedence
     assert isinstance(query_result["workItems"], list), "workItems should be a list"
 
 
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_items_page_high_page_number(mcp_client, project_id):
-    """Test get_work_items_page with high page number."""
-    # First, get the total count to calculate a truly high page number
     first_page = await mcp_client.call_tool(
         "get_work_items_page", {"project_id": project_id, "page_number": 1, "page_size": 10}
     )
 
-    # Calculate a page number that should definitely be beyond the last page
-    # Assuming there are fewer than 50,000 work items total
-    high_page_number = 5000  # 5000 * 10 = 50,000 items
+    high_page_number = 5000
 
     result = await mcp_client.call_tool(
         "get_work_items_page",
@@ -351,7 +314,6 @@ async def test_get_work_items_page_high_page_number(mcp_client, project_id):
     assert result.data is not None, "Query with high page number should return data"
     page_result = result.data
 
-    # Should handle gracefully, likely returning empty results
     assert isinstance(page_result["work_items"], list), "work_items should be a list"
     assert page_result["pagination"]["page_number"] == high_page_number, (
         f"Should return requested page number {high_page_number}"
@@ -359,6 +321,4 @@ async def test_get_work_items_page_high_page_number(mcp_client, project_id):
     assert page_result["pagination"]["has_previous"] is True, (
         "High page number should have previous page"
     )
-    # Don't assert has_more is False - this depends on the actual data in the project
-    # Just verify it's a boolean
     assert isinstance(page_result["pagination"]["has_more"], bool), "has_more should be a boolean"

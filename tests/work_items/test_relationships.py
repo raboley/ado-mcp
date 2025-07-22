@@ -30,17 +30,13 @@ def project_id():
 
 @pytest.fixture
 async def work_item_cleanup(mcp_client, project_id):
-    """Fixture to track and cleanup created work items."""
     created_work_items = []
 
     def track_work_item(work_item_id):
-        """Track a work item ID for cleanup."""
         created_work_items.append(work_item_id)
 
-    # Yield the tracking function
     yield track_work_item
 
-    # Cleanup all created work items
     for work_item_id in created_work_items:
         try:
             await mcp_client.call_tool(
@@ -48,20 +44,17 @@ async def work_item_cleanup(mcp_client, project_id):
                 {
                     "project_id": project_id,
                     "work_item_id": work_item_id,
-                    "destroy": True,  # Permanently delete to avoid cluttering recycle bin
+                    "destroy": True,
                 },
             )
-        except Exception as e:
-            # Don't fail the test if cleanup fails
-            print(f"Warning: Failed to cleanup work item {work_item_id}: {e}")
+        except Exception:
+            pass
 
 
 @pytest.fixture
 async def test_work_items(mcp_client, project_id, work_item_cleanup):
-    """Create multiple test work items for relationship testing."""
     work_items = []
 
-    # Create an Epic (parent)
     epic_result = await mcp_client.call_tool(
         "create_work_item",
         {
@@ -75,7 +68,6 @@ async def test_work_items(mcp_client, project_id, work_item_cleanup):
     work_item_cleanup(epic_id)
     work_items.append({"id": epic_id, "type": "Epic"})
 
-    # Create a User Story (child)
     user_story_result = await mcp_client.call_tool(
         "create_work_item",
         {
@@ -89,7 +81,6 @@ async def test_work_items(mcp_client, project_id, work_item_cleanup):
     work_item_cleanup(user_story_id)
     work_items.append({"id": user_story_id, "type": "User Story"})
 
-    # Create two Tasks (for dependency testing)
     task1_result = await mcp_client.call_tool(
         "create_work_item",
         {
@@ -123,7 +114,6 @@ class TestWorkItemLinking:
     """Test work item linking functionality."""
 
     async def test_link_work_items_tool_registration(self, mcp_client):
-        """Test that the link_work_items tool is properly registered."""
         tools_response = await mcp_client.list_tools()
         if hasattr(tools_response, "tools"):
             tools = tools_response.tools
@@ -133,7 +123,6 @@ class TestWorkItemLinking:
         assert "link_work_items" in tool_names
 
     async def test_link_work_items_hierarchy_forward(self, mcp_client, project_id, test_work_items):
-        """Test creating a parent-child relationship (hierarchy forward)."""
         epic_id = test_work_items[0]["id"]
         user_story_id = test_work_items[1]["id"]
 
@@ -141,8 +130,8 @@ class TestWorkItemLinking:
             "link_work_items",
             {
                 "project_id": project_id,
-                "source_work_item_id": epic_id,  # Parent
-                "target_work_item_id": user_story_id,  # Child
+                "source_work_item_id": epic_id,
+                "target_work_item_id": user_story_id,
                 "relationship_type": "System.LinkTypes.Hierarchy-Forward",
                 "comment": "Epic broken down into user story",
             },
@@ -155,7 +144,6 @@ class TestWorkItemLinking:
             f"Should return updated parent work item but got ID: {result.data['id']}"
         )
 
-        # Verify the relationship exists
         relations_result = await mcp_client.call_tool(
             "get_work_item_relations", {"project_id": project_id, "work_item_id": epic_id}
         )
@@ -167,7 +155,6 @@ class TestWorkItemLinking:
             f"Should have at least 1 relationship but got {len(relations_result.data)}"
         )
 
-        # Check that we have a hierarchy-forward relationship
         hierarchy_links = [
             rel
             for rel in relations_result.data
@@ -180,16 +167,15 @@ class TestWorkItemLinking:
     async def test_link_work_items_dependency_forward(
         self, mcp_client, project_id, test_work_items
     ):
-        """Test creating a dependency relationship (predecessor -> successor)."""
-        task1_id = test_work_items[2]["id"]  # Predecessor
-        task2_id = test_work_items[3]["id"]  # Successor
+        task1_id = test_work_items[2]["id"]
+        task2_id = test_work_items[3]["id"]
 
         result = await mcp_client.call_tool(
             "link_work_items",
             {
                 "project_id": project_id,
-                "source_work_item_id": task1_id,  # Predecessor
-                "target_work_item_id": task2_id,  # Successor
+                "source_work_item_id": task1_id,
+                "target_work_item_id": task2_id,
                 "relationship_type": "System.LinkTypes.Dependency-Forward",
                 "comment": "Task 1 must complete before Task 2",
             },
@@ -202,7 +188,6 @@ class TestWorkItemLinking:
             f"Should return updated predecessor work item but got ID: {result.data['id']}"
         )
 
-        # Verify the relationship exists
         relations_result = await mcp_client.call_tool(
             "get_work_item_relations", {"project_id": project_id, "work_item_id": task1_id}
         )
@@ -214,7 +199,6 @@ class TestWorkItemLinking:
             f"Should have at least 1 relationship but got {len(relations_result.data)}"
         )
 
-        # Check that we have a dependency-forward relationship
         dependency_links = [
             rel
             for rel in relations_result.data
@@ -225,7 +209,6 @@ class TestWorkItemLinking:
         )
 
     async def test_link_work_items_related(self, mcp_client, project_id, test_work_items):
-        """Test creating a related relationship."""
         task1_id = test_work_items[2]["id"]
         user_story_id = test_work_items[1]["id"]
 
@@ -246,7 +229,6 @@ class TestWorkItemLinking:
         )
 
     async def test_link_work_items_invalid_source(self, mcp_client, project_id, test_work_items):
-        """Test linking with an invalid source work item."""
         invalid_source_id = 999999
         target_id = test_work_items[0]["id"]
 
@@ -266,7 +248,6 @@ class TestWorkItemLinking:
         ), f"Should fail for invalid source work item but got: {exc_info.value}"
 
     async def test_link_work_items_invalid_target(self, mcp_client, project_id, test_work_items):
-        """Test linking with an invalid target work item."""
         source_id = test_work_items[0]["id"]
         invalid_target_id = 999999
 
@@ -290,7 +271,6 @@ class TestWorkItemRelationRetrieval:
     """Test work item relationship retrieval functionality."""
 
     async def test_get_work_item_relations_tool_registration(self, mcp_client):
-        """Test that the get_work_item_relations tool is properly registered."""
         tools_response = await mcp_client.list_tools()
         if hasattr(tools_response, "tools"):
             tools = tools_response.tools
@@ -302,10 +282,8 @@ class TestWorkItemRelationRetrieval:
     async def test_get_work_item_relations_basic_functionality(
         self, mcp_client, project_id, test_work_items
     ):
-        """Test basic functionality of retrieving work item relationships."""
         epic_id = test_work_items[0]["id"]
 
-        # First create a relationship
         await mcp_client.call_tool(
             "link_work_items",
             {
@@ -316,7 +294,6 @@ class TestWorkItemRelationRetrieval:
             },
         )
 
-        # Now retrieve relationships
         result = await mcp_client.call_tool(
             "get_work_item_relations", {"project_id": project_id, "work_item_id": epic_id}
         )
@@ -328,7 +305,6 @@ class TestWorkItemRelationRetrieval:
             f"Should have at least 1 relationship but got {len(result.data)}"
         )
 
-        # Verify relationship structure
         for relation in result.data:
             assert "rel" in relation, (
                 f"Each relationship should have 'rel' field but got keys: {list(relation.keys())}"
@@ -344,8 +320,6 @@ class TestWorkItemRelationRetrieval:
             )
 
     async def test_get_work_item_relations_empty(self, mcp_client, project_id):
-        """Test retrieving relationships for a work item with no relationships."""
-        # Create a work item without any relationships
         create_result = await mcp_client.call_tool(
             "create_work_item",
             {
@@ -368,14 +342,12 @@ class TestWorkItemRelationRetrieval:
             f"Should return empty list for work item with no relationships but got {len(result.data)} relationships"
         )
 
-        # Clean up
         await mcp_client.call_tool(
             "delete_work_item",
             {"project_id": project_id, "work_item_id": work_item_id, "destroy": True},
         )
 
     async def test_get_work_item_relations_invalid_work_item(self, mcp_client, project_id):
-        """Test retrieving relationships for a non-existent work item."""
         invalid_work_item_id = 999999
 
         with pytest.raises(Exception) as exc_info:
@@ -391,10 +363,8 @@ class TestWorkItemRelationRetrieval:
     async def test_get_work_item_relations_multiple_types(
         self, mcp_client, project_id, test_work_items
     ):
-        """Test retrieving multiple different types of relationships."""
         source_id = test_work_items[0]["id"]
 
-        # Create multiple different relationships
         relationships = [
             {
                 "target_id": test_work_items[1]["id"],
@@ -408,7 +378,6 @@ class TestWorkItemRelationRetrieval:
             },
         ]
 
-        # Create all the relationships
         for rel in relationships:
             await mcp_client.call_tool(
                 "link_work_items",
@@ -421,7 +390,6 @@ class TestWorkItemRelationRetrieval:
                 },
             )
 
-        # Retrieve all relationships
         result = await mcp_client.call_tool(
             "get_work_item_relations", {"project_id": project_id, "work_item_id": source_id}
         )
@@ -433,7 +401,6 @@ class TestWorkItemRelationRetrieval:
             f"Should have at least {len(relationships)} relationships but got {len(result.data)}"
         )
 
-        # Verify we have both relationship types
         relation_types = [rel["rel"] for rel in result.data]
         assert "System.LinkTypes.Hierarchy-Forward" in relation_types, (
             f"Should have hierarchy relationship but got types: {relation_types}"
@@ -449,9 +416,6 @@ class TestRelationshipIntegration:
     async def test_relationship_workflow_epic_to_story_to_task(
         self, mcp_client, project_id, work_item_cleanup
     ):
-        """Test a complete workflow: Epic -> User Story -> Task hierarchy."""
-
-        # Create Epic
         epic_result = await mcp_client.call_tool(
             "create_work_item",
             {"project_id": project_id, "work_item_type": "Epic", "title": "Test Epic for Workflow"},
@@ -459,7 +423,6 @@ class TestRelationshipIntegration:
         epic_id = epic_result.data["id"]
         work_item_cleanup(epic_id)
 
-        # Create User Story
         story_result = await mcp_client.call_tool(
             "create_work_item",
             {
@@ -471,7 +434,6 @@ class TestRelationshipIntegration:
         story_id = story_result.data["id"]
         work_item_cleanup(story_id)
 
-        # Create Task
         task_result = await mcp_client.call_tool(
             "create_work_item",
             {"project_id": project_id, "work_item_type": "Task", "title": "Test Task for Workflow"},
@@ -479,7 +441,6 @@ class TestRelationshipIntegration:
         task_id = task_result.data["id"]
         work_item_cleanup(task_id)
 
-        # Link Epic -> User Story
         await mcp_client.call_tool(
             "link_work_items",
             {
@@ -491,7 +452,6 @@ class TestRelationshipIntegration:
             },
         )
 
-        # Link User Story -> Task
         await mcp_client.call_tool(
             "link_work_items",
             {
@@ -503,7 +463,6 @@ class TestRelationshipIntegration:
             },
         )
 
-        # Verify Epic has relationship to User Story
         epic_relations = await mcp_client.call_tool(
             "get_work_item_relations", {"project_id": project_id, "work_item_id": epic_id}
         )
@@ -512,7 +471,6 @@ class TestRelationshipIntegration:
             f"Epic should have at least 1 relationship but got {len(epic_relations.data)}"
         )
 
-        # Verify User Story has relationship to Task
         story_relations = await mcp_client.call_tool(
             "get_work_item_relations", {"project_id": project_id, "work_item_id": story_id}
         )
@@ -521,15 +479,12 @@ class TestRelationshipIntegration:
             f"User Story should have at least 1 relationship but got {len(story_relations.data)}"
         )
 
-        # Verify relationships are appropriate for each work item
-        # Epic should have hierarchy-forward relationships (Epic is parent)
         epic_hierarchy_relations = [rel for rel in epic_relations.data if "Hierarchy" in rel["rel"]]
         for relation in epic_hierarchy_relations:
             assert relation["rel"] == "System.LinkTypes.Hierarchy-Forward", (
                 f"Epic relationship should be hierarchy-forward but got: {relation['rel']}"
             )
 
-        # User Story should have both forward (to Task) and potentially reverse (from Epic) relationships
         story_hierarchy_relations = [
             rel for rel in story_relations.data if "Hierarchy" in rel["rel"]
         ]
@@ -537,7 +492,6 @@ class TestRelationshipIntegration:
             f"Story should have at least 1 hierarchy relationship but got {len(story_hierarchy_relations)}"
         )
 
-        # Verify we have the expected relationship types (either forward to child or reverse from parent)
         relation_types = [rel["rel"] for rel in story_hierarchy_relations]
         expected_types = [
             "System.LinkTypes.Hierarchy-Forward",

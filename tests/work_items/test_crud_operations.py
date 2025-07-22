@@ -1,5 +1,3 @@
-"""Tests for work item CRUD operations."""
-
 import os
 import pytest
 from datetime import datetime
@@ -23,22 +21,18 @@ async def mcp_client():
 
 @pytest.fixture
 def project_id():
-    return "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    return "49e895da-15c6-4211-97df-65c547a59c22"
 
 
 @pytest.fixture
 async def work_item_cleanup(mcp_client, project_id):
-    """Fixture to track and cleanup created work items."""
     created_work_items = []
 
     def track_work_item(work_item_id):
-        """Track a work item ID for cleanup."""
         created_work_items.append(work_item_id)
 
-    # Yield the tracking function
     yield track_work_item
 
-    # Cleanup all created work items
     for work_item_id in created_work_items:
         try:
             await mcp_client.call_tool(
@@ -46,19 +40,16 @@ async def work_item_cleanup(mcp_client, project_id):
                 {
                     "project_id": project_id,
                     "work_item_id": work_item_id,
-                    "destroy": True,  # Permanently delete to avoid cluttering recycle bin
+                    "destroy": True,
                 },
             )
-        except Exception as e:
-            # Don't fail the test if cleanup fails
-            print(f"Warning: Failed to cleanup work item {work_item_id}: {e}")
+        except Exception:
             pass
 
 
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_create_work_item_basic_bug(mcp_client, project_id, work_item_cleanup):
-    """Test creating a basic bug work item with required fields only."""
     result = await mcp_client.call_tool(
         "create_work_item",
         {"project_id": project_id, "work_item_type": "Bug", "title": "Test bug from MCP server"},
@@ -68,7 +59,6 @@ async def test_create_work_item_basic_bug(mcp_client, project_id, work_item_clea
     work_item = result.data
     work_item_id = work_item["id"]
 
-    # Track for cleanup
     work_item_cleanup(work_item_id)
 
     assert work_item_id is not None, f"Work item should have an ID but got: {work_item}"
@@ -86,7 +76,6 @@ async def test_create_work_item_basic_bug(mcp_client, project_id, work_item_clea
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_create_work_item_with_all_fields(mcp_client, project_id, work_item_cleanup):
-    """Test creating a work item with all common fields populated."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     title = f"Test task with full fields {timestamp}"
 
@@ -106,7 +95,6 @@ async def test_create_work_item_with_all_fields(mcp_client, project_id, work_ite
     work_item = result.data
     work_item_id = work_item["id"]
 
-    # Track for cleanup
     work_item_cleanup(work_item_id)
 
     assert work_item_id is not None, f"Work item should have an ID but got: {work_item}"
@@ -120,8 +108,6 @@ async def test_create_work_item_with_all_fields(mcp_client, project_id, work_ite
         work_item["fields"]["System.Description"]
         == "This is a test task created with all fields populated"
     ), f"Description should match but got: {work_item['fields'].get('System.Description')}"
-    # Priority field removed as it doesn't exist for Task work items in this project
-    # Tags get reordered by Azure DevOps, so check they contain the expected tags
     tags = work_item["fields"]["System.Tags"]
     assert "test" in tags and "automation" in tags and "mcp" in tags, (
         f"Tags should contain test, automation, and mcp but got: {tags}"
@@ -134,7 +120,6 @@ async def test_create_work_item_with_all_fields(mcp_client, project_id, work_ite
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_create_work_item_validation_only(mcp_client, project_id, work_item_cleanup):
-    """Test creating a work item with validation only mode."""
     result = await mcp_client.call_tool(
         "create_work_item",
         {
@@ -146,14 +131,11 @@ async def test_create_work_item_validation_only(mcp_client, project_id, work_ite
     )
 
     assert result.data is not None, "Validation should return data"
-    # Validation mode returns the would-be work item structure but without actual creation
 
 
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_item_basic(mcp_client, project_id, work_item_cleanup):
-    """Test retrieving a work item by ID."""
-    # First create a work item
     create_result = await mcp_client.call_tool(
         "create_work_item",
         {"project_id": project_id, "work_item_type": "Bug", "title": "Test bug for retrieval"},
@@ -161,10 +143,8 @@ async def test_get_work_item_basic(mcp_client, project_id, work_item_cleanup):
 
     work_item_id = create_result.data["id"]
 
-    # Track for cleanup
     work_item_cleanup(work_item_id)
 
-    # Now retrieve it
     get_result = await mcp_client.call_tool(
         "get_work_item", {"project_id": project_id, "work_item_id": work_item_id}
     )
@@ -183,8 +163,6 @@ async def test_get_work_item_basic(mcp_client, project_id, work_item_cleanup):
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_item_with_specific_fields(mcp_client, project_id, work_item_cleanup):
-    """Test retrieving a work item with specific fields only."""
-    # First create a work item
     create_result = await mcp_client.call_tool(
         "create_work_item",
         {
@@ -197,10 +175,8 @@ async def test_get_work_item_with_specific_fields(mcp_client, project_id, work_i
 
     work_item_id = create_result.data["id"]
 
-    # Track for cleanup
     work_item_cleanup(work_item_id)
 
-    # Retrieve with specific fields only
     get_result = await mcp_client.call_tool(
         "get_work_item",
         {
@@ -218,7 +194,6 @@ async def test_get_work_item_with_specific_fields(mcp_client, project_id, work_i
     )
     assert "System.Title" in work_item["fields"], "Title field should be present in filtered result"
     assert "System.State" in work_item["fields"], "State field should be present in filtered result"
-    # Description should not be present since we didn't request it
     assert "System.Description" not in work_item["fields"], (
         "Description field should not be present in filtered result"
     )
@@ -227,8 +202,6 @@ async def test_get_work_item_with_specific_fields(mcp_client, project_id, work_i
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_update_work_item_basic(mcp_client, project_id, work_item_cleanup):
-    """Test updating a work item with basic field changes."""
-    # First create a work item
     create_result = await mcp_client.call_tool(
         "create_work_item",
         {
@@ -241,10 +214,8 @@ async def test_update_work_item_basic(mcp_client, project_id, work_item_cleanup)
 
     work_item_id = create_result.data["id"]
 
-    # Track for cleanup
     work_item_cleanup(work_item_id)
 
-    # Update the work item (only fields that exist for Bug type)
     update_result = await mcp_client.call_tool(
         "update_work_item",
         {
@@ -267,14 +238,11 @@ async def test_update_work_item_basic(mcp_client, project_id, work_item_cleanup)
     assert updated_work_item["fields"]["System.Description"] == "Updated description", (
         f"Description should be updated but got: {updated_work_item['fields'].get('System.Description')}"
     )
-    # Priority field doesn't exist for Bug work items, so we don't test it
 
 
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_update_work_item_with_custom_fields(mcp_client, project_id, work_item_cleanup):
-    """Test updating a work item with custom fields."""
-    # First create a work item
     create_result = await mcp_client.call_tool(
         "create_work_item",
         {
@@ -286,10 +254,8 @@ async def test_update_work_item_with_custom_fields(mcp_client, project_id, work_
 
     work_item_id = create_result.data["id"]
 
-    # Track for cleanup
     work_item_cleanup(work_item_id)
 
-    # Update with custom fields
     update_result = await mcp_client.call_tool(
         "update_work_item",
         {
@@ -313,8 +279,6 @@ async def test_update_work_item_with_custom_fields(mcp_client, project_id, work_
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_delete_work_item_soft_delete(mcp_client, project_id, work_item_cleanup):
-    """Test soft deleting a work item (move to recycle bin)."""
-    # First create a work item
     create_result = await mcp_client.call_tool(
         "create_work_item",
         {"project_id": project_id, "work_item_type": "Bug", "title": "Bug to be soft deleted"},
@@ -335,14 +299,11 @@ async def test_delete_work_item_soft_delete(mcp_client, project_id, work_item_cl
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_create_work_item_failure_invalid_type(mcp_client, project_id, caplog):
-    """Test creating a work item with invalid work item type."""
     import logging
     import io
     from contextlib import redirect_stderr
 
-    # Suppress both log output and stderr to avoid scary error messages
     with caplog.at_level(logging.CRITICAL):
-        # Redirect stderr to a string buffer to suppress rich output
         stderr_buffer = io.StringIO()
         with redirect_stderr(stderr_buffer):
             with pytest.raises(Exception) as exc_info:
@@ -364,15 +325,12 @@ async def test_create_work_item_failure_invalid_type(mcp_client, project_id, cap
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_item_failure_nonexistent_id(mcp_client, project_id, caplog):
-    """Test retrieving a work item with non-existent ID."""
     import logging
     import sys
     import io
     from contextlib import redirect_stderr
 
-    # Suppress both log output and stderr to avoid scary error messages
     with caplog.at_level(logging.CRITICAL):
-        # Redirect stderr to a string buffer to suppress rich output
         stderr_buffer = io.StringIO()
         with redirect_stderr(stderr_buffer):
             with pytest.raises(Exception) as exc_info:
@@ -380,7 +338,7 @@ async def test_get_work_item_failure_nonexistent_id(mcp_client, project_id, capl
                     "get_work_item",
                     {
                         "project_id": project_id,
-                        "work_item_id": 999999999,  # Very unlikely to exist
+                        "work_item_id": 999999999,
                     },
                 )
 
@@ -392,8 +350,6 @@ async def test_get_work_item_failure_nonexistent_id(mcp_client, project_id, capl
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_work_item_tools_registered_in_mcp_server(mcp_client):
-    """Test that work item tools are properly registered in the MCP server."""
-    # List all available tools
     tools_response = await mcp_client.list_tools()
     if hasattr(tools_response, "tools"):
         tools = tools_response.tools
@@ -401,7 +357,6 @@ async def test_work_item_tools_registered_in_mcp_server(mcp_client):
         tools = tools_response
     tool_names = [tool.name for tool in tools]
 
-    # Check that our work item tools are registered
     expected_tools = [
         "create_work_item",
         "get_work_item",
@@ -421,14 +376,11 @@ async def test_work_item_tools_registered_in_mcp_server(mcp_client):
 async def test_list_work_items_create_verify_cleanup_pattern(
     mcp_client, project_id, work_item_cleanup
 ):
-    """Test that creates 3 work items following a random pattern, lists them, verifies they exist, then cleans up."""
     import random
     import string
 
-    # Generate a unique pattern for this test run to avoid conflicts with other tests
     test_pattern = f"TestPattern_{random.randint(1000, 9999)}_{''.join(random.choices(string.ascii_letters, k=5))}"
 
-    # Create 3 work items with the pattern in their titles
     work_item_types = ["Bug", "Task", "User Story"]
     created_work_item_ids = []
 
@@ -451,7 +403,6 @@ async def test_list_work_items_create_verify_cleanup_pattern(
         created_work_item_ids.append(work_item_id)
         work_item_cleanup(work_item_id)
 
-    # List all work items to verify our 3 items exist
     list_result = await mcp_client.call_tool("list_work_items", {"project_id": project_id})
 
     assert list_result.data is not None, "List work items should return data"
@@ -460,16 +411,13 @@ async def test_list_work_items_create_verify_cleanup_pattern(
         f"Work items should be a list but got: {type(work_items_list)}"
     )
 
-    # Extract all work item IDs from the list
     listed_work_item_ids = {item["id"] for item in work_items_list}
 
-    # Verify that all our created work items are in the list
     for work_item_id in created_work_item_ids:
         assert work_item_id in listed_work_item_ids, (
             f"Created work item {work_item_id} should be in the list but was not found. Listed IDs: {listed_work_item_ids}"
         )
 
-    # Test filtering with WIQL query to find only our test pattern items
     query_result = await mcp_client.call_tool(
         "list_work_items",
         {
@@ -482,13 +430,11 @@ async def test_list_work_items_create_verify_cleanup_pattern(
     filtered_items = query_result.data
     filtered_ids = {item["id"] for item in filtered_items}
 
-    # All our created items should be in the filtered results
     for work_item_id in created_work_item_ids:
         assert work_item_id in filtered_ids, (
             f"Work item {work_item_id} with pattern {test_pattern} should be in filtered results but was not found. Filtered IDs: {filtered_ids}"
         )
 
-    # Test the top parameter
     limited_result = await mcp_client.call_tool(
         "list_work_items", {"project_id": project_id, "top": 2}
     )
@@ -499,7 +445,6 @@ async def test_list_work_items_create_verify_cleanup_pattern(
         f"Limited query should return at most 2 items but got {len(limited_items)} items"
     )
 
-    # Cleanup verification - get each work item to ensure they exist before cleanup
     for work_item_id in created_work_item_ids:
         get_result = await mcp_client.call_tool(
             "get_work_item", {"project_id": project_id, "work_item_id": work_item_id}
@@ -511,15 +456,10 @@ async def test_list_work_items_create_verify_cleanup_pattern(
             f"Work item title should start with pattern {test_pattern} but got: {get_result.data['fields']['System.Title']}"
         )
 
-    # The cleanup will be handled by the work_item_cleanup fixture
-    # which will permanently delete all tracked work items
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_list_work_items_tool_registered_in_mcp_server(mcp_client):
-    """Test that list_work_items tool is properly registered in the MCP server."""
-    # List all available tools
     tools_response = await mcp_client.list_tools()
     if hasattr(tools_response, "tools"):
         tools = tools_response.tools
@@ -527,7 +467,6 @@ async def test_list_work_items_tool_registered_in_mcp_server(mcp_client):
         tools = tools_response
     tool_names = [tool.name for tool in tools]
 
-    # Check that list_work_items tool is registered
     assert "list_work_items" in tool_names, (
         f"Tool 'list_work_items' should be registered but available tools are: {tool_names}"
     )
