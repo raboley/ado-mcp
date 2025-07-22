@@ -373,11 +373,11 @@ def register_query_tools(mcp_instance, client_container):
             return None
 
         try:
-            # Calculate the date range
+            # Calculate the date range with some buffer for timing issues
             end_date = datetime.utcnow()
-            start_date = end_date - timedelta(days=days)
+            start_date = end_date - timedelta(days=days, hours=1)  # Add 1 hour buffer
 
-            # Format dates for WIQL (try simple date format first)
+            # Format dates for WIQL - use start of day to be more inclusive
             start_date_str = start_date.strftime("%Y-%m-%d")
 
             logger.info(f"Getting work items from the last {days} days in project: {project_id}")

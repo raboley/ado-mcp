@@ -73,8 +73,16 @@ def build_wiql_from_filter(simple_filter: Dict[str, Any]) -> str:
     else:
         query = select_clause
 
-    # Add ordering
-    query += " ORDER BY [System.Id]"
+    # Add ordering - use creation date for better recency sorting
+    if "created_after" in simple_filter or "created_before" in simple_filter:
+        # Date-filtered queries should show most recent first
+        query += " ORDER BY [System.CreatedDate] DESC"
+    elif "assigned_to" in simple_filter:
+        # User-specific queries should show most recent first
+        query += " ORDER BY [System.CreatedDate] DESC"
+    else:
+        # Default to ID ordering for general queries
+        query += " ORDER BY [System.Id]"
 
     return query
 

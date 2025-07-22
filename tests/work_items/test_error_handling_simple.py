@@ -70,7 +70,7 @@ class TestWorkItemErrorHandlingSimplified:
     def test_telemetry_spans_created_on_operations(self, work_items_client):
         """Test that telemetry spans are created for work item operations."""
         with (
-            patch("ado.work_items.client.tracer") as mock_tracer,
+            patch("ado.work_items.crud_client.tracer") as mock_tracer,
             patch.object(work_items_client.client, "_send_request") as mock_send,
         ):
             mock_span = Mock()
