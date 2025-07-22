@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
@@ -21,7 +22,7 @@ async def client():
 @pytest.fixture
 def project_id():
     """Test project ID."""
-    return "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    return get_project_id()  # ado-mcp project
 
 
 def get_current_user_email():

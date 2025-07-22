@@ -3,11 +3,10 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
-
-TEST_PROJECT_ID = "49e895da-15c6-4211-97df-65c547a59c22"
 
 
 @pytest.fixture
@@ -22,7 +21,8 @@ async def mcp_client():
 
 @requires_ado_creds
 async def test_list_service_connections_returns_valid_list(mcp_client: Client):
-    result = await mcp_client.call_tool("list_service_connections", {"project_id": TEST_PROJECT_ID})
+    project_id = get_project_id()
+    result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
 
     service_connections = result.data
     assert service_connections is not None, (
@@ -60,7 +60,8 @@ async def test_list_service_connections_returns_valid_list(mcp_client: Client):
 
 @requires_ado_creds
 async def test_list_service_connections_github_type(mcp_client: Client):
-    result = await mcp_client.call_tool("list_service_connections", {"project_id": TEST_PROJECT_ID})
+    project_id = get_project_id()
+    result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
 
     service_connections = result.data
     assert isinstance(service_connections, list), (
@@ -78,7 +79,8 @@ async def test_list_service_connections_github_type(mcp_client: Client):
 
 @requires_ado_creds
 async def test_list_service_connections_structure(mcp_client: Client):
-    result = await mcp_client.call_tool("list_service_connections", {"project_id": TEST_PROJECT_ID})
+    project_id = get_project_id()
+    result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
 
     service_connections = result.data
     assert isinstance(service_connections, list), (
@@ -119,7 +121,8 @@ async def test_list_service_connections_structure(mcp_client: Client):
 
 @requires_ado_creds
 async def test_list_service_connections_types(mcp_client: Client):
-    result = await mcp_client.call_tool("list_service_connections", {"project_id": TEST_PROJECT_ID})
+    project_id = get_project_id()
+    result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
 
     service_connections = result.data
     assert isinstance(service_connections, list), (
@@ -159,7 +162,8 @@ async def test_list_service_connections_invalid_project(mcp_client: Client):
 
 @requires_ado_creds
 async def test_list_service_connections_specific_connection_details(mcp_client: Client):
-    result = await mcp_client.call_tool("list_service_connections", {"project_id": TEST_PROJECT_ID})
+    project_id = get_project_id()
+    result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
 
     service_connections = result.data
     assert isinstance(service_connections, list), (

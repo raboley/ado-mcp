@@ -3,15 +3,10 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id, get_basic_pipeline_id, get_parameterized_pipeline_id, get_github_resources_pipeline_id, get_complex_pipeline_id
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
-
-TEST_PROJECT_ID = "49e895da-15c6-4211-97df-65c547a59c22"
-BASIC_PIPELINE_ID = 59
-PARAMETERIZED_PIPELINE_ID = 75
-GITHUB_RESOURCES_PIPELINE_ID = 200
-COMPLEX_PIPELINE_ID = 84
 
 
 @pytest.fixture
@@ -26,6 +21,8 @@ async def mcp_client():
 
 @requires_ado_creds
 async def test_run_pipeline_with_github_resources_stable_branch(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_github_resources_pipeline_id()
     resources = {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}
 
     template_parameters = {"taskfileVersion": "latest", "installPath": "./bin/stable-test"}
@@ -33,8 +30,8 @@ async def test_run_pipeline_with_github_resources_stable_branch(mcp_client: Clie
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "resources": resources,
             "template_parameters": template_parameters,
         },
@@ -54,6 +51,8 @@ async def test_run_pipeline_with_github_resources_stable_branch(mcp_client: Clie
 
 @requires_ado_creds
 async def test_run_pipeline_with_github_resources_main_branch(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_github_resources_pipeline_id()
     resources = {"repositories": {"tooling": {"refName": "refs/heads/main"}}}
 
     template_parameters = {"taskfileVersion": "latest", "installPath": "./bin/main-test"}
@@ -61,8 +60,8 @@ async def test_run_pipeline_with_github_resources_main_branch(mcp_client: Client
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "resources": resources,
             "template_parameters": template_parameters,
         },
@@ -79,6 +78,8 @@ async def test_run_pipeline_with_github_resources_main_branch(mcp_client: Client
 
 @requires_ado_creds
 async def test_run_pipeline_with_github_resources_feature_branch(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_github_resources_pipeline_id()
     resources = {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}
 
     template_parameters = {"taskfileVersion": "v1.0.0", "installPath": "./bin/feature-test"}
@@ -86,8 +87,8 @@ async def test_run_pipeline_with_github_resources_feature_branch(mcp_client: Cli
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "resources": resources,
             "template_parameters": template_parameters,
         },
@@ -104,13 +105,15 @@ async def test_run_pipeline_with_github_resources_feature_branch(mcp_client: Cli
 
 @requires_ado_creds
 async def test_run_pipeline_with_multiple_template_parameters(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_github_resources_pipeline_id()
     template_parameters = {"taskfileVersion": "latest", "installPath": "./bin/multi-param-test"}
 
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "template_parameters": template_parameters,
         },
     )
@@ -126,13 +129,15 @@ async def test_run_pipeline_with_multiple_template_parameters(mcp_client: Client
 
 @requires_ado_creds
 async def test_run_pipeline_with_template_parameters(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_parameterized_pipeline_id()
     template_parameters = {"testEnvironment": "staging", "enableDebug": True}
 
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": PARAMETERIZED_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "template_parameters": template_parameters,
         },
     )
@@ -148,13 +153,15 @@ async def test_run_pipeline_with_template_parameters(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_complex_pipeline_id()
     stages_to_skip = ["Test"]
 
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": COMPLEX_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "stages_to_skip": stages_to_skip,
         },
     )
@@ -170,11 +177,14 @@ async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_with_branch_override(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_basic_pipeline_id()
+    
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": BASIC_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "branch": "refs/heads/main",
         },
     )
@@ -190,11 +200,13 @@ async def test_run_pipeline_with_branch_override(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_with_branch_resource_override(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_basic_pipeline_id()
     resources = {"repositories": {"self": {"refName": "refs/heads/main"}}}
 
     result = await mcp_client.call_tool(
         "run_pipeline",
-        {"project_id": TEST_PROJECT_ID, "pipeline_id": BASIC_PIPELINE_ID, "resources": resources},
+        {"project_id": project_id, "pipeline_id": pipeline_id, "resources": resources},
     )
 
     pipeline_run = result.data
@@ -208,6 +220,8 @@ async def test_run_pipeline_with_branch_resource_override(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_github_resources_complex_scenario(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_github_resources_pipeline_id()
     resources = {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}
 
     template_parameters = {"taskfileVersion": "latest", "installPath": "./bin/complex-test"}
@@ -215,8 +229,8 @@ async def test_run_pipeline_github_resources_complex_scenario(mcp_client: Client
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "resources": resources,
             "template_parameters": template_parameters,
         },

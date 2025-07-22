@@ -3,14 +3,10 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id, get_basic_pipeline_id, get_parameterized_pipeline_id, get_github_resources_pipeline_id
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
-
-TEST_PROJECT_ID = "49e895da-15c6-4211-97df-65c547a59c22"
-BASIC_PIPELINE_ID = 59
-PARAMETERIZED_PIPELINE_ID = 75
-GITHUB_RESOURCES_PIPELINE_ID = 200
 
 
 @pytest.fixture
@@ -33,8 +29,11 @@ async def mcp_client_no_auth(monkeypatch):
 
 @requires_ado_creds
 async def test_run_pipeline_basic_no_parameters(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_basic_pipeline_id()
+    
     result = await mcp_client.call_tool(
-        "run_pipeline", {"project_id": TEST_PROJECT_ID, "pipeline_id": BASIC_PIPELINE_ID}
+        "run_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
     )
 
     pipeline_run = result.data
@@ -44,20 +43,22 @@ async def test_run_pipeline_basic_no_parameters(mcp_client: Client):
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
-    assert pipeline_run["pipeline"]["id"] == BASIC_PIPELINE_ID, (
-        f"Expected pipeline ID {BASIC_PIPELINE_ID} but got {pipeline_run['pipeline']['id']}"
+    assert pipeline_run["pipeline"]["id"] == pipeline_id, (
+        f"Expected pipeline ID {pipeline_id} but got {pipeline_run['pipeline']['id']}"
     )
 
 
 @requires_ado_creds
 async def test_run_pipeline_with_template_parameters(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_github_resources_pipeline_id()
     template_parameters = {"taskfileVersion": "latest", "installPath": "./bin/test"}
 
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "template_parameters": template_parameters,
         },
     )
@@ -72,6 +73,8 @@ async def test_run_pipeline_with_template_parameters(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_with_resources(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_github_resources_pipeline_id()
     resources = {"repositories": {"tooling": {"refName": "refs/heads/main"}}}
 
     template_parameters = {"taskfileVersion": "latest", "installPath": "./bin/resources-test"}
@@ -79,8 +82,8 @@ async def test_run_pipeline_with_resources(mcp_client: Client):
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "resources": resources,
             "template_parameters": template_parameters,
         },
@@ -93,8 +96,11 @@ async def test_run_pipeline_with_resources(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_with_authentication(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_basic_pipeline_id()
+    
     result = await mcp_client.call_tool(
-        "run_pipeline", {"project_id": TEST_PROJECT_ID, "pipeline_id": BASIC_PIPELINE_ID}
+        "run_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
     )
 
     pipeline_run = result.data
@@ -117,9 +123,12 @@ async def test_run_pipeline_tool_registration():
 
 @requires_ado_creds
 async def test_run_pipeline_nonexistent_pipeline(mcp_client: Client):
+    project_id = get_project_id()
+    # Use 99999 as a non-existent pipeline ID for testing
+    
     try:
         result = await mcp_client.call_tool(
-            "run_pipeline", {"project_id": TEST_PROJECT_ID, "pipeline_id": 99999}
+            "run_pipeline", {"project_id": project_id, "pipeline_id": 99999}
         )
 
         if result.data is None:
@@ -132,12 +141,15 @@ async def test_run_pipeline_nonexistent_pipeline(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_invalid_project(mcp_client: Client):
+    pipeline_id = get_basic_pipeline_id()
+    # Use a dummy UUID for testing invalid project
+    
     try:
         result = await mcp_client.call_tool(
             "run_pipeline",
             {
                 "project_id": "00000000-0000-0000-0000-000000000000",
-                "pipeline_id": BASIC_PIPELINE_ID,
+                "pipeline_id": pipeline_id,
             },
         )
 

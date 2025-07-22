@@ -3,12 +3,10 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id, get_preview_pipeline_id
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
-
-TEST_PROJECT_ID = "49e895da-15c6-4211-97df-65c547a59c22"
-BASIC_PREVIEW_PIPELINE_ID = 74
 
 
 @pytest.fixture
@@ -36,8 +34,8 @@ steps:
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": BASIC_PREVIEW_PIPELINE_ID,
+            "project_id": get_project_id(),
+            "pipeline_id": get_preview_pipeline_id(),
             "yaml_override": yaml_override,
         },
     )
@@ -101,7 +99,7 @@ stages:
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
+            "project_id": get_project_id(),
             "pipeline_id": parameterized_pipeline_id,
             "yaml_override": yaml_override,
         },
@@ -156,7 +154,7 @@ steps:
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
+            "project_id": get_project_id(),
             "pipeline_id": github_resources_pipeline_id,
             "yaml_override": yaml_override,
             "resources": resources,
@@ -197,8 +195,8 @@ steps:
         result = await mcp_client.call_tool(
             "preview_pipeline",
             {
-                "project_id": TEST_PROJECT_ID,
-                "pipeline_id": BASIC_PREVIEW_PIPELINE_ID,
+                "project_id": get_project_id(),
+                "pipeline_id": get_preview_pipeline_id(),
                 "yaml_override": invalid_yaml_override,
             },
         )
@@ -234,8 +232,8 @@ steps:
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": BASIC_PREVIEW_PIPELINE_ID,
+            "project_id": get_project_id(),
+            "pipeline_id": get_preview_pipeline_id(),
             "yaml_override": yaml_override,
         },
     )

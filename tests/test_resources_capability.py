@@ -4,6 +4,7 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id, get_github_resources_pipeline_id
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
@@ -21,8 +22,8 @@ async def mcp_client():
 
 @requires_ado_creds
 async def test_resources_parameter_capability(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
-    pipeline_id = 200
+    project_id = get_project_id()
+    pipeline_id = get_github_resources_pipeline_id()
 
     resources = {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}
 
@@ -54,7 +55,7 @@ async def test_resources_parameter_capability(mcp_client: Client):
 
 @requires_ado_creds
 async def test_template_parameters_capability(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
     pipeline_id = 75
 
     variables = {"testVariable": "template-params-test"}
@@ -94,7 +95,7 @@ async def test_template_parameters_capability(mcp_client: Client):
 
 @requires_ado_creds
 async def test_branch_selection_capability(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
     pipeline_id = 59
 
     branch = "refs/heads/main"
@@ -145,7 +146,7 @@ async def test_name_based_capabilities(mcp_client: Client):
 
 @requires_ado_creds
 async def test_comprehensive_capabilities_demo(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
     pipeline_id = 59
 
     branch = "refs/heads/main"
@@ -170,7 +171,7 @@ async def test_comprehensive_capabilities_demo(mcp_client: Client):
 
 @requires_ado_creds
 async def test_github_resources_concept_validation(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
     pipeline_id = 59
 
     branch = "refs/heads/main"

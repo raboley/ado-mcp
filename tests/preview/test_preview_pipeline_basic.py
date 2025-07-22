@@ -3,12 +3,10 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id, get_preview_pipeline_id, get_parameterized_pipeline_id
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
-
-TEST_PROJECT_ID = "49e895da-15c6-4211-97df-65c547a59c22"
-BASIC_PREVIEW_PIPELINE_ID = 74
 
 
 @pytest.fixture
@@ -23,9 +21,12 @@ async def mcp_client():
 
 @requires_ado_creds
 async def test_preview_pipeline_basic(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_preview_pipeline_id()
+    
     result = await mcp_client.call_tool(
         "preview_pipeline",
-        {"project_id": TEST_PROJECT_ID, "pipeline_id": BASIC_PREVIEW_PIPELINE_ID},
+        {"project_id": project_id, "pipeline_id": pipeline_id},
     )
 
     preview_data = result.data
@@ -43,7 +44,8 @@ async def test_preview_pipeline_basic(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_with_variables(mcp_client: Client):
-    parameterized_pipeline_id = 75
+    project_id = get_project_id()
+    pipeline_id = get_parameterized_pipeline_id()
 
     variables = {
         "testEnvironment": "preview-testing",
@@ -54,8 +56,8 @@ async def test_preview_pipeline_with_variables(mcp_client: Client):
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": parameterized_pipeline_id,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "variables": variables,
         },
     )
@@ -73,13 +75,15 @@ async def test_preview_pipeline_with_variables(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_with_empty_resources(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = get_preview_pipeline_id()
     resources = {}
 
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": BASIC_PREVIEW_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "resources": resources,
         },
     )
@@ -93,15 +97,16 @@ async def test_preview_pipeline_with_empty_resources(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_with_stages_to_skip(mcp_client: Client):
-    parameterized_pipeline_id = 75
+    project_id = get_project_id()
+    pipeline_id = get_parameterized_pipeline_id()
 
     stages_to_skip = ["TestStage", "DeploymentStage"]
 
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": parameterized_pipeline_id,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "stages_to_skip": stages_to_skip,
         },
     )
@@ -115,11 +120,12 @@ async def test_preview_pipeline_with_stages_to_skip(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_nonexistent_pipeline(mcp_client: Client):
-    pipeline_id = 99999
+    project_id = get_project_id()
+    pipeline_id = 99999  # Non-existent pipeline for testing
 
     try:
         result = await mcp_client.call_tool(
-            "preview_pipeline", {"project_id": TEST_PROJECT_ID, "pipeline_id": pipeline_id}
+            "preview_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
         )
 
         if result.data is None:

@@ -9,6 +9,7 @@ from server import mcp
 from tests.ado.test_client import requires_ado_creds
 from ado.cache import ado_cache
 from tests.utils.telemetry import telemetry_setup, analyze_spans, clear_spans
+from src.test_config import get_project_id, get_organization_url, get_basic_pipeline_id, get_complex_pipeline_id, get_failing_pipeline_id, get_parameterized_pipeline_id, get_preview_pipeline_id
 
 pytestmark = pytest.mark.asyncio
 
@@ -16,9 +17,13 @@ pytestmark = pytest.mark.asyncio
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
-        initial_org_url = os.environ.get(
-            "ADO_ORGANIZATION_URL", "https://dev.azure.com/RussellBoley"
-        )
+        try:
+            initial_org_url = get_organization_url()
+        except Exception:
+            # Fallback to environment variable if dynamic config not available
+            initial_org_url = os.environ.get(
+                "ADO_ORGANIZATION_URL", "https://dev.azure.com/RussellBoley"
+            )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
@@ -309,8 +314,8 @@ async def test_get_pipeline_returns_valid_details(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_and_get_pipeline_run_details(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
-    pipeline_id = 59
+    project_id = get_project_id()
+    pipeline_id = get_basic_pipeline_id()
 
     run_details = (
         await mcp_client.call_tool(
@@ -429,7 +434,7 @@ async def test_set_organization_failure_and_recovery(mcp_client: Client):
 
 @requires_ado_creds
 async def test_pipeline_lifecycle_fire_and_forget(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
     pipeline_id = 60
 
     run_result = await mcp_client.call_tool(
@@ -461,7 +466,7 @@ async def test_pipeline_lifecycle_fire_and_forget(mcp_client: Client):
 
 @requires_ado_creds
 async def test_pipeline_lifecycle_wait_for_completion(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
     pipeline_id = 61
 
     run_result = await mcp_client.call_tool(
@@ -517,7 +522,7 @@ async def test_pipeline_lifecycle_wait_for_completion(mcp_client: Client):
 
 @requires_ado_creds
 async def test_multiple_pipeline_runs(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
     pipeline_id = 62
 
     run_ids = []
@@ -563,7 +568,7 @@ async def test_multiple_pipeline_runs(mcp_client: Client):
 
 @requires_ado_creds
 async def test_pipeline_run_status_progression(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
     pipeline_id = 63
 
     run_result = await mcp_client.call_tool(
@@ -624,8 +629,8 @@ async def test_pipeline_run_status_progression(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_valid_yaml(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 74  # preview-test-valid pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_preview_pipeline_id()  # preview-test-valid pipeline
 
     result = await mcp_client.call_tool(
         "preview_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
@@ -643,8 +648,8 @@ async def test_preview_pipeline_valid_yaml(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_with_yaml_override(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 74  # preview-test-valid pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_preview_pipeline_id()  # preview-test-valid pipeline
 
     yaml_override = """
 name: Override Test Pipeline
@@ -673,8 +678,8 @@ steps:
 
 @requires_ado_creds
 async def test_preview_pipeline_with_variables(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 75  # preview-test-parameterized pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_parameterized_pipeline_id()  # preview-test-parameterized pipeline
 
     variables = {"testEnvironment": "staging", "enableDebug": True}
 
@@ -695,8 +700,8 @@ async def test_preview_pipeline_with_variables(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_with_template_parameters(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 75  # preview-test-parameterized pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_parameterized_pipeline_id()  # preview-test-parameterized pipeline
 
     template_parameters = {"testEnvironment": "prod", "enableDebug": False}
 
@@ -717,7 +722,7 @@ async def test_preview_pipeline_with_template_parameters(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_error_handling(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    project_id = get_project_id()  # ado-mcp project
     pipeline_id = 76  # preview-test-invalid pipeline
 
     try:
@@ -739,7 +744,7 @@ async def test_preview_pipeline_error_handling(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_nonexistent_pipeline(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    project_id = get_project_id()  # ado-mcp project
     pipeline_id = 99999  # Non-existent pipeline ID
 
     try:
@@ -770,8 +775,8 @@ async def test_preview_pipeline_no_client(mcp_client_with_unset_ado_env: Client)
 
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_simple_pipeline(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 83  # log-test-failing pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_failing_pipeline_id()  # log-test-failing pipeline
     run_id = 323  # Known failed run
 
     result = await mcp_client.call_tool(
@@ -800,8 +805,8 @@ async def test_get_pipeline_failure_summary_simple_pipeline(mcp_client: Client):
 
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_complex_pipeline(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 84  # log-test-complex pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_complex_pipeline_id()  # log-test-complex pipeline
     run_id = 324  # Known failed run
 
     result = await mcp_client.call_tool(
@@ -835,8 +840,8 @@ async def test_get_pipeline_failure_summary_complex_pipeline(mcp_client: Client)
 
 @requires_ado_creds
 async def test_get_failed_step_logs_with_filter(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 84  # log-test-complex pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_complex_pipeline_id()  # log-test-complex pipeline
     run_id = 324  # Known failed run
 
     result = await mcp_client.call_tool(
@@ -863,8 +868,8 @@ async def test_get_failed_step_logs_with_filter(mcp_client: Client):
 
 @requires_ado_creds
 async def test_get_failed_step_logs_all_steps(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 83  # log-test-failing pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_failing_pipeline_id()  # log-test-failing pipeline
     run_id = 323  # Known failed run
 
     result = await mcp_client.call_tool(
@@ -889,8 +894,8 @@ async def test_get_failed_step_logs_all_steps(mcp_client: Client):
 
 @requires_ado_creds
 async def test_get_pipeline_timeline(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 83  # log-test-failing pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_failing_pipeline_id()  # log-test-failing pipeline
     run_id = 323  # Known failed run
 
     result = await mcp_client.call_tool(
@@ -921,8 +926,8 @@ async def test_get_pipeline_timeline(mcp_client: Client):
 
 @requires_ado_creds
 async def test_list_pipeline_logs(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 83  # log-test-failing pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_failing_pipeline_id()  # log-test-failing pipeline
     run_id = 323  # Known failed run
 
     result = await mcp_client.call_tool(
@@ -950,8 +955,8 @@ async def test_list_pipeline_logs(mcp_client: Client):
 
 @requires_ado_creds
 async def test_get_log_content_by_id(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 83  # log-test-failing pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_failing_pipeline_id()  # log-test-failing pipeline
     run_id = 323  # Known failed run
     log_id = 8  # Known log ID for the failed "Run Tests" step
 
@@ -974,8 +979,8 @@ async def test_get_log_content_by_id(mcp_client: Client):
 
 @requires_ado_creds
 async def test_get_log_content_by_id_with_line_limit(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 83  # log-test-failing pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_failing_pipeline_id()  # log-test-failing pipeline
     run_id = 323  # Known failed run
     log_id = 8  # Known log ID for the failed "Run Tests" step
 
@@ -1041,8 +1046,8 @@ async def test_get_log_content_by_id_with_line_limit(mcp_client: Client):
 
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_with_line_limit(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 83  # log-test-failing pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_failing_pipeline_id()  # log-test-failing pipeline
     run_id = 323  # Known failed run
 
     # Test with default 100 lines
@@ -1095,8 +1100,8 @@ async def test_get_pipeline_failure_summary_with_line_limit(mcp_client: Client):
 
 @requires_ado_creds
 async def test_get_failed_step_logs_with_line_limit(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 83  # log-test-failing pipeline
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_failing_pipeline_id()  # log-test-failing pipeline
     run_id = 323  # Known failed run
 
     # Test with default 100 lines
@@ -1167,8 +1172,8 @@ async def test_logs_tools_no_client(mcp_client_with_unset_ado_env: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_and_get_outcome_success(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 59  # test_run_and_get_pipeline_run_details (quick success pipeline)
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_basic_pipeline_id()  # test_run_and_get_pipeline_run_details (quick success pipeline)
 
     result = await mcp_client.call_tool(
         "run_pipeline_and_get_outcome",
@@ -1201,8 +1206,8 @@ async def test_run_pipeline_and_get_outcome_success(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_and_get_outcome_failure(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 83  # log-test-failing pipeline (designed to fail)
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_failing_pipeline_id()  # log-test-failing pipeline (designed to fail)
 
     # Note: This is a "slow" pipeline that uses agents, so it may take longer
     result = await mcp_client.call_tool(
@@ -1264,8 +1269,8 @@ async def test_run_pipeline_and_get_outcome_failure(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_and_get_outcome_custom_timeout(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-    pipeline_id = 59  # test_run_and_get_pipeline_run_details (quick success pipeline)
+    project_id = get_project_id()  # ado-mcp project
+    pipeline_id = get_basic_pipeline_id()  # test_run_and_get_pipeline_run_details (quick success pipeline)
 
     result = await mcp_client.call_tool(
         "run_pipeline_and_get_outcome",
@@ -1331,7 +1336,7 @@ async def test_run_pipeline_and_get_outcome_tool_registration(mcp_client: Client
 
 @requires_ado_creds
 async def test_get_build_by_id_success(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    project_id = get_project_id()  # ado-mcp project
     build_id = 324  # Known build/run ID from URL buildId=324
 
     result = await mcp_client.call_tool(

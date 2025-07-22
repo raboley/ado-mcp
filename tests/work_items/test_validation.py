@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 from ado.work_items.validation import WorkItemValidator
 from ado.work_items.path_validators import PathValidator
@@ -22,7 +23,7 @@ async def mcp_client():
 
 @pytest.fixture
 def project_id():
-    return "49e895da-15c6-4211-97df-65c547a59c22"
+    return get_project_id()
 
 
 @pytest.fixture(autouse=True)
@@ -324,7 +325,7 @@ class TestStateTransitionValidation:
     async def test_state_transition_validation_with_real_data(self):
         from ado.work_items.validation import WorkItemValidator
 
-        project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+        project_id = get_project_id()
 
         result = WorkItemValidator.validate_state_transition(project_id, "Bug", "New", "Active")
         assert isinstance(result, bool), "Should return boolean result"
@@ -342,7 +343,7 @@ class TestStateTransitionValidation:
     async def test_state_transition_validation_with_invalid_work_item_type(self):
         from ado.work_items.validation import WorkItemValidator
 
-        project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+        project_id = get_project_id()
 
         result = WorkItemValidator.validate_state_transition(
             project_id, "NonexistentWorkItemType", "New", "Active"
@@ -352,7 +353,7 @@ class TestStateTransitionValidation:
     async def test_state_transition_validation_integration(self):
         from ado.work_items.validation import WorkItemValidator
 
-        project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+        project_id = get_project_id()
 
         old_state = "New"
         new_state = "Active"

@@ -7,6 +7,7 @@ from typing import Dict, Any
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 from ado.work_items.models import WorkItemRelation
 
@@ -25,7 +26,7 @@ async def mcp_client():
 
 @pytest.fixture
 def project_id():
-    return "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    return get_project_id()  # ado-mcp project
 
 
 @pytest.fixture

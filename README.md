@@ -301,15 +301,48 @@ If you prefer not to use Azure CLI, you can set environment variables directly:
 
 ## Testing
 
--   **Run Tests**:
+The ado-mcp project uses a Terraform-based test infrastructure that creates isolated test environments.
+
+### Quick Test Setup
+
+1. **Configure environment**:
+   ```bash
+   cp .env.example .env  # Edit with your Azure DevOps details
+   ```
+
+2. **Provision test environment**:
+   ```bash
+   task ado-up  # Creates Azure DevOps project and infrastructure
+   ```
+
+3. **Run tests**:
+   ```bash
+   task test
+   ```
+
+4. **Clean up**:
+   ```bash
+   task ado-down  # Destroys the test environment
+   ```
+
+### Test Commands
+
+-   **Run all tests** (parallel):
     ```bash
     task test
     ```
 
--   **Test Coverage**:
+-   **Run single test**:
+    ```bash
+    task test-single TEST_NAME=tests/test_example.py::test_function_name
+    ```
+
+-   **Test coverage**:
     ```bash
     task coverage
     ```
+
+📚 **[Detailed Testing Setup Guide](docs/TESTING_SETUP.md)**
 
 -   **Setup Azure DevOps CLI** (for Azure DevOps CLI commands):
     ```bash
@@ -493,15 +526,48 @@ If you want to contribute to this project or run it from source:
 
 ## Testing
 
--   **Run Tests**:
+The ado-mcp project uses a Terraform-based test infrastructure that creates isolated test environments.
+
+### Quick Test Setup
+
+1. **Configure environment**:
+   ```bash
+   cp .env.example .env  # Edit with your Azure DevOps details
+   ```
+
+2. **Provision test environment**:
+   ```bash
+   task ado-up  # Creates Azure DevOps project and infrastructure
+   ```
+
+3. **Run tests**:
+   ```bash
+   task test
+   ```
+
+4. **Clean up**:
+   ```bash
+   task ado-down  # Destroys the test environment
+   ```
+
+### Test Commands
+
+-   **Run all tests** (parallel):
     ```bash
     task test
     ```
 
--   **Test Coverage**:
+-   **Run single test**:
+    ```bash
+    task test-single TEST_NAME=tests/test_example.py::test_function_name
+    ```
+
+-   **Test coverage**:
     ```bash
     task coverage
     ```
+
+📚 **[Detailed Testing Setup Guide](docs/TESTING_SETUP.md)**
 
 -   **Setup Azure DevOps CLI** (for Azure DevOps CLI commands):
     ```bash

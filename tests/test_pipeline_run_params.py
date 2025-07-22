@@ -5,6 +5,7 @@ from fastmcp.client import Client
 
 from ado.models import PipelineRunRequest
 from server import mcp
+from src.test_config import get_project_id, get_parameterized_pipeline_id
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
@@ -22,8 +23,8 @@ async def mcp_client():
 
 @requires_ado_creds
 async def test_run_pipeline_with_template_parameters_correct_names(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
-    pipeline_id = 75
+    project_id = get_project_id()
+    pipeline_id = get_parameterized_pipeline_id()
 
     template_parameters = {"testEnvironment": "dev", "enableDebug": True}
 
@@ -53,7 +54,7 @@ async def test_run_pipeline_with_template_parameters_correct_names(mcp_client: C
 
 @requires_ado_creds
 async def test_run_pipeline_with_branch(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
     pipeline_id = 59
 
     branch = "refs/heads/main"
@@ -83,7 +84,7 @@ async def test_run_pipeline_with_branch(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_with_runtime_variables_api_format(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
+    project_id = get_project_id()  # ado-mcp project
     pipeline_id = 285  # runtime-variables-test pipeline
 
     variables = {
@@ -139,7 +140,7 @@ async def test_run_pipeline_with_runtime_variables_api_format(mcp_client: Client
 
 @requires_ado_creds
 async def test_run_pipeline_and_get_outcome_with_all_params(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
     pipeline_id = 59
 
     branch = "refs/heads/main"
@@ -236,7 +237,7 @@ async def test_run_pipeline_and_get_outcome_by_name_with_branch(mcp_client: Clie
 
 @requires_ado_creds
 async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
     pipeline_id = 84
 
     stages_to_skip = ["Deploy"]
@@ -271,7 +272,7 @@ async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_no_params_unchanged(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
     pipeline_id = 59
     result = await mcp_client.call_tool(
         "run_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
@@ -291,7 +292,7 @@ async def test_run_pipeline_no_params_unchanged(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_with_empty_params(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
     pipeline_id = 59
     result = await mcp_client.call_tool(
         "run_pipeline",

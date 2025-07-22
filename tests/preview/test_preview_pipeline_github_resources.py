@@ -5,14 +5,12 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id, get_github_resources_pipeline_id, get_parameterized_pipeline_id
 from tests.ado.test_client import requires_ado_creds
 
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.asyncio
-
-PROJECT_ID = "49e895da-15c6-4211-97df-65c547a59c22"
-GITHUB_RESOURCES_PIPELINE_ID = 200
 
 
 @pytest.fixture
@@ -28,9 +26,12 @@ async def mcp_client():
 class TestPreviewPipelineGitHubResources:
     @requires_ado_creds
     async def test_preview_public_github_repository_default_behavior(self, mcp_client: Client):
+        project_id = get_project_id()
+        pipeline_id = get_github_resources_pipeline_id()
+        
         result = await mcp_client.call_tool(
             "preview_pipeline",
-            {"project_id": PROJECT_ID, "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID},
+            {"project_id": project_id, "pipeline_id": pipeline_id},
         )
 
         preview_data = result.data
@@ -68,11 +69,14 @@ class TestPreviewPipelineGitHubResources:
             }
         }
 
+        project_id = get_project_id()
+        pipeline_id = get_github_resources_pipeline_id()
+        
         result = await mcp_client.call_tool(
             "preview_pipeline",
             {
-                "project_id": PROJECT_ID,
-                "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+                "project_id": project_id,
+                "pipeline_id": pipeline_id,
                 "resources": resources,
             },
         )
@@ -94,11 +98,14 @@ class TestPreviewPipelineGitHubResources:
             }
         }
 
+        project_id = get_project_id()
+        pipeline_id = get_github_resources_pipeline_id()
+        
         result = await mcp_client.call_tool(
             "preview_pipeline",
             {
-                "project_id": PROJECT_ID,
-                "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+                "project_id": project_id,
+                "pipeline_id": pipeline_id,
                 "resources": resources,
             },
         )
@@ -120,11 +127,14 @@ class TestPreviewPipelineGitHubResources:
             "repositories": {"tooling": {"refName": "refs/heads/main", "RepositoryType": "gitHub"}}
         }
 
+        project_id = get_project_id()
+        pipeline_id = get_github_resources_pipeline_id()
+        
         result = await mcp_client.call_tool(
             "preview_pipeline",
             {
-                "project_id": PROJECT_ID,
-                "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+                "project_id": project_id,
+                "pipeline_id": pipeline_id,
                 "resources": resources,
             },
         )
@@ -140,7 +150,7 @@ class TestPreviewPipelineGitHubResources:
     async def test_preview_github_resources_without_token_public_repo(self, mcp_client: Client):
         result = await mcp_client.call_tool(
             "preview_pipeline",
-            {"project_id": PROJECT_ID, "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID},
+            {"project_id": get_project_id(), "pipeline_id": get_github_resources_pipeline_id()},
         )
 
         preview_data = result.data
@@ -159,8 +169,8 @@ class TestPreviewPipelineGitHubResources:
         result = await mcp_client.call_tool(
             "preview_pipeline",
             {
-                "project_id": PROJECT_ID,
-                "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+                "project_id": get_project_id(),
+                "pipeline_id": get_github_resources_pipeline_id(),
                 "template_parameters": {
                     "taskfileVersion": "v3.31.0",
                     "installPath": "/usr/local/bin",
@@ -181,21 +191,22 @@ class TestPreviewPipelineGitHubResources:
 
     @requires_ado_creds
     async def test_preview_branch_affects_job_names(self, mcp_client: Client):
-        parameterized_pipeline_id = 75
+        project_id = get_project_id()
+        pipeline_id = get_parameterized_pipeline_id()
 
         result_main = await mcp_client.call_tool(
             "preview_pipeline",
             {
-                "project_id": PROJECT_ID,
-                "pipeline_id": parameterized_pipeline_id,
+                "project_id": project_id,
+                "pipeline_id": pipeline_id,
                 "resources": {"repositories": {"tooling": {"refName": "refs/heads/main"}}},
             },
         )
         result_stable = await mcp_client.call_tool(
             "preview_pipeline",
             {
-                "project_id": PROJECT_ID,
-                "pipeline_id": parameterized_pipeline_id,
+                "project_id": project_id,
+                "pipeline_id": pipeline_id,
                 "resources": {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}},
             },
         )
@@ -241,11 +252,14 @@ class TestPreviewPipelineGitHubResources:
             }
         }
 
+        project_id = get_project_id()
+        pipeline_id = get_github_resources_pipeline_id()
+        
         result = await mcp_client.call_tool(
             "preview_pipeline",
             {
-                "project_id": PROJECT_ID,
-                "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+                "project_id": project_id,
+                "pipeline_id": pipeline_id,
                 "resources": resources,
             },
         )
@@ -262,11 +276,14 @@ class TestPreviewPipelineGitHubResources:
         resources = {
             "repositories": {"tooling": {"refName": "refs/heads/main", "RepositoryType": "gitHub"}}
         }
+        project_id = get_project_id()
+        pipeline_id = get_github_resources_pipeline_id()
+        
         result = await mcp_client.call_tool(
             "preview_pipeline",
             {
-                "project_id": PROJECT_ID,
-                "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+                "project_id": project_id,
+                "pipeline_id": pipeline_id,
                 "resources": resources,
             },
         )
@@ -283,11 +300,14 @@ class TestPreviewPipelineGitHubResources:
     async def test_preview_public_repository_without_type(self, mcp_client: Client):
         resources = {"repositories": {"tooling": {"refName": "refs/heads/main"}}}
 
+        project_id = get_project_id()
+        pipeline_id = get_github_resources_pipeline_id()
+        
         result = await mcp_client.call_tool(
             "preview_pipeline",
             {
-                "project_id": PROJECT_ID,
-                "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+                "project_id": project_id,
+                "pipeline_id": pipeline_id,
                 "resources": resources,
             },
         )
@@ -307,11 +327,14 @@ class TestPreviewPipelineGitHubResources:
             }
         }
 
+        project_id = get_project_id()
+        pipeline_id = get_github_resources_pipeline_id()
+        
         result = await mcp_client.call_tool(
             "preview_pipeline",
             {
-                "project_id": PROJECT_ID,
-                "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+                "project_id": project_id,
+                "pipeline_id": pipeline_id,
                 "resources": resources,
             },
         )

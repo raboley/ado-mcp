@@ -4,6 +4,7 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 
 # Mark all tests in this module as asyncio
@@ -94,7 +95,7 @@ async def test_analyze_pipeline_input_with_pipeline_name(mcp_client: Client):
 
 @requires_ado_creds
 async def test_find_pipeline_by_name_exact_match(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
 
     result = await mcp_client.call_tool(
         "find_pipeline_by_id_and_name",
@@ -149,7 +150,7 @@ async def test_find_pipeline_by_name_exact_match(mcp_client: Client):
 
 @requires_ado_creds
 async def test_find_pipeline_by_name_fuzzy_match(mcp_client: Client):
-    project_id = "49e895da-15c6-4211-97df-65c547a59c22"
+    project_id = get_project_id()
 
     result = await mcp_client.call_tool(
         "find_pipeline_by_id_and_name",
