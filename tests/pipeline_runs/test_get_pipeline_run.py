@@ -32,17 +32,13 @@ async def mcp_client_no_auth(monkeypatch):
 @pytest.fixture
 async def pipeline_run_id(mcp_client):
     result = await mcp_client.call_tool(
-        "run_pipeline",
-        {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": BASIC_PIPELINE_ID
-        }
+        "run_pipeline", {"project_id": TEST_PROJECT_ID, "pipeline_id": BASIC_PIPELINE_ID}
     )
-    
+
     pipeline_run = result.data
     assert pipeline_run is not None, f"Expected pipeline run to be created but got None"
     assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
-    
+
     return pipeline_run["id"]
 
 
@@ -53,19 +49,29 @@ async def test_get_pipeline_run_with_valid_id(mcp_client: Client, pipeline_run_i
         {
             "project_id": TEST_PROJECT_ID,
             "pipeline_id": BASIC_PIPELINE_ID,
-            "run_id": pipeline_run_id
-        }
+            "run_id": pipeline_run_id,
+        },
     )
-    
+
     pipeline_run = result.data
     assert pipeline_run is not None, f"Expected pipeline run data but got None"
     assert isinstance(pipeline_run, dict), f"Expected dict but got {type(pipeline_run)}"
-    assert pipeline_run["id"] == pipeline_run_id, f"Expected run ID {pipeline_run_id} but got {pipeline_run['id']}"
-    assert "state" in pipeline_run, f"Expected 'state' field in pipeline run but got fields: {list(pipeline_run.keys())}"
-    assert "pipeline" in pipeline_run, f"Expected 'pipeline' field in pipeline run but got fields: {list(pipeline_run.keys())}"
-    assert "createdDate" in pipeline_run, f"Expected 'createdDate' field in pipeline run but got fields: {list(pipeline_run.keys())}"
-    
-    assert pipeline_run["pipeline"]["id"] == BASIC_PIPELINE_ID, f"Expected pipeline ID {BASIC_PIPELINE_ID} but got {pipeline_run['pipeline']['id']}"
+    assert pipeline_run["id"] == pipeline_run_id, (
+        f"Expected run ID {pipeline_run_id} but got {pipeline_run['id']}"
+    )
+    assert "state" in pipeline_run, (
+        f"Expected 'state' field in pipeline run but got fields: {list(pipeline_run.keys())}"
+    )
+    assert "pipeline" in pipeline_run, (
+        f"Expected 'pipeline' field in pipeline run but got fields: {list(pipeline_run.keys())}"
+    )
+    assert "createdDate" in pipeline_run, (
+        f"Expected 'createdDate' field in pipeline run but got fields: {list(pipeline_run.keys())}"
+    )
+
+    assert pipeline_run["pipeline"]["id"] == BASIC_PIPELINE_ID, (
+        f"Expected pipeline ID {BASIC_PIPELINE_ID} but got {pipeline_run['pipeline']['id']}"
+    )
 
 
 @requires_ado_creds
@@ -75,15 +81,17 @@ async def test_get_pipeline_run_state_validation(mcp_client: Client, pipeline_ru
         {
             "project_id": TEST_PROJECT_ID,
             "pipeline_id": BASIC_PIPELINE_ID,
-            "run_id": pipeline_run_id
-        }
+            "run_id": pipeline_run_id,
+        },
     )
-    
+
     pipeline_run = result.data
     assert pipeline_run is not None, f"Expected pipeline run data but got None"
-    
+
     valid_states = ["unknown", "inProgress", "completed", "cancelling", "cancelled"]
-    assert pipeline_run["state"] in valid_states, f"Expected state to be one of {valid_states} but got '{pipeline_run['state']}'"
+    assert pipeline_run["state"] in valid_states, (
+        f"Expected state to be one of {valid_states} but got '{pipeline_run['state']}'"
+    )
 
 
 @requires_ado_creds
@@ -93,21 +101,29 @@ async def test_get_pipeline_run_structure(mcp_client: Client, pipeline_run_id: i
         {
             "project_id": TEST_PROJECT_ID,
             "pipeline_id": BASIC_PIPELINE_ID,
-            "run_id": pipeline_run_id
-        }
+            "run_id": pipeline_run_id,
+        },
     )
-    
+
     pipeline_run = result.data
     assert pipeline_run is not None, f"Expected pipeline run data but got None"
-    
+
     required_fields = ["id", "name", "state", "pipeline", "createdDate"]
     for field in required_fields:
-        assert field in pipeline_run, f"Expected field '{field}' in pipeline run but got fields: {list(pipeline_run.keys())}"
-    
+        assert field in pipeline_run, (
+            f"Expected field '{field}' in pipeline run but got fields: {list(pipeline_run.keys())}"
+        )
+
     pipeline_info = pipeline_run["pipeline"]
-    assert isinstance(pipeline_info, dict), f"Expected pipeline info to be dict but got {type(pipeline_info)}"
-    assert "id" in pipeline_info, f"Expected 'id' in pipeline info but got fields: {list(pipeline_info.keys())}"
-    assert "name" in pipeline_info, f"Expected 'name' in pipeline info but got fields: {list(pipeline_info.keys())}"
+    assert isinstance(pipeline_info, dict), (
+        f"Expected pipeline info to be dict but got {type(pipeline_info)}"
+    )
+    assert "id" in pipeline_info, (
+        f"Expected 'id' in pipeline info but got fields: {list(pipeline_info.keys())}"
+    )
+    assert "name" in pipeline_info, (
+        f"Expected 'name' in pipeline info but got fields: {list(pipeline_info.keys())}"
+    )
 
 
 @requires_ado_creds
@@ -117,13 +133,15 @@ async def test_get_pipeline_run_with_authentication(mcp_client: Client, pipeline
         {
             "project_id": TEST_PROJECT_ID,
             "pipeline_id": BASIC_PIPELINE_ID,
-            "run_id": pipeline_run_id
-        }
+            "run_id": pipeline_run_id,
+        },
     )
-    
+
     pipeline_run = result.data
     assert pipeline_run is not None, f"Expected pipeline run with authentication but got None"
-    assert pipeline_run["id"] == pipeline_run_id, f"Expected run ID {pipeline_run_id} but got {pipeline_run['id']}"
+    assert pipeline_run["id"] == pipeline_run_id, (
+        f"Expected run ID {pipeline_run_id} but got {pipeline_run['id']}"
+    )
 
 
 @requires_ado_creds
@@ -131,13 +149,9 @@ async def test_get_pipeline_run_nonexistent_run(mcp_client: Client):
     try:
         result = await mcp_client.call_tool(
             "get_pipeline_run",
-            {
-                "project_id": TEST_PROJECT_ID,
-                "pipeline_id": BASIC_PIPELINE_ID,
-                "run_id": 999999999
-            }
+            {"project_id": TEST_PROJECT_ID, "pipeline_id": BASIC_PIPELINE_ID, "run_id": 999999999},
         )
-        
+
         if result.data is None:
             assert True, "Non-existent pipeline run correctly returned None"
         else:
@@ -154,10 +168,10 @@ async def test_get_pipeline_run_invalid_project(mcp_client: Client):
             {
                 "project_id": "00000000-0000-0000-0000-000000000000",
                 "pipeline_id": BASIC_PIPELINE_ID,
-                "run_id": 123456
-            }
+                "run_id": 123456,
+            },
         )
-        
+
         if result.data is None:
             assert True, "Invalid project correctly returned None"
         else:
@@ -171,13 +185,9 @@ async def test_get_pipeline_run_wrong_pipeline_id(mcp_client: Client, pipeline_r
     try:
         result = await mcp_client.call_tool(
             "get_pipeline_run",
-            {
-                "project_id": TEST_PROJECT_ID,
-                "pipeline_id": 999,
-                "run_id": pipeline_run_id
-            }
+            {"project_id": TEST_PROJECT_ID, "pipeline_id": 999, "run_id": pipeline_run_id},
         )
-        
+
         if result.data is None:
             assert True, "Wrong pipeline ID correctly returned None"
         else:
@@ -194,4 +204,6 @@ async def test_get_pipeline_run_tool_registration():
         else:
             tools = tools_response
         tool_names = [tool.name for tool in tools]
-        assert "get_pipeline_run" in tool_names, f"Expected 'get_pipeline_run' in tool names but got {tool_names}"
+        assert "get_pipeline_run" in tool_names, (
+            f"Expected 'get_pipeline_run' in tool names but got {tool_names}"
+        )

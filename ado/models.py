@@ -288,10 +288,12 @@ class LogCollection(BaseModel):
 
 # Azure DevOps API Schema Models for Pipeline Run Parameters
 
+
 class RepositoryResourceParameters(BaseModel):
     """
     Parameters for repository resources as defined by Azure DevOps API.
     """
+
     refName: Optional[str] = None
     token: Optional[str] = None
     tokenType: Optional[str] = None
@@ -302,6 +304,7 @@ class BuildResourceParameters(BaseModel):
     """
     Parameters for build resources as defined by Azure DevOps API.
     """
+
     version: Optional[str] = None
 
 
@@ -309,6 +312,7 @@ class ContainerResourceParameters(BaseModel):
     """
     Parameters for container resources as defined by Azure DevOps API.
     """
+
     version: Optional[str] = None
 
 
@@ -316,6 +320,7 @@ class PackageResourceParameters(BaseModel):
     """
     Parameters for package resources as defined by Azure DevOps API.
     """
+
     version: Optional[str] = None
 
 
@@ -323,6 +328,7 @@ class PipelineResourceParameters(BaseModel):
     """
     Parameters for pipeline resources as defined by Azure DevOps API.
     """
+
     version: Optional[str] = None
 
 
@@ -330,6 +336,7 @@ class RunResourcesParameters(BaseModel):
     """
     Complete resources parameters structure as defined by Azure DevOps API.
     """
+
     repositories: Optional[Dict[str, RepositoryResourceParameters]] = None
     builds: Optional[Dict[str, BuildResourceParameters]] = None
     containers: Optional[Dict[str, ContainerResourceParameters]] = None
@@ -341,6 +348,7 @@ class Variable(BaseModel):
     """
     Variable structure as defined by Azure DevOps API.
     """
+
     value: str
     isSecret: Optional[bool] = None
 
