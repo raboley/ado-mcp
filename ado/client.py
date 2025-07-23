@@ -425,9 +425,22 @@ class AdoClient:
                 return response.json() if response.content else None
 
             except requests.exceptions.HTTPError as e:
-                # Log HTTP errors for backward compatibility
+                # Log HTTP errors with detailed response information
+                response_body = "No response"
+                if e.response is not None:
+                    try:
+                        # Try to get response text
+                        if hasattr(e.response, 'text') and e.response.text:
+                            response_body = e.response.text
+                        elif hasattr(e.response, 'content') and e.response.content:
+                            response_body = e.response.content.decode('utf-8')
+                        else:
+                            response_body = f"Status: {e.response.status_code}, Headers: {dict(e.response.headers)}"
+                    except Exception as decode_error:
+                        response_body = f"Could not decode response: {decode_error}"
+                
                 logger.error(
-                    f"HTTP Error: {e} - Response Body: {e.response.text if e.response and e.response.text else 'No response'}"
+                    f"HTTP Error: {e} - Status: {e.response.status_code if e.response else 'Unknown'} - Response Body: {response_body}"
                 )
                 # For backward compatibility, let all HTTP errors through as HTTPError
                 # The retry logic will handle whether to retry or not
@@ -594,7 +607,7 @@ class AdoClient:
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
-        url = f"{self.organization_url}/{project_id}/_apis/serviceendpoint/endpoints?api-version=7.2-preview.4"
+        url = f"{self.organization_url}/{project_id}/_apis/serviceendpoint/endpoints?api-version=7.1-preview.4"
         logger.info(f"Fetching service connections for project {project_id}")
         response = self._send_request("GET", url)
         connections_data = response.get("value", [])

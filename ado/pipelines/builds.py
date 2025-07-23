@@ -34,7 +34,7 @@ class BuildOperations:
             requests.exceptions.RequestException: For network-related errors.
             ValueError: If the pipeline doesn't support the requested resources or branch override.
         """
-        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs?api-version=7.2-preview.1"
+        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs?api-version=7.1"
 
         # Validate if branch/self repository resources are supported before sending the request
         # Note: Only validate for 'self' repository overrides and branch parameters
@@ -101,8 +101,12 @@ class BuildOperations:
         logger.info(f"Running pipeline {pipeline_id} in project {project_id}")
         if request_data:
             logger.debug(f"Pipeline run request data: {request_data}")
-
-        response = self._client._send_request("POST", url, json=request_data)
+            response = self._client._send_request("POST", url, json=request_data)
+        else:
+            # For basic pipeline runs without parameters, send empty JSON object
+            # Azure DevOps requires a Content-Length header and expects JSON body
+            logger.debug("Sending empty JSON body for basic pipeline run")
+            response = self._client._send_request("POST", url, json={})
         logger.info(
             f"Pipeline run started: {response.get('id')} with state: {response.get('state')}"
         )
@@ -123,7 +127,7 @@ class BuildOperations:
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
-        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs/{run_id}?api-version=7.2-preview.1"
+        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs/{run_id}?api-version=7.1"
         logger.debug(f"Getting pipeline run {run_id} details for project {project_id}")
         response = self._client._send_request("GET", url)
         logger.debug(
