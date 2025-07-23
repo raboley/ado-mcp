@@ -17,6 +17,9 @@ terraform.tfvars.json
 .env.local
 .env.*.local
 
+# CRITICAL: Never commit actual .env files with secrets
+.env
+
 # OS-specific
 .DS_Store
 .DS_Store?
