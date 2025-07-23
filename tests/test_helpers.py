@@ -10,6 +10,33 @@ from tests.ado.test_client import requires_ado_creds
 # Mark all tests in this module as asyncio
 pytestmark = pytest.mark.asyncio
 
+async def get_pipeline_id_by_name(mcp_client: Client, pipeline_name: str) -> int:
+    """
+    Helper function to get pipeline ID by name.
+    
+    Args:
+        mcp_client: MCP client instance
+        pipeline_name: Name of the pipeline to find
+        
+    Returns:
+        Pipeline ID as integer
+        
+    Raises:
+        AssertionError: If pipeline not found or lookup fails
+    """
+    project_id = get_project_id()
+    
+    result = await mcp_client.call_tool(
+        "find_pipeline_by_name", {"project_name": get_project_name(), "pipeline_name": pipeline_name}
+    )
+    
+    pipeline_info = result.data
+    assert pipeline_info is not None, f"Failed to find pipeline '{pipeline_name}'"
+    assert "pipeline" in pipeline_info, f"Pipeline info should contain pipeline key but got: {pipeline_info}"
+    assert "id" in pipeline_info["pipeline"], f"Pipeline should have ID but got: {pipeline_info['pipeline']}"
+    
+    return pipeline_info["pipeline"]["id"]
+
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:

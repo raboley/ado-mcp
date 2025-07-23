@@ -5,6 +5,7 @@ from fastmcp.client import Client
 from server import mcp
 from src.test_config import get_project_id, get_project_name
 from tests.ado.test_client import requires_ado_creds
+from tests.test_helpers import get_pipeline_id_by_name
 
 pytestmark = pytest.mark.asyncio
 
@@ -23,20 +24,6 @@ async def mcp_client_no_auth(monkeypatch):
     monkeypatch.delenv("ADO_ORGANIZATION_URL", raising=False)
     async with Client(mcp) as client:
         yield client
-async def get_pipeline_id_by_name(mcp_client: Client, pipeline_name: str) -> int:
-    """Helper function to get pipeline ID by name using MCP tools."""
-    project_name = get_project_name()
-    
-    result = await mcp_client.call_tool("find_pipeline_by_name", {
-        "project_name": project_name,
-        "pipeline_name": pipeline_name
-    })
-    
-    pipeline_info = result.data
-    if not pipeline_info or "pipeline" not in pipeline_info:
-        raise ValueError(f"Pipeline '{pipeline_name}' not found in project '{project_name}'")
-    
-    return pipeline_info["pipeline"]["id"]
 
 @pytest.fixture
 async def pipeline_run_id(mcp_client):

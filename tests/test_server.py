@@ -7,6 +7,7 @@ from fastmcp.exceptions import ToolError
 
 from server import mcp
 from tests.ado.test_client import requires_ado_creds
+from tests.test_helpers import get_pipeline_id_by_name
 from ado.cache import ado_cache
 from tests.utils.telemetry import telemetry_setup, analyze_spans, clear_spans
 from src.test_config import get_project_id, get_project_name, get_organization_url
@@ -37,20 +38,6 @@ async def mcp_client_with_unset_ado_env(monkeypatch):
     importlib.reload(server)
     async with Client(server.mcp) as client:
         yield client
-async def get_pipeline_id_by_name(mcp_client: Client, pipeline_name: str) -> int:
-    """Helper function to get pipeline ID by name using MCP tools."""
-    project_name = get_project_name()
-    
-    result = await mcp_client.call_tool("find_pipeline_by_name", {
-        "project_name": project_name,
-        "pipeline_name": pipeline_name
-    })
-    
-    pipeline_info = result.data
-    if not pipeline_info or "pipeline" not in pipeline_info:
-        raise ValueError(f"Pipeline '{pipeline_name}' not found in project '{project_name}'")
-    
-    return pipeline_info["pipeline"]["id"]
 
 @requires_ado_creds
 async def test_list_projects_returns_valid_list(mcp_client: Client):

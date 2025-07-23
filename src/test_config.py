@@ -16,8 +16,28 @@ logger = logging.getLogger(__name__)
 
 
 class ConfigError(Exception):
-    """Raised when test configuration cannot be loaded or is invalid."""
+    """Base exception for test configuration errors."""
     __test__ = False  # Tell pytest this is not a test class
+    pass
+
+
+class ConfigFileNotFoundError(ConfigError):
+    """Raised when the configuration file cannot be found."""
+    pass
+
+
+class ConfigValidationError(ConfigError):
+    """Raised when configuration file exists but is invalid."""
+    pass
+
+
+class ConfigPermissionError(ConfigError):
+    """Raised when configuration file cannot be read due to permissions.""" 
+    pass
+
+
+class ConfigParseError(ConfigError):
+    """Raised when configuration file contains invalid JSON."""
     pass
 
 
@@ -52,7 +72,7 @@ class SimpleTestConfig:
         """Load configuration from file with comprehensive error handling."""
         try:
             if not os.path.exists(self.config_path):
-                raise ConfigError(
+                raise ConfigFileNotFoundError(
                     f"Configuration file not found at {self.config_path}. "
                     "Run 'task ado-up' to provision test environment."
                 )
@@ -63,19 +83,26 @@ class SimpleTestConfig:
             logger.info(f"Loaded test configuration from {self.config_path}")
             self._validate_config()
             
+        except PermissionError as e:
+            raise ConfigPermissionError(
+                f"Permission denied reading configuration file {self.config_path}: {e}"
+            )
         except json.JSONDecodeError as e:
-            raise ConfigError(
+            raise ConfigParseError(
                 f"Invalid JSON in configuration file {self.config_path}: {e}"
             )
+        except ConfigError:
+            # Re-raise our custom config errors
+            raise
         except Exception as e:
             raise ConfigError(
-                f"Failed to load configuration from {self.config_path}: {e}"
+                f"Unexpected error loading configuration from {self.config_path}: {e}"
             )
     
     def _validate_config(self) -> None:
         """Validate that required configuration sections exist."""
         if not self._config:
-            raise ConfigError("Configuration is empty")
+            raise ConfigValidationError("Configuration is empty")
         
         required_sections = ["project", "organization_url"]
         missing_sections = [
@@ -84,14 +111,14 @@ class SimpleTestConfig:
         ]
         
         if missing_sections:
-            raise ConfigError(
+            raise ConfigValidationError(
                 f"Missing required configuration sections: {missing_sections}"
             )
         
         # Validate project section
         project = self._config["project"]
         if not all(key in project for key in ["id", "name"]):
-            raise ConfigError(
+            raise ConfigValidationError(
                 "Project configuration missing required fields: id, name"
             )
         
@@ -169,10 +196,39 @@ def validate_test_environment() -> Dict[str, Any]:
             "needs_manual_setup": False
         }
         
+    except ConfigFileNotFoundError as e:
+        return {
+            "config_loaded": False,
+            "error": str(e),
+            "error_type": "file_not_found",
+            "suggestion": "Run 'task ado-up' to provision test environment"
+        }
+    except ConfigParseError as e:
+        return {
+            "config_loaded": False,
+            "error": str(e),
+            "error_type": "parse_error",
+            "suggestion": "Check JSON syntax in terraform_config.json or re-run 'task ado-up'"
+        }
+    except ConfigValidationError as e:
+        return {
+            "config_loaded": False,
+            "error": str(e),
+            "error_type": "validation_error",
+            "suggestion": "Configuration file is corrupt. Re-run 'task ado-up' to regenerate"
+        }
+    except ConfigPermissionError as e:
+        return {
+            "config_loaded": False,
+            "error": str(e),
+            "error_type": "permission_error",
+            "suggestion": "Check file permissions on terraform_config.json"
+        }
     except ConfigError as e:
         return {
             "config_loaded": False,
             "error": str(e),
+            "error_type": "unknown",
             "suggestion": "Run 'task ado-up' to provision test environment"
         }
 

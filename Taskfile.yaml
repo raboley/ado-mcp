@@ -248,6 +248,19 @@ tasks:
         echo "  3. Commit the version: git add -A && git commit -m \"bump version to $NEXT_VERSION\""
         echo "  4. Publish: task publish"
 
+  terraform-lock:
+    desc: "Initialize Terraform with remote state locking for team environments"
+    deps:
+      - task: install-terraform
+    cmds:
+      - |
+        echo "🔐 Initializing Terraform with state locking..."
+        cd terraform
+        
+        # Use username-based state file for isolation
+        terraform init -backend-config="key=ado-mcp-test-${USER}.tfstate"
+        echo "✅ Terraform initialized with locked state: ado-mcp-test-${USER}.tfstate"
+
   ado-up:
     desc: "Provision Azure DevOps test environment using Terraform"
     deps:
@@ -279,7 +292,15 @@ tasks:
         export TF_VAR_github_token="$(grep GITHUB_TOKEN .env | cut -d'=' -f2 | tr -d '\"')"
         
         cd terraform
-        terraform init
+        
+        # Check if we need to initialize with state locking
+        if [ ! -f .terraform/terraform.tfstate ] && [ -n "${CI:-}" ]; then
+          echo "🔐 CI environment detected, using state locking..."
+          terraform init -backend-config="key=ado-mcp-test-${USER:-ci}.tfstate"
+        else
+          terraform init
+        fi
+        
         terraform plan
         terraform apply -auto-approve
         echo "✅ Test environment provisioned successfully!"
