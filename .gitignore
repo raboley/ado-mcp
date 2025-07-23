@@ -8,6 +8,7 @@ terraform.tfvars.json
 *.auto.tfvars
 *.auto.tfvars.json
 terraform_config.json
+permissions_setup_requirements.json
 
 # Project-specific
 .python-version
