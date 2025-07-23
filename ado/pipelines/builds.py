@@ -32,8 +32,28 @@ class BuildOperations:
 
         Raises:
             requests.exceptions.RequestException: For network-related errors.
+            ValueError: If the pipeline doesn't support the requested resources or branch override.
         """
         url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs?api-version=7.2-preview.1"
+
+        # Validate if branch/self repository resources are supported before sending the request
+        # Note: Only validate for 'self' repository overrides and branch parameters
+        # External repository overrides (like 'tooling', 'templates', etc.) typically work
+        has_self_repo_override = (
+            request and request.resources and request.resources.repositories and 
+            "self" in request.resources.repositories
+        )
+        
+        if request and (request.branch or has_self_repo_override):
+            try:
+                self._validate_pipeline_supports_resources(project_id, pipeline_id, request)
+            except ValueError as e:
+                # Re-raise validation errors to prevent bad requests
+                logger.error(f"Resource validation failed: {e}")
+                raise
+            except Exception as e:
+                logger.warning(f"Resource validation failed, proceeding anyway: {e}")
+                # Continue execution for other types of errors (network, auth, etc.)
 
         # Prepare request data
         request_data = {}
@@ -58,6 +78,9 @@ class BuildOperations:
             # Handle resources and branch - branch needs to be merged into resources.repositories.self.refName
             resources = request_dict.get("resources", {})
             if request.branch:
+                # Branch override is only supported for pipelines that use repositories
+                # Adding 'self' repository override for branch specification
+                logger.info(f"Adding branch override: {request.branch}")
                 # Ensure repositories exists
                 if "repositories" not in resources:
                     resources["repositories"] = {}
@@ -260,3 +283,58 @@ class BuildOperations:
             f"Pipeline {pipeline_id} completed in {execution_time:.2f}s with result: {final_run.result}"
         )
         return outcome
+
+    def _validate_pipeline_supports_resources(
+        self, project_id: str, pipeline_id: int, request: PipelineRunRequest
+    ) -> None:
+        """
+        Validate if a pipeline supports the requested resources/branch by using pipeline preview.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            request (PipelineRunRequest): The pipeline run request to validate.
+
+        Raises:
+            ValueError: If the pipeline doesn't support the requested resources.
+        """
+        from ..models import PipelinePreviewRequest
+        from ..pipelines.pipelines import PipelineOperations
+
+        try:
+            # Create a preview request to test if the pipeline supports resources
+            preview_request = PipelinePreviewRequest(
+                previewRun=True,
+                resources=request.resources if request.resources else None,
+            )
+
+            # Add branch as a resource if specified
+            if request.branch:
+                if not preview_request.resources:
+                    from ..models import RunResourcesParameters
+                    preview_request.resources = RunResourcesParameters()
+                if not preview_request.resources.repositories:
+                    preview_request.resources.repositories = {}
+                preview_request.resources.repositories["self"] = {"refName": request.branch}
+
+            pipeline_ops = PipelineOperations(self._client)
+            preview_result = pipeline_ops.preview_pipeline(project_id, pipeline_id, preview_request)
+
+            logger.info(f"Pipeline preview successful for pipeline {pipeline_id}")
+
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "400" in error_msg or "bad request" in error_msg:
+                logger.error(
+                    f"Pipeline {pipeline_id} does not support self repository branch overrides. "
+                    f"This typically occurs with server-pool pipelines or pipelines without resources sections. "
+                    f"External repository overrides may still work. Error: {e}"
+                )
+                raise ValueError(
+                    f"Pipeline {pipeline_id} does not support branch overrides or 'self' repository resources. "
+                    f"External repository overrides (like 'tooling', 'templates') may still work. "
+                    f"For branch overrides, ensure the pipeline YAML includes a 'resources' section and uses a VM-based pool."
+                ) from e
+            else:
+                # Re-raise other errors as they might be network or permission issues
+                raise

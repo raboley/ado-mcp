@@ -12,7 +12,6 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-
 class SpanAnalyzer:
     """
     Helper class to analyze OpenTelemetry spans for testing.
@@ -97,7 +96,6 @@ class SpanAnalyzer:
         """Get all span names for debugging."""
         return [span.name for span in self.spans]
 
-
 @pytest.fixture
 def telemetry_setup():
     """
@@ -126,7 +124,6 @@ def telemetry_setup():
     # Clean up
     memory_exporter.clear()
 
-
 def analyze_spans(memory_exporter: InMemorySpanExporter) -> SpanAnalyzer:
     """
     Create a SpanAnalyzer from the current spans in the exporter.
@@ -138,7 +135,6 @@ def analyze_spans(memory_exporter: InMemorySpanExporter) -> SpanAnalyzer:
         SpanAnalyzer: Analyzer for the captured spans
     """
     return SpanAnalyzer(memory_exporter.get_finished_spans())
-
 
 def clear_spans(memory_exporter: InMemorySpanExporter) -> None:
     """Clear all captured spans from the exporter."""

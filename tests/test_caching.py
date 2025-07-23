@@ -1,10 +1,10 @@
 import pytest
+from fastmcp.client import Client
 import time
 
 from ado.cache import AdoCache, ado_cache
 from ado.models import Project, Pipeline
 from tests.ado.test_client import requires_ado_creds
-
 
 class TestAdoCache:
     def setup_method(self):
@@ -159,7 +159,6 @@ class TestAdoCache:
         assert removed_count == 1, f"Expected to remove 1 expired entry but removed {removed_count}"
         final_count = self.cache.get_stats()["total_entries"]
         assert final_count == 1, f"Expected 1 entry after cleanup but got {final_count}"
-
 
 @requires_ado_creds
 class TestCachingIntegration:

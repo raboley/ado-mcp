@@ -7,7 +7,6 @@ from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -15,11 +14,9 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
     return get_project_id()
-
 
 class TestEnhancedWorkItemTypeIntrospection:
 
@@ -93,7 +90,6 @@ class TestEnhancedWorkItemTypeIntrospection:
             )
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
-
 
 class TestEnhancedFieldIntrospection:
 
@@ -197,7 +193,6 @@ class TestEnhancedFieldIntrospection:
             )
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
-
 
 class TestEnhancedTypeIntegration:
 

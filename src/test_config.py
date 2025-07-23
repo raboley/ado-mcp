@@ -1,8 +1,8 @@
 """
-Dynamic test configuration system for ado-mcp.
+Simple test configuration system for ado-mcp.
 
-This module provides utilities for loading test configuration from Terraform outputs
-and resolving resource names to IDs dynamically, eliminating hardcoded test values.
+This module provides basic configuration for Azure DevOps organization and project info.
+Tests use MCP tools directly to look up pipelines by name instead of hardcoded IDs.
 """
 
 import json
@@ -10,7 +10,7 @@ import logging
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -20,17 +20,12 @@ class ConfigError(Exception):
     pass
 
 
-class ResourceNotFoundError(Exception):
-    """Raised when a required test resource cannot be found."""
-    pass
-
-
-class DynamicTestConfig:
+class SimpleTestConfig:
     """
-    Manages dynamic test configuration for ado-mcp tests.
+    Simple test configuration that provides only basic org/project info.
     
-    Loads configuration from Terraform outputs and provides utilities for
-    resolving resource names to IDs dynamically.
+    Tests should use MCP tools like find_pipeline_by_name() instead of 
+    hardcoded pipeline IDs.
     """
     
     def __init__(self, config_path: Optional[str] = None):
@@ -47,7 +42,6 @@ class DynamicTestConfig:
     
     def _get_default_config_path(self) -> str:
         """Get the default path to the Terraform configuration file."""
-        # Look for config file relative to this module
         current_dir = Path(__file__).parent
         project_root = current_dir.parent
         config_path = project_root / "tests" / "terraform_config.json"
@@ -82,7 +76,7 @@ class DynamicTestConfig:
         if not self._config:
             raise ConfigError("Configuration is empty")
         
-        required_sections = ["project", "pipelines", "organization_url"]
+        required_sections = ["project", "organization_url"]
         missing_sections = [
             section for section in required_sections 
             if section not in self._config
@@ -116,115 +110,26 @@ class DynamicTestConfig:
     def organization_url(self) -> str:
         """Get the Azure DevOps organization URL."""
         return self._config["organization_url"]
-    
-    def get_pipeline_id(self, pipeline_name: str) -> int:
-        """
-        Get pipeline ID by name.
-        
-        Args:
-            pipeline_name: Name of the pipeline
-            
-        Returns:
-            Pipeline ID
-            
-        Raises:
-            ResourceNotFoundError: If pipeline not found
-        """
-        pipelines = self._config.get("pipelines", {})
-        
-        if pipeline_name not in pipelines:
-            available_pipelines = list(pipelines.keys())
-            raise ResourceNotFoundError(
-                f"Pipeline '{pipeline_name}' not found in configuration. "
-                f"Available pipelines: {available_pipelines}. "
-                "Ensure all required pipelines are set up in Azure DevOps."
-            )
-        
-        pipeline_config = pipelines[pipeline_name]
-        pipeline_id = pipeline_config.get("id")
-        
-        if pipeline_id is None:
-            raise ResourceNotFoundError(
-                f"Pipeline '{pipeline_name}' exists in configuration but has no ID. "
-                "This may indicate the pipeline was not properly created."
-            )
-        
-        logger.debug(f"Resolved pipeline '{pipeline_name}' to ID {pipeline_id}")
-        return int(pipeline_id)
-    
-    def get_pipeline_config(self, pipeline_name: str) -> Dict[str, Any]:
-        """
-        Get complete pipeline configuration by name.
-        
-        Args:
-            pipeline_name: Name of the pipeline
-            
-        Returns:
-            Pipeline configuration dictionary
-        """
-        pipelines = self._config.get("pipelines", {})
-        
-        if pipeline_name not in pipelines:
-            available_pipelines = list(pipelines.keys())
-            raise ResourceNotFoundError(
-                f"Pipeline '{pipeline_name}' not found. "
-                f"Available: {available_pipelines}"
-            )
-        
-        return pipelines[pipeline_name]
-    
-    def get_all_pipeline_names(self) -> list[str]:
-        """Get list of all available pipeline names."""
-        return list(self._config.get("pipelines", {}).keys())
-    
-    def get_service_connection_id(self, connection_name: str) -> str:
-        """
-        Get service connection ID by name.
-        
-        Args:
-            connection_name: Name of the service connection
-            
-        Returns:
-            Service connection ID
-        """
-        connections = self._config.get("service_connections", {})
-        
-        if connection_name not in connections:
-            available_connections = list(connections.keys())
-            raise ResourceNotFoundError(
-                f"Service connection '{connection_name}' not found. "
-                f"Available: {available_connections}"
-            )
-        
-        return connections[connection_name]
-    
-    def has_pipeline(self, pipeline_name: str) -> bool:
-        """Check if a pipeline exists in the configuration."""
-        return pipeline_name in self._config.get("pipelines", {})
-    
-    def has_service_connection(self, connection_name: str) -> bool:
-        """Check if a service connection exists in the configuration."""
-        return connection_name in self._config.get("service_connections", {})
 
 
 # Global test configuration instance
-_test_config: Optional["DynamicTestConfig"] = None
+_test_config: Optional["SimpleTestConfig"] = None
 
 
 @lru_cache(maxsize=1)
-def get_test_config() -> "DynamicTestConfig":
+def get_test_config() -> "SimpleTestConfig":
     """
     Get the global test configuration instance.
     
     Returns:
-        DynamicTestConfig instance
+        SimpleTestConfig instance
         
     Raises:
         ConfigError: If configuration cannot be loaded
     """
     global _test_config
     if _test_config is None:
-        _test_config = DynamicTestConfig()
+        _test_config = SimpleTestConfig()
     return _test_config
 
 
@@ -238,55 +143,11 @@ def get_project_name() -> str:
     return get_test_config().project_name
 
 
-def get_pipeline_id(pipeline_name: str) -> int:
-    """Get pipeline ID by name."""
-    return get_test_config().get_pipeline_id(pipeline_name)
-
-
 def get_organization_url() -> str:
     """Get the Azure DevOps organization URL."""
     return get_test_config().organization_url
 
 
-# Convenience constants for commonly used pipelines
-# These will be resolved dynamically from the configuration
-
-def get_basic_pipeline_id() -> int:
-    """Get ID for the basic test pipeline."""
-    return get_pipeline_id("test_run_and_get_pipeline_run_details")
-
-
-def get_complex_pipeline_id() -> int:
-    """Get ID for the complex test pipeline."""
-    return get_pipeline_id("slow.log-test-complex")
-
-
-def get_failing_pipeline_id() -> int:
-    """Get ID for the failing test pipeline."""
-    return get_pipeline_id("log-test-failing")
-
-
-def get_parameterized_pipeline_id() -> int:
-    """Get ID for the parameterized preview test pipeline."""
-    return get_pipeline_id("preview-test-parameterized")
-
-
-def get_preview_pipeline_id() -> int:
-    """Get ID for the basic preview test pipeline."""
-    return get_pipeline_id("preview-test-valid")
-
-
-def get_github_resources_pipeline_id() -> int:
-    """Get ID for the GitHub resources test pipeline."""
-    return get_pipeline_id("github-resources-test-stable")
-
-
-def get_runtime_variables_pipeline_id() -> int:
-    """Get ID for the runtime variables test pipeline."""
-    return get_pipeline_id("runtime-variables-test")
-
-
-# Test environment validation
 def validate_test_environment() -> Dict[str, Any]:
     """
     Validate that the test environment is properly configured.
@@ -297,37 +158,15 @@ def validate_test_environment() -> Dict[str, Any]:
     try:
         config = get_test_config()
         
-        validation_results = {
+        return {
             "config_loaded": True,
             "project_configured": True,
             "project_id": config.project_id,
             "project_name": config.project_name,
             "organization_url": config.organization_url,
-            "pipelines_count": len(config.get_all_pipeline_names()),
-            "pipeline_names": config.get_all_pipeline_names(),
-            "errors": []
+            "errors": [],
+            "needs_manual_setup": False
         }
-        
-        # Check for placeholder pipeline IDs
-        placeholder_pipelines = []
-        for pipeline_name in config.get_all_pipeline_names():
-            try:
-                pipeline_id = config.get_pipeline_id(pipeline_name)
-                if pipeline_id == 999:  # Placeholder ID
-                    placeholder_pipelines.append(pipeline_name)
-            except ResourceNotFoundError:
-                validation_results["errors"].append(
-                    f"Pipeline '{pipeline_name}' configuration is invalid"
-                )
-        
-        if placeholder_pipelines:
-            validation_results["errors"].append(
-                f"Pipelines with placeholder IDs (need manual setup): {placeholder_pipelines}"
-            )
-        
-        validation_results["needs_manual_setup"] = bool(placeholder_pipelines)
-        
-        return validation_results
         
     except ConfigError as e:
         return {
@@ -337,7 +176,6 @@ def validate_test_environment() -> Dict[str, Any]:
         }
 
 
-# Backward compatibility aliases for tests
+# Backward compatibility aliases
 TestConfigError = ConfigError
-TestResourceNotFoundError = ResourceNotFoundError
-TestConfig = DynamicTestConfig
+DynamicTestConfig = SimpleTestConfig  # For backward compatibility

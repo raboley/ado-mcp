@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-
 def pytest_addoption(parser):
     """Add command line options for test ordering."""
     parser.addoption(
@@ -20,7 +19,6 @@ def pytest_addoption(parser):
         default=5.0,
         help="Threshold in seconds to mark tests as slow (default: 5.0)",
     )
-
 
 def pytest_collection_modifyitems(config, items):
     """Reorder tests based on previous run durations if --slowest-first is used."""
@@ -55,7 +53,6 @@ def pytest_collection_modifyitems(config, items):
         duration = get_duration(item)
         if duration > threshold:
             item.add_marker(pytest.mark.slow)
-
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
     """Save test durations to cache after test run."""
@@ -96,7 +93,6 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
                 json.dump(existing_durations, f, indent=2)
         except IOError:
             pass
-
 
 @pytest.fixture
 def show_test_info(request):

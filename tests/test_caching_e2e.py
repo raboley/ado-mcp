@@ -1,4 +1,5 @@
 import os
+from fastmcp.client import Client
 import time
 import pytest
 from typing import List, Dict, Any
@@ -10,7 +11,6 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from ado.client import AdoClient
 from ado.cache import ado_cache
 from tests.ado.test_client import requires_ado_creds
-
 
 class SpanAnalyzer:
     def __init__(self, spans: List[Any]):
@@ -56,7 +56,6 @@ class SpanAnalyzer:
             return attrs.get("cache.source") == "api"
         return False
 
-
 @pytest.fixture
 def telemetry_setup():
     memory_exporter = InMemorySpanExporter()
@@ -74,13 +73,11 @@ def telemetry_setup():
 
     memory_exporter.clear()
 
-
 @pytest.fixture
 def fresh_cache():
     ado_cache.clear_all()
     yield
     ado_cache.clear_all()
-
 
 @requires_ado_creds
 class TestCachingE2E:

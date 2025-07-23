@@ -3,11 +3,25 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
-from src.test_config import get_project_id, get_basic_pipeline_id
+from src.test_config import get_project_id, get_project_name
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
+async def get_pipeline_id_by_name(mcp_client: Client, pipeline_name: str) -> int:
+    """Helper function to get pipeline ID by name using MCP tools."""
+    project_name = get_project_name()
+    
+    result = await mcp_client.call_tool("find_pipeline_by_name", {
+        "project_name": project_name,
+        "pipeline_name": pipeline_name
+    })
+    
+    pipeline_info = result.data
+    if not pipeline_info or "pipeline" not in pipeline_info:
+        raise ValueError(f"Pipeline '{pipeline_name}' not found in project '{project_name}'")
+    
+    return pipeline_info["pipeline"]["id"]
 
 @pytest.fixture
 async def mcp_client():
@@ -18,11 +32,10 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 async def build_id(mcp_client):
     project_id = get_project_id()
-    pipeline_id = get_basic_pipeline_id()
+    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
     
     result = await mcp_client.call_tool(
         "run_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
@@ -35,7 +48,6 @@ async def build_id(mcp_client):
     )
 
     return pipeline_run["id"]
-
 
 @requires_ado_creds
 async def test_get_build_by_id_valid_build(mcp_client: Client, build_id: int):
@@ -68,11 +80,10 @@ async def test_get_build_by_id_valid_build(mcp_client: Client, build_id: int):
         f"Expected 'name' field in definition, got fields: {list(definition.keys())}"
     )
 
-
 @requires_ado_creds
 async def test_get_build_by_id_maps_to_correct_pipeline(mcp_client: Client, build_id: int):
     project_id = get_project_id()
-    pipeline_id = get_basic_pipeline_id()
+    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
     
     result = await mcp_client.call_tool(
         "get_build_by_id", {"project_id": project_id, "build_id": build_id}
@@ -85,7 +96,6 @@ async def test_get_build_by_id_maps_to_correct_pipeline(mcp_client: Client, buil
     assert definition["id"] == pipeline_id, (
         f"Expected build {build_id} to map to pipeline {pipeline_id}, got pipeline {definition['id']}"
     )
-
 
 @requires_ado_creds
 async def test_get_build_by_id_structure(mcp_client: Client, build_id: int):
@@ -111,7 +121,6 @@ async def test_get_build_by_id_structure(mcp_client: Client, build_id: int):
             f"Expected '{field}' field in definition, got fields: {list(definition.keys())}"
         )
 
-
 @requires_ado_creds
 async def test_get_build_by_id_status_field(mcp_client: Client, build_id: int):
     project_id = get_project_id()
@@ -136,7 +145,6 @@ async def test_get_build_by_id_status_field(mcp_client: Client, build_id: int):
         f"Expected status to be one of {valid_statuses}, got '{actual_status}'"
     )
 
-
 @requires_ado_creds
 async def test_get_build_by_id_nonexistent_build(mcp_client: Client):
     project_id = get_project_id()
@@ -152,7 +160,6 @@ async def test_get_build_by_id_nonexistent_build(mcp_client: Client):
         assert True, (
             f"Expected exception for non-existent build 999999999, got {type(e).__name__}: {e}"
         )
-
 
 @requires_ado_creds
 async def test_get_build_by_id_invalid_project(mcp_client: Client):
@@ -170,7 +177,6 @@ async def test_get_build_by_id_invalid_project(mcp_client: Client):
         assert True, (
             f"Expected exception for invalid project 00000000-0000-0000-0000-000000000000, got {type(e).__name__}: {e}"
         )
-
 
 @requires_ado_creds
 async def test_get_build_by_id_url_resolution_scenario(mcp_client: Client, build_id: int):
@@ -198,7 +204,6 @@ async def test_get_build_by_id_url_resolution_scenario(mcp_client: Client, build
     assert len(pipeline_name) > 0, (
         f"Expected non-empty pipeline name for URL resolution, got '{pipeline_name}'"
     )
-
 
 async def test_get_build_by_id_tool_registration():
     async with Client(mcp) as client:

@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -23,11 +22,9 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
     return get_project_id()  # ado-mcp project
-
 
 class TestProcessDiscovery:
     """Test process discovery functionality."""
@@ -172,7 +169,6 @@ class TestProcessDiscovery:
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
 
-
 class TestWorkItemTemplates:
     """Test work item template functionality."""
 
@@ -240,7 +236,6 @@ class TestWorkItemTemplates:
             )
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
-
 
 class TestProcessIntegration:
     """Test integration scenarios for processes."""

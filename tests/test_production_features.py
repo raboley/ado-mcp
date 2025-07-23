@@ -1,4 +1,5 @@
 import os
+from fastmcp.client import Client
 import pytest
 import time
 from unittest.mock import Mock, patch, MagicMock
@@ -18,7 +19,6 @@ from ado.errors import (
 from ado.auth import AuthManager, PatAuthProvider, EnvironmentPatAuthProvider
 from ado.retry import RetryManager
 from ado.telemetry import TelemetryManager
-
 
 class TestStructuredErrors:
     def test_ado_error_structure(self):
@@ -78,7 +78,6 @@ class TestStructuredErrors:
         assert isinstance(error.original_exception, HTTPError), (
             f"Expected HTTPError but got {type(error.original_exception)}"
         )
-
 
 class TestConfiguration:
     def test_default_config_creation(self):
@@ -156,7 +155,6 @@ class TestConfiguration:
         assert config.request_timeout_seconds == 60, (
             f"Expected request_timeout_seconds 60 but got {config.request_timeout_seconds}"
         )
-
 
 class TestAuthenticationChaining:
     def test_auth_manager_provider_chain(self):
@@ -251,7 +249,6 @@ class TestAuthenticationChaining:
         assert credential1.token == credential2.token, (
             f"Expected same token '{credential1.token}' from fresh credential but got '{credential2.token}'"
         )
-
 
 class TestRetryMechanism:
     def test_retry_manager_success_no_retry(self):
@@ -358,7 +355,6 @@ class TestRetryMechanism:
             f"Expected 'Network error' in exception message but got '{str(exc_info.value)}'"
         )
 
-
 class TestTelemetryIntegration:
     def test_telemetry_manager_initialization(self):
         config = TelemetryConfig(enabled=True)
@@ -413,7 +409,6 @@ class TestTelemetryIntegration:
         assert recording_works, (
             f"Expected auth recording to work without errors but got exception: {error_msg if not recording_works else 'none'}"
         )
-
 
 class TestClientIntegration:
     def test_client_with_production_config(self):

@@ -8,7 +8,6 @@ from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -17,7 +16,6 @@ async def mcp_client():
         )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
-
 
 @requires_ado_creds
 async def test_list_projects_returns_valid_list(mcp_client: Client):
@@ -52,7 +50,6 @@ async def test_list_projects_returns_valid_list(mcp_client: Client):
             f"Expected project url to be a string, but got {type(project['url'])}: {project['url']}"
         )
 
-
 @requires_ado_creds
 async def test_list_projects_finds_expected_project(mcp_client: Client):
     result = await mcp_client.call_tool("list_projects")
@@ -76,7 +73,6 @@ async def test_list_projects_finds_expected_project(mcp_client: Client):
     assert ado_mcp_project["id"] == expected_project_id, (
         f"Expected project ID '{expected_project_id}', but got '{ado_mcp_project['id']}'"
     )
-
 
 async def test_list_projects_tool_registration():
     async with Client(mcp) as client:

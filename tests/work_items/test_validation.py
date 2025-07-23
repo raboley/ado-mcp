@@ -10,7 +10,6 @@ from ado.work_items.validation import WorkItemValidator
 from ado.work_items.path_validators import PathValidator
 from ado.cache import ado_cache
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -20,18 +19,15 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
     return get_project_id()
-
 
 @pytest.fixture(autouse=True)
 def clear_cache():
     ado_cache.clear_all()
     yield
     ado_cache.clear_all()
-
 
 class TestPathValidation:
 
@@ -85,7 +81,6 @@ class TestPathValidation:
             assert result == expected, (
                 f"Sanitizing '{input_path}' should produce '{expected}' but got '{result}'"
             )
-
 
 class TestFieldValidation:
 
@@ -156,7 +151,6 @@ class TestFieldValidation:
                 f"Field type '{field_type}' with value '{value}' should be {'valid' if expected else 'invalid'}"
             )
 
-
 class TestWorkItemTypeValidation:
 
     def test_validate_common_work_item_types(self):
@@ -195,7 +189,6 @@ class TestWorkItemTypeValidation:
         assert not WorkItemValidator.validate_work_item_type("project-123", "NonExistent")
 
         mock_get_types.assert_called_with("project-123")
-
 
 class TestPathSuggestions:
 
@@ -239,7 +232,6 @@ class TestPathSuggestions:
         assert suggestions == [], "Should return empty list when no cache available"
         mock_get_paths.assert_called_with("project-123")
 
-
 @patch("ado.work_items.validation.WorkItemValidator.validate_work_item_type")
 @patch("ado.work_items.validation.WorkItemValidator.validate_field_value")
 def test_validation_integration_with_tools(mock_validate_field, mock_validate_type):
@@ -257,7 +249,6 @@ def test_validation_integration_with_tools(mock_validate_field, mock_validate_ty
     assert mock_mcp.tool.called, "Should register work item tools with MCP"
     assert mock_mcp.tool.call_count >= 8, "Should register multiple work item tools"
 
-
 def test_validation_priority_check_unit():
     from ado.work_items.validation import WorkItemValidator
 
@@ -272,7 +263,6 @@ def test_validation_priority_check_unit():
     assert not WorkItemValidator.validate_field_value("System.Priority", -1, "Integer")
     assert not WorkItemValidator.validate_field_value("System.Priority", "1", "Integer")
 
-
 def test_validation_bypass_logic_unit():
     from ado.work_items.validation import WorkItemValidator
 
@@ -283,7 +273,6 @@ def test_validation_bypass_logic_unit():
 
     result_invalid = WorkItemValidator.validate_field_value("System.Priority", 10, "Integer")
     assert result_invalid is False, "Invalid priority should fail validation"
-
 
 class TestStateTransitionValidation:
 

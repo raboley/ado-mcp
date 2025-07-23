@@ -357,6 +357,13 @@ class PipelineRunRequest(BaseModel):
     """
     Request model for running a pipeline with parameters, variables, and branch selection.
     Matches Azure DevOps API specification.
+    
+    Note: The 'branch' parameter is only supported for pipelines that:
+    1. Have a 'resources' section defined in their YAML
+    2. Use VM-based pools (not server pools)
+    3. Are designed to work with repository checkouts
+    
+    Server-pool pipelines or simple pipelines without resources may not support branch overrides.
     """
 
     resources: Optional[RunResourcesParameters] = None
@@ -364,6 +371,7 @@ class PipelineRunRequest(BaseModel):
     variables: Optional[Dict[str, Any]] = None  # Accept any variable format
     stagesToSkip: Optional[List[str]] = None
     branch: Optional[str] = None  # Branch to run the pipeline from (e.g., "refs/heads/main")
+                                  # Only supported for pipelines with resources sections
 
 
 class PipelineOutcome(BaseModel):

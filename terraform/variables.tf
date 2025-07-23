@@ -9,3 +9,9 @@ variable "project_description" {
   type        = string
   default     = "Test project for ado-mcp integration testing"
 }
+
+variable "github_token" {
+  description = "GitHub personal access token for service connections"
+  type        = string
+  sensitive   = true
+}

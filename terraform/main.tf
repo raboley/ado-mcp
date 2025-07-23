@@ -35,7 +35,8 @@ module "test_pipelines" {
 module "permissions" {
   source = "./modules/permissions"
   
-  project_id = module.test_project.project_id
+  project_id    = module.test_project.project_id
+  github_token  = var.github_token
   
   depends_on = [module.test_project]
 }

@@ -1,13 +1,20 @@
 output "service_connection_ids" {
-  description = "Map of service connection names to IDs (placeholder)"
+  description = "Map of service connection names to IDs"
   value = {
-    "github-service-connection" = "placeholder-id"
+    "raboley" = azuredevops_serviceendpoint_github.github_connection.id
   }
 }
 
 output "service_connection_configs" {
   description = "Service connection configurations for testing"
-  value = local.required_service_connections
+  value = {
+    "raboley" = {
+      type = "GitHub"
+      description = "GitHub service connection for testing repository resources"
+      required_for = ["github-resources-test-stable pipeline"]
+      id = azuredevops_serviceendpoint_github.github_connection.id
+    }
+  }
 }
 
 output "permissions_requirements_file" {
