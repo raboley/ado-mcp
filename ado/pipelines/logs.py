@@ -36,7 +36,7 @@ class LogOperations:
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
-        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs/{run_id}/logs?api-version=7.2-preview.1"
+        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs/{run_id}/logs?api-version=7.1"
         logger.info(f"Listing logs for pipeline run {run_id} in project {project_id}")
         response = self._client._send_request("GET", url)
         logger.info(f"Retrieved {len(response.get('logs', []))} logs for run {run_id}")
@@ -63,7 +63,7 @@ class LogOperations:
             requests.exceptions.RequestException: For network-related errors.
         """
         # Get log metadata with signed content URL
-        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs/{run_id}/logs/{log_id}?$expand=signedContent&api-version=7.2-preview.1"
+        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/runs/{run_id}/logs/{log_id}?$expand=signedContent&api-version=7.1"
         logger.info(f"Getting log content for log {log_id} from run {run_id}")
         response = self._client._send_request("GET", url)
 
@@ -119,7 +119,7 @@ class LogOperations:
             requests.exceptions.RequestException: For network-related errors.
         """
         # Use the run_id as build_id for the build timeline API
-        url = f"{self._client.organization_url}/{project_id}/_apis/build/builds/{run_id}/timeline?api-version=7.2-preview.2"
+        url = f"{self._client.organization_url}/{project_id}/_apis/build/builds/{run_id}/timeline?api-version=7.1-preview.2"
         logger.info(f"Getting timeline for pipeline run {run_id} in project {project_id}")
         response = self._client._send_request("GET", url)
         logger.info(

@@ -3,13 +3,11 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id, get_project_name
 from tests.ado.test_client import requires_ado_creds
+from tests.test_helpers import get_pipeline_id_by_name
 
 pytestmark = pytest.mark.asyncio
-
-TEST_PROJECT_ID = "49e895da-15c6-4211-97df-65c547a59c22"
-BASIC_PREVIEW_PIPELINE_ID = 74
-
 
 @pytest.fixture
 async def mcp_client():
@@ -19,7 +17,6 @@ async def mcp_client():
         )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
-
 
 @requires_ado_creds
 async def test_preview_pipeline_yaml_override_simple(mcp_client: Client):
@@ -36,8 +33,8 @@ steps:
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": BASIC_PREVIEW_PIPELINE_ID,
+            "project_id": get_project_id(),
+            "pipeline_id": await get_pipeline_id_by_name(mcp_client, "preview-test-valid"),
             "yaml_override": yaml_override,
         },
     )
@@ -56,10 +53,9 @@ steps:
         f"Expected 'Hello from YAML override!' in finalYaml but not found. Got: {final_yaml[:200]}..."
     )
 
-
 @requires_ado_creds
 async def test_preview_pipeline_yaml_override_complex(mcp_client: Client):
-    parameterized_pipeline_id = 75
+    parameterized_pipeline_id = await get_pipeline_id_by_name(mcp_client, "preview-test-parameterized")
 
     yaml_override = """
 name: Complex Override Test Pipeline
@@ -101,7 +97,7 @@ stages:
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
+            "project_id": get_project_id(),
             "pipeline_id": parameterized_pipeline_id,
             "yaml_override": yaml_override,
         },
@@ -124,10 +120,9 @@ stages:
         f"Expected 'overrideParam' in finalYaml but not found. Got: {final_yaml[:200]}..."
     )
 
-
 @requires_ado_creds
 async def test_preview_pipeline_yaml_override_with_resources(mcp_client: Client):
-    github_resources_pipeline_id = 200
+    github_resources_pipeline_id = await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")
 
     yaml_override = """
 name: GitHub Resources Override Test
@@ -156,7 +151,7 @@ steps:
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
+            "project_id": get_project_id(),
             "pipeline_id": github_resources_pipeline_id,
             "yaml_override": yaml_override,
             "resources": resources,
@@ -179,7 +174,6 @@ steps:
         f"Expected 'tooling' repository reference in finalYaml but not found. Got: {final_yaml[:200]}..."
     )
 
-
 @requires_ado_creds
 async def test_preview_pipeline_invalid_yaml_override(mcp_client: Client):
     invalid_yaml_override = """
@@ -197,8 +191,8 @@ steps:
         result = await mcp_client.call_tool(
             "preview_pipeline",
             {
-                "project_id": TEST_PROJECT_ID,
-                "pipeline_id": BASIC_PREVIEW_PIPELINE_ID,
+                "project_id": get_project_id(),
+                "pipeline_id": await get_pipeline_id_by_name(mcp_client, "preview-test-valid"),
                 "yaml_override": invalid_yaml_override,
             },
         )
@@ -214,7 +208,6 @@ steps:
         assert isinstance(e, Exception), (
             f"Expected proper exception type for invalid YAML but got {type(e)}"
         )
-
 
 @requires_ado_creds
 async def test_preview_pipeline_with_yaml_override_tool_integration(mcp_client: Client):
@@ -234,8 +227,8 @@ steps:
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": BASIC_PREVIEW_PIPELINE_ID,
+            "project_id": get_project_id(),
+            "pipeline_id": await get_pipeline_id_by_name(mcp_client, "preview-test-valid"),
             "yaml_override": yaml_override,
         },
     )

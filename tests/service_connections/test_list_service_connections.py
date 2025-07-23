@@ -3,12 +3,10 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
-
-TEST_PROJECT_ID = "49e895da-15c6-4211-97df-65c547a59c22"
-
 
 @pytest.fixture
 async def mcp_client():
@@ -19,10 +17,10 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @requires_ado_creds
 async def test_list_service_connections_returns_valid_list(mcp_client: Client):
-    result = await mcp_client.call_tool("list_service_connections", {"project_id": TEST_PROJECT_ID})
+    project_id = get_project_id()
+    result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
 
     service_connections = result.data
     assert service_connections is not None, (
@@ -57,10 +55,10 @@ async def test_list_service_connections_returns_valid_list(mcp_client: Client):
             f"Expected string type for connection type, got {type(connection['type'])}"
         )
 
-
 @requires_ado_creds
 async def test_list_service_connections_github_type(mcp_client: Client):
-    result = await mcp_client.call_tool("list_service_connections", {"project_id": TEST_PROJECT_ID})
+    project_id = get_project_id()
+    result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
 
     service_connections = result.data
     assert isinstance(service_connections, list), (
@@ -75,10 +73,10 @@ async def test_list_service_connections_github_type(mcp_client: Client):
             f"Expected 'github' in connection type '{github_conn['type']}' but it was not found"
         )
 
-
 @requires_ado_creds
 async def test_list_service_connections_structure(mcp_client: Client):
-    result = await mcp_client.call_tool("list_service_connections", {"project_id": TEST_PROJECT_ID})
+    project_id = get_project_id()
+    result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
 
     service_connections = result.data
     assert isinstance(service_connections, list), (
@@ -116,10 +114,10 @@ async def test_list_service_connections_structure(mcp_client: Client):
                 f"Expected non-empty connection type at index {i}, got empty string"
             )
 
-
 @requires_ado_creds
 async def test_list_service_connections_types(mcp_client: Client):
-    result = await mcp_client.call_tool("list_service_connections", {"project_id": TEST_PROJECT_ID})
+    project_id = get_project_id()
+    result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
 
     service_connections = result.data
     assert isinstance(service_connections, list), (
@@ -139,7 +137,6 @@ async def test_list_service_connections_types(mcp_client: Client):
             )
             assert len(conn_type) > 0, f"Expected non-empty connection type, got empty string"
 
-
 @requires_ado_creds
 async def test_list_service_connections_invalid_project(mcp_client: Client):
     try:
@@ -156,10 +153,10 @@ async def test_list_service_connections_invalid_project(mcp_client: Client):
             f"Exception is expected for invalid project but got unexpected exception type: {type(e).__name__} with message: {str(e)}"
         )
 
-
 @requires_ado_creds
 async def test_list_service_connections_specific_connection_details(mcp_client: Client):
-    result = await mcp_client.call_tool("list_service_connections", {"project_id": TEST_PROJECT_ID})
+    project_id = get_project_id()
+    result = await mcp_client.call_tool("list_service_connections", {"project_id": project_id})
 
     service_connections = result.data
     assert isinstance(service_connections, list), (
@@ -176,7 +173,6 @@ async def test_list_service_connections_specific_connection_details(mcp_client: 
                     f"Expected non-empty connection ID for pipeline reference, got empty string"
                 )
                 break
-
 
 async def test_list_service_connections_tool_registration():
     async with Client(mcp) as client:

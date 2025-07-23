@@ -1,17 +1,18 @@
 """Tests for work item comments and history functionality."""
 
 import os
+import time
 import pytest
 from datetime import datetime
 from typing import Dict, Any
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 from ado.work_items.models import WorkItemComment, WorkItemRevision
 
 pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 async def mcp_client():
@@ -22,11 +23,9 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
-    return "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-
+    return get_project_id()  # ado-mcp project
 
 @pytest.fixture
 async def work_item_cleanup(mcp_client, project_id):
@@ -55,7 +54,6 @@ async def work_item_cleanup(mcp_client, project_id):
             # Don't fail the test if cleanup fails
             print(f"Warning: Failed to cleanup work item {work_item_id}: {e}")
 
-
 @pytest.fixture
 async def test_work_item(mcp_client, project_id, work_item_cleanup):
     """Create a test work item for use in comment/history tests."""
@@ -73,7 +71,6 @@ async def test_work_item(mcp_client, project_id, work_item_cleanup):
     work_item_cleanup(work_item_id)
 
     return result.data
-
 
 class TestWorkItemComments:
     """Test work item comment functionality."""
@@ -168,7 +165,6 @@ class TestWorkItemComments:
         assert (
             "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
         ), f"Should fail for invalid work item ID but got: {exc_info.value}"
-
 
 class TestWorkItemCommentRetrieval:
     """Test work item comment retrieval functionality."""
@@ -285,7 +281,6 @@ class TestWorkItemCommentRetrieval:
         await mcp_client.call_tool(
             "delete_work_item", {"project_id": project_id, "work_item_id": work_item_id}
         )
-
 
 class TestWorkItemHistory:
     """Test work item history functionality."""
@@ -482,7 +477,6 @@ class TestWorkItemHistory:
             assert "revised_date" in revision, (
                 f"Revision should have revised_date field but got keys: {list(revision.keys())}"
             )
-
 
 class TestCommentsHistoryIntegration:
     """Test integration between comments and history functionality."""

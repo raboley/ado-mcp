@@ -3,10 +3,10 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id, get_project_name
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 async def mcp_client():
@@ -16,7 +16,6 @@ async def mcp_client():
         )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
-
 
 @requires_ado_creds
 async def test_list_projects_returns_valid_list(mcp_client: Client):
@@ -51,7 +50,6 @@ async def test_list_projects_returns_valid_list(mcp_client: Client):
             f"Expected project url to be a string, but got {type(project['url'])}: {project['url']}"
         )
 
-
 @requires_ado_creds
 async def test_list_projects_finds_expected_project(mcp_client: Client):
     result = await mcp_client.call_tool("list_projects")
@@ -59,21 +57,22 @@ async def test_list_projects_finds_expected_project(mcp_client: Client):
     projects = result.data
     assert isinstance(projects, list), f"Expected projects to be a list, but got {type(projects)}"
 
+    expected_project_name = get_project_name()
     ado_mcp_project = None
     project_names = []
     for project in projects:
         project_names.append(project.get("name"))
-        if project.get("name") == "ado-mcp":
+        if project.get("name") == expected_project_name:
             ado_mcp_project = project
             break
 
     assert ado_mcp_project is not None, (
-        f"Expected to find 'ado-mcp' project, but found projects: {project_names}"
+        f"Expected to find '{expected_project_name}' project, but found projects: {project_names}"
     )
-    assert ado_mcp_project["id"] == "49e895da-15c6-4211-97df-65c547a59c22", (
-        f"Expected project ID '49e895da-15c6-4211-97df-65c547a59c22', but got '{ado_mcp_project['id']}'"
+    expected_project_id = get_project_id()
+    assert ado_mcp_project["id"] == expected_project_id, (
+        f"Expected project ID '{expected_project_id}', but got '{ado_mcp_project['id']}'"
     )
-
 
 async def test_list_projects_tool_registration():
     async with Client(mcp) as client:

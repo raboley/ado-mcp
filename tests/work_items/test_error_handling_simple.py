@@ -1,6 +1,8 @@
 """Simplified tests for comprehensive error handling in work items operations."""
 
 import pytest
+import time
+from fastmcp.client import Client
 from unittest.mock import Mock, patch
 import requests
 from requests.exceptions import HTTPError, Timeout, ConnectionError
@@ -16,7 +18,6 @@ from ado.errors import (
 )
 from ado.config import AdoMcpConfig, RetryConfig
 
-
 @pytest.fixture
 def mock_config():
     """Create a test configuration with shorter timeouts."""
@@ -26,7 +27,6 @@ def mock_config():
     config.retry.max_delay = 0.1
     config.request_timeout_seconds = 1
     return config
-
 
 @pytest.fixture
 def mock_client(mock_config):
@@ -43,12 +43,10 @@ def mock_client(mock_config):
         )
         return client
 
-
 @pytest.fixture
 def work_items_client(mock_client):
     """Create a WorkItemsClient for testing."""
     return WorkItemsClient(mock_client)
-
 
 class TestWorkItemErrorHandlingSimplified:
     def test_get_work_item_structured_error_context(self, work_items_client):

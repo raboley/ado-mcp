@@ -7,11 +7,11 @@ from datetime import datetime
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 from ado.cache import ado_cache
 
 pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 async def mcp_client():
@@ -22,11 +22,9 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
-    return "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-
+    return get_project_id()  # ado-mcp project
 
 @pytest.fixture(autouse=True)
 def clear_cache():
@@ -34,7 +32,6 @@ def clear_cache():
     ado_cache.clear_all()
     yield
     ado_cache.clear_all()
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -76,7 +73,6 @@ async def test_work_item_types_caching(mcp_client, project_id):
         f"Cache should be faster. API: {first_call_duration:.3f}s, Cache: {second_call_duration:.3f}s"
     )
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_area_paths_caching(mcp_client, project_id):
@@ -112,7 +108,6 @@ async def test_area_paths_caching(mcp_client, project_id):
     assert second_call_duration < first_call_duration / 5, (
         f"Cache should be faster. API: {first_call_duration:.3f}s, Cache: {second_call_duration:.3f}s"
     )
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -152,7 +147,6 @@ async def test_area_paths_caching_with_depth_parameter(mcp_client, project_id):
     assert ado_cache.get_area_paths(project_id) is not None, (
         "Cache should be populated when no depth is specified"
     )
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -194,7 +188,6 @@ async def test_iteration_paths_caching(mcp_client, project_id):
         f"Cache should be faster. API: {first_call_duration:.3f}s, Cache: {second_call_duration:.3f}s"
     )
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_cache_expiration_not_immediate(mcp_client, project_id):
@@ -219,7 +212,6 @@ async def test_cache_expiration_not_immediate(mcp_client, project_id):
     assert cache_call_duration < 0.1, (
         f"Cache call should be fast but took {cache_call_duration:.3f}s"
     )
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -251,7 +243,6 @@ async def test_cache_different_projects_isolated(mcp_client, project_id):
     assert result2.data is not None, "Should return cached data for first project"
     assert cache_duration < 0.1, f"Should hit cache but took {cache_duration:.3f}s"
     assert len(result2.data) == len(types1), "Should return same data from cache"
-
 
 @pytest.mark.asyncio
 @requires_ado_creds

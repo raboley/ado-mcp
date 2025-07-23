@@ -1,16 +1,17 @@
 """Integration tests for end-to-end work item workflows."""
 
 import os
+import time
 import pytest
 from datetime import datetime
 from typing import Dict, Any, List
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 async def mcp_client():
@@ -21,11 +22,9 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
-    return "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-
+    return get_project_id()  # ado-mcp project
 
 @pytest.fixture
 async def workflow_cleanup(mcp_client, project_id):
@@ -53,7 +52,6 @@ async def workflow_cleanup(mcp_client, project_id):
         except Exception as e:
             # Don't fail the test if cleanup fails
             print(f"Warning: Failed to cleanup work item {work_item_id}: {e}")
-
 
 class TestProjectManagementWorkflow:
     """Test complete project management workflows."""
@@ -513,7 +511,6 @@ class TestProjectManagementWorkflow:
         assert len(batch_query.data["workItems"]) >= len(work_items), (
             "Should find all batch test items with batch tag"
         )
-
 
 class TestDataIntegrityWorkflow:
     """Test data integrity and error handling across workflows."""

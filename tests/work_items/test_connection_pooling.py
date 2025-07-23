@@ -1,6 +1,8 @@
 """Tests for connection pooling functionality in ADO client."""
 
 import pytest
+import time
+from fastmcp.client import Client
 from unittest.mock import Mock, patch, MagicMock
 import requests
 from requests.adapters import HTTPAdapter
@@ -8,7 +10,6 @@ from requests.adapters import HTTPAdapter
 from ado.client import AdoClient
 from ado.work_items.client import WorkItemsClient
 from ado.config import AdoMcpConfig, ConnectionPoolConfig
-
 
 @pytest.fixture
 def pooled_config():
@@ -21,14 +22,12 @@ def pooled_config():
     config.connection_pool.pool_timeout = 2.0
     return config
 
-
 @pytest.fixture
 def non_pooled_config():
     """Create a configuration with connection pooling disabled."""
     config = AdoMcpConfig()
     config.connection_pool.enabled = False
     return config
-
 
 @pytest.fixture
 def mock_auth_manager():
@@ -40,7 +39,6 @@ def mock_auth_manager():
         }
         mock_auth.return_value.get_auth_method.return_value = "pat"
         yield mock_auth
-
 
 class TestConnectionPooling:
     def test_client_creates_session_when_pooling_enabled(self, pooled_config, mock_auth_manager):

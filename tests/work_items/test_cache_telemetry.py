@@ -6,11 +6,11 @@ from unittest.mock import Mock, patch, MagicMock
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 from ado.cache import ado_cache
 
 pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 async def mcp_client():
@@ -21,11 +21,9 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
-    return "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-
+    return get_project_id()  # ado-mcp project
 
 @pytest.fixture(autouse=True)
 def clear_cache():
@@ -33,7 +31,6 @@ def clear_cache():
     ado_cache.clear_all()
     yield
     ado_cache.clear_all()
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -68,7 +65,6 @@ async def test_cache_hit_miss_telemetry(mcp_client, project_id):
         mock_hit_counter.assert_called_with(1, {"cache_type": "work_item_types"})
         assert mock_miss_counter.call_count == 0, "Should not have any cache misses for second call"
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_cache_size_telemetry(mcp_client, project_id):
@@ -92,7 +88,6 @@ async def test_cache_size_telemetry(mcp_client, project_id):
             assert len(args) > 1 and isinstance(args[1], dict) and "cache_type" in args[1], (
                 "Should include cache_type in metrics"
             )
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -124,7 +119,6 @@ async def test_cache_eviction_telemetry():
         )
         mock_size_gauge.assert_called_with(-1, {"cache_type": "test_type"})
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_cache_clear_all_telemetry():
@@ -155,7 +149,6 @@ async def test_cache_clear_all_telemetry():
                 f"Unexpected cache type: {cache_type}"
             )
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_cache_stats_includes_type_breakdown():
@@ -178,7 +171,6 @@ async def test_cache_stats_includes_type_breakdown():
     assert stats["entries_by_type"]["area_paths"] == 1, "Should have 1 area path entry"
 
     assert "metrics_info" in stats, "Should include info about metrics"
-
 
 @pytest.mark.asyncio
 @requires_ado_creds

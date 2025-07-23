@@ -25,9 +25,9 @@ resources:
       endpoint: raboley
       ref: refs/heads/main
 
-variables:
-  - name: testVariable
-    value: 'default-value'
+# Variables configured as queue-time settable in Terraform:
+# - environment (default: 'staging')
+# - debugMode (default: 'false')
 
 pool:
   vmImage: 'ubuntu-latest'

@@ -1,7 +1,53 @@
+# Terraform files
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+terraform.tfvars
+terraform.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+terraform_config.json
+permissions_setup_requirements.json
+
+# Project-specific
 .python-version
 .coverage
 .venv
 .task
+.env
+.env.local
+.env.*.local
+
+# CRITICAL: Never commit actual .env files with secrets
+.env
+
+# OS-specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.#*
+#*#
+
+# Test artifacts
+pytest-results.xml
+.pytest_cache/
+htmlcov/
+
+# Editor temporary files
+*swp
+*swo
+*.bak
+*.orig
 ################################################################################
 # Created by https://www.toptal.com/developers/gitignore/api/jetbrains+all,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=jetbrains+all,python

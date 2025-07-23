@@ -2,10 +2,10 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 async def mcp_client():
@@ -14,11 +14,9 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
-    return "49e895da-15c6-4211-97df-65c547a59c22"
-
+    return get_project_id()
 
 class TestEnhancedWorkItemTypeIntrospection:
 
@@ -92,7 +90,6 @@ class TestEnhancedWorkItemTypeIntrospection:
             )
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
-
 
 class TestEnhancedFieldIntrospection:
 
@@ -196,7 +193,6 @@ class TestEnhancedFieldIntrospection:
             )
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
-
 
 class TestEnhancedTypeIntegration:
 

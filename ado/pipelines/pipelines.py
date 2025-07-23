@@ -37,7 +37,7 @@ class PipelineOperations:
             span.set_attribute("ado.operation", "list_pipelines")
             span.set_attribute("ado.project_id", project_id)
 
-            url = f"{self._client.organization_url}/{project_id}/_apis/pipelines?api-version=7.2-preview.1"
+            url = f"{self._client.organization_url}/{project_id}/_apis/pipelines?api-version=7.1"
             logger.info(f"Fetching pipelines for project {project_id} from: {url}")
             response = self._client._send_request("GET", url)
             pipelines_data = response.get("value", [])
@@ -74,7 +74,7 @@ class PipelineOperations:
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
-        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines?api-version=7.2-preview.1"
+        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines?api-version=7.1"
         logger.info(f"Creating pipeline '{request.name}' in project {project_id}")
 
         # Convert Pydantic model to dict for the request
@@ -137,7 +137,7 @@ class PipelineOperations:
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
-        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}?api-version=7.2-preview.1"
+        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}?api-version=7.1"
         logger.debug(f"Getting pipeline {pipeline_id} details for project {project_id}")
         response = self._client._send_request("GET", url)
         logger.debug(f"Pipeline {pipeline_id} name: {response.get('name')}")
@@ -160,7 +160,7 @@ class PipelineOperations:
         Raises:
             requests.exceptions.RequestException: For network-related errors.
         """
-        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/preview?api-version=7.2-preview.1"
+        url = f"{self._client.organization_url}/{project_id}/_apis/pipelines/{pipeline_id}/preview?api-version=7.1"
         logger.info(f"Previewing pipeline {pipeline_id} in project {project_id}")
 
         request_data = {}

@@ -7,12 +7,10 @@ from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
         yield client
-
 
 @requires_ado_creds
 async def test_set_organization_success(mcp_client: Client):
@@ -34,7 +32,6 @@ async def test_set_organization_success(mcp_client: Client):
         assert response is True, (
             f"Expected True for organization setting success but got: {response}"
         )
-
 
 @requires_ado_creds
 async def test_set_organization_failure_and_recovery(mcp_client: Client):
@@ -62,7 +59,6 @@ async def test_set_organization_failure_and_recovery(mcp_client: Client):
     else:
         assert response is True, f"Expected True for recovery success but got: {response}"
 
-
 async def test_set_organization_invalid_url(mcp_client: Client):
     invalid_url = "not-a-valid-url"
 
@@ -76,7 +72,6 @@ async def test_set_organization_invalid_url(mcp_client: Client):
         assert "url" in error_msg or "invalid" in error_msg, (
             f"Expected error message to mention URL validation issue but got: {e}"
         )
-
 
 async def test_set_organization_empty_url(mcp_client: Client):
     try:

@@ -1,4 +1,6 @@
 import pytest
+import time
+from fastmcp.client import Client
 from unittest.mock import Mock, patch, MagicMock
 import requests
 from requests.exceptions import HTTPError, Timeout, ConnectionError
@@ -8,7 +10,6 @@ from ado.work_items.client import WorkItemsClient
 from ado.errors import AdoRateLimitError, AdoNetworkError, AdoTimeoutError, AdoAuthenticationError
 from ado.config import AdoMcpConfig, RetryConfig
 
-
 @pytest.fixture
 def mock_config():
     config = AdoMcpConfig()
@@ -17,7 +18,6 @@ def mock_config():
     config.retry.max_delay = 1.0
     config.request_timeout_seconds = 5
     return config
-
 
 @pytest.fixture
 def mock_client(mock_config):
@@ -33,11 +33,9 @@ def mock_client(mock_config):
         )
         return client
 
-
 @pytest.fixture
 def work_items_client(mock_client):
     return WorkItemsClient(mock_client)
-
 
 class TestWorkItemErrorHandling:
     def test_create_work_item_authentication_error(self, work_items_client):

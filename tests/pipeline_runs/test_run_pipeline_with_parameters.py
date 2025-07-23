@@ -3,16 +3,11 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id, get_project_name
 from tests.ado.test_client import requires_ado_creds
+from tests.test_helpers import get_pipeline_id_by_name
 
 pytestmark = pytest.mark.asyncio
-
-TEST_PROJECT_ID = "49e895da-15c6-4211-97df-65c547a59c22"
-BASIC_PIPELINE_ID = 59
-PARAMETERIZED_PIPELINE_ID = 75
-GITHUB_RESOURCES_PIPELINE_ID = 200
-COMPLEX_PIPELINE_ID = 84
-
 
 @pytest.fixture
 async def mcp_client():
@@ -23,9 +18,10 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @requires_ado_creds
 async def test_run_pipeline_with_github_resources_stable_branch(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")
     resources = {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}
 
     template_parameters = {"taskfileVersion": "latest", "installPath": "./bin/stable-test"}
@@ -33,8 +29,8 @@ async def test_run_pipeline_with_github_resources_stable_branch(mcp_client: Clie
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "resources": resources,
             "template_parameters": template_parameters,
         },
@@ -51,9 +47,10 @@ async def test_run_pipeline_with_github_resources_stable_branch(mcp_client: Clie
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
 
-
 @requires_ado_creds
 async def test_run_pipeline_with_github_resources_main_branch(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")
     resources = {"repositories": {"tooling": {"refName": "refs/heads/main"}}}
 
     template_parameters = {"taskfileVersion": "latest", "installPath": "./bin/main-test"}
@@ -61,8 +58,8 @@ async def test_run_pipeline_with_github_resources_main_branch(mcp_client: Client
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "resources": resources,
             "template_parameters": template_parameters,
         },
@@ -76,9 +73,10 @@ async def test_run_pipeline_with_github_resources_main_branch(mcp_client: Client
         f"Expected pipeline run ID but got None, pipeline run: {pipeline_run}"
     )
 
-
 @requires_ado_creds
 async def test_run_pipeline_with_github_resources_feature_branch(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")
     resources = {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}
 
     template_parameters = {"taskfileVersion": "v1.0.0", "installPath": "./bin/feature-test"}
@@ -86,8 +84,8 @@ async def test_run_pipeline_with_github_resources_feature_branch(mcp_client: Cli
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "resources": resources,
             "template_parameters": template_parameters,
         },
@@ -101,16 +99,17 @@ async def test_run_pipeline_with_github_resources_feature_branch(mcp_client: Cli
         f"Expected pipeline run ID but got None, pipeline run: {pipeline_run}"
     )
 
-
 @requires_ado_creds
 async def test_run_pipeline_with_multiple_template_parameters(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")
     template_parameters = {"taskfileVersion": "latest", "installPath": "./bin/multi-param-test"}
 
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "template_parameters": template_parameters,
         },
     )
@@ -123,16 +122,17 @@ async def test_run_pipeline_with_multiple_template_parameters(mcp_client: Client
         f"Expected pipeline run ID but got None, pipeline run: {pipeline_run}"
     )
 
-
 @requires_ado_creds
 async def test_run_pipeline_with_template_parameters(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = await get_pipeline_id_by_name(mcp_client, "preview-test-parameterized")
     template_parameters = {"testEnvironment": "staging", "enableDebug": True}
 
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": PARAMETERIZED_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "template_parameters": template_parameters,
         },
     )
@@ -145,16 +145,17 @@ async def test_run_pipeline_with_template_parameters(mcp_client: Client):
         f"Expected pipeline run ID but got None, pipeline run: {pipeline_run}"
     )
 
-
 @requires_ado_creds
 async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = await get_pipeline_id_by_name(mcp_client, "slow.log-test-complex")
     stages_to_skip = ["Test"]
 
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": COMPLEX_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "stages_to_skip": stages_to_skip,
         },
     )
@@ -167,15 +168,67 @@ async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
         f"Expected pipeline run ID but got None, pipeline run: {pipeline_run}"
     )
 
+@requires_ado_creds
+async def test_run_pipeline_with_branch_override_unsupported_pipeline(mcp_client: Client):
+    """Test that branch override fails gracefully for pipelines that don't support resources."""
+    project_id = get_project_id()
+    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
+    
+    # This pipeline uses server pool and has no resources section, so branch override should fail
+    with pytest.raises(Exception) as exc_info:
+        await mcp_client.call_tool(
+            "run_pipeline",
+            {
+                "project_id": project_id,
+                "pipeline_id": pipeline_id,
+                "branch": "refs/heads/main",
+            },
+        )
+    
+    error_message = str(exc_info.value)
+    assert "does not support branch overrides or 'self' repository resources" in error_message, (
+        f"Expected error message about unsupported branch overrides, but got: {error_message}"
+    )
+    assert "'resources' section" in error_message, (
+        f"Expected error message to mention 'resources' section, but got: {error_message}"
+    )
 
 @requires_ado_creds
-async def test_run_pipeline_with_branch_override(mcp_client: Client):
+async def test_run_pipeline_with_branch_resource_override_unsupported_pipeline(mcp_client: Client):
+    """Test that resource override fails gracefully for pipelines that don't support resources."""
+    project_id = get_project_id()
+    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
+    resources = {"repositories": {"self": {"refName": "refs/heads/main"}}}
+
+    # This pipeline uses server pool and has no resources section, so resource override should fail
+    with pytest.raises(Exception) as exc_info:
+        await mcp_client.call_tool(
+            "run_pipeline",
+            {"project_id": project_id, "pipeline_id": pipeline_id, "resources": resources},
+        )
+
+    error_message = str(exc_info.value)
+    assert "does not support branch overrides or 'self' repository resources" in error_message, (
+        f"Expected error message about unsupported resources, but got: {error_message}"
+    )
+    assert "'resources' section" in error_message, (
+        f"Expected error message to mention 'resources' section, but got: {error_message}"
+    )
+
+@requires_ado_creds
+async def test_run_pipeline_with_external_resources_works(mcp_client: Client):
+    """Test that external resource overrides work for pipelines that support them."""
+    project_id = get_project_id()
+    pipeline_id = await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")
+    
+    # This pipeline has resources section with external GitHub repo, which works
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": BASIC_PIPELINE_ID,
-            "branch": "refs/heads/main",
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
+            "resources": {"repositories": {"tooling": {"refName": "refs/heads/main"}}},
+            "template_parameters": {"taskfileVersion": "latest", "installPath": "./bin/external-resource-test"}
         },
     )
 
@@ -186,28 +239,14 @@ async def test_run_pipeline_with_branch_override(mcp_client: Client):
     assert pipeline_run["id"] is not None, (
         f"Expected pipeline run ID but got None, pipeline run: {pipeline_run}"
     )
-
-
-@requires_ado_creds
-async def test_run_pipeline_with_branch_resource_override(mcp_client: Client):
-    resources = {"repositories": {"self": {"refName": "refs/heads/main"}}}
-
-    result = await mcp_client.call_tool(
-        "run_pipeline",
-        {"project_id": TEST_PROJECT_ID, "pipeline_id": BASIC_PIPELINE_ID, "resources": resources},
+    assert pipeline_run["state"] in ["unknown", "inProgress"], (
+        f"Expected state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
-
-    pipeline_run = result.data
-    assert pipeline_run is not None, (
-        f"Expected pipeline run data but got None, full result: {result}"
-    )
-    assert pipeline_run["id"] is not None, (
-        f"Expected pipeline run ID but got None, pipeline run: {pipeline_run}"
-    )
-
 
 @requires_ado_creds
 async def test_run_pipeline_github_resources_complex_scenario(mcp_client: Client):
+    project_id = get_project_id()
+    pipeline_id = await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")
     resources = {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}
 
     template_parameters = {"taskfileVersion": "latest", "installPath": "./bin/complex-test"}
@@ -215,8 +254,8 @@ async def test_run_pipeline_github_resources_complex_scenario(mcp_client: Client
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": TEST_PROJECT_ID,
-            "pipeline_id": GITHUB_RESOURCES_PIPELINE_ID,
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
             "resources": resources,
             "template_parameters": template_parameters,
         },
@@ -229,7 +268,6 @@ async def test_run_pipeline_github_resources_complex_scenario(mcp_client: Client
     assert pipeline_run["id"] is not None, (
         f"Expected pipeline run ID but got None, pipeline run: {pipeline_run}"
     )
-
 
 async def test_run_pipeline_parameter_combinations_tool_registration():
     async with Client(mcp) as client:

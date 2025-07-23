@@ -1,17 +1,18 @@
 """Tests for work item relationship functionality."""
 
 import os
+import time
 import pytest
 from datetime import datetime
 from typing import Dict, Any
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 from ado.work_items.models import WorkItemRelation
 
 pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 async def mcp_client():
@@ -22,11 +23,9 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
-    return "49e895da-15c6-4211-97df-65c547a59c22"  # ado-mcp project
-
+    return get_project_id()  # ado-mcp project
 
 @pytest.fixture
 async def work_item_cleanup(mcp_client, project_id):
@@ -49,7 +48,6 @@ async def work_item_cleanup(mcp_client, project_id):
             )
         except Exception:
             pass
-
 
 @pytest.fixture
 async def test_work_items(mcp_client, project_id, work_item_cleanup):
@@ -108,7 +106,6 @@ async def test_work_items(mcp_client, project_id, work_item_cleanup):
     work_items.append({"id": task2_id, "type": "Task"})
 
     return work_items
-
 
 class TestWorkItemLinking:
     """Test work item linking functionality."""
@@ -266,7 +263,6 @@ class TestWorkItemLinking:
             "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
         ), f"Should fail for invalid target work item but got: {exc_info.value}"
 
-
 class TestWorkItemRelationRetrieval:
     """Test work item relationship retrieval functionality."""
 
@@ -408,7 +404,6 @@ class TestWorkItemRelationRetrieval:
         assert "System.LinkTypes.Related" in relation_types, (
             f"Should have related relationship but got types: {relation_types}"
         )
-
 
 class TestRelationshipIntegration:
     """Test integration scenarios with relationships."""

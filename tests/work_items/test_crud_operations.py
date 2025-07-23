@@ -1,13 +1,14 @@
 import os
+import time
 import pytest
 from datetime import datetime
 from fastmcp.client import Client
 
 from server import mcp
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 async def mcp_client():
@@ -18,11 +19,9 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
-    return "49e895da-15c6-4211-97df-65c547a59c22"
-
+    return get_project_id()
 
 @pytest.fixture
 async def work_item_cleanup(mcp_client, project_id):
@@ -45,7 +44,6 @@ async def work_item_cleanup(mcp_client, project_id):
             )
         except Exception:
             pass
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -71,7 +69,6 @@ async def test_create_work_item_basic_bug(mcp_client, project_id, work_item_clea
     assert work_item["fields"]["System.State"] in ["New", "Active"], (
         f"State should be New or Active but got: {work_item['fields'].get('System.State')}"
     )
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -116,7 +113,6 @@ async def test_create_work_item_with_all_fields(mcp_client, project_id, work_ite
         f"Activity should be Development but got: {work_item['fields'].get('Microsoft.VSTS.Common.Activity')}"
     )
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_create_work_item_validation_only(mcp_client, project_id, work_item_cleanup):
@@ -131,7 +127,6 @@ async def test_create_work_item_validation_only(mcp_client, project_id, work_ite
     )
 
     assert result.data is not None, "Validation should return data"
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -158,7 +153,6 @@ async def test_get_work_item_basic(mcp_client, project_id, work_item_cleanup):
     assert work_item["fields"]["System.Title"] == "Test bug for retrieval", (
         f"Title should match but got: {work_item['fields'].get('System.Title')}"
     )
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -197,7 +191,6 @@ async def test_get_work_item_with_specific_fields(mcp_client, project_id, work_i
     assert "System.Description" not in work_item["fields"], (
         "Description field should not be present in filtered result"
     )
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -239,7 +232,6 @@ async def test_update_work_item_basic(mcp_client, project_id, work_item_cleanup)
         f"Description should be updated but got: {updated_work_item['fields'].get('System.Description')}"
     )
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_update_work_item_with_custom_fields(mcp_client, project_id, work_item_cleanup):
@@ -275,7 +267,6 @@ async def test_update_work_item_with_custom_fields(mcp_client, project_id, work_
         f"Activity should be Testing but got: {updated_work_item['fields'].get('Microsoft.VSTS.Common.Activity')}"
     )
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_delete_work_item_soft_delete(mcp_client, project_id, work_item_cleanup):
@@ -294,7 +285,6 @@ async def test_delete_work_item_soft_delete(mcp_client, project_id, work_item_cl
     assert delete_result.data is True, (
         f"Soft delete should return True but got: {delete_result.data}"
     )
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -321,7 +311,6 @@ async def test_create_work_item_failure_invalid_type(mcp_client, project_id, cap
         or "invalidworkitemtype" in str(exc_info.value).lower()
     ), f"Error should mention invalid work item type but got: {exc_info.value}"
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_item_failure_nonexistent_id(mcp_client, project_id, caplog):
@@ -346,7 +335,6 @@ async def test_get_work_item_failure_nonexistent_id(mcp_client, project_id, capl
         f"Error should indicate work item not found but got: {exc_info.value}"
     )
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_work_item_tools_registered_in_mcp_server(mcp_client):
@@ -369,7 +357,6 @@ async def test_work_item_tools_registered_in_mcp_server(mcp_client):
         assert tool_name in tool_names, (
             f"Tool '{tool_name}' should be registered but available tools are: {tool_names}"
         )
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -455,7 +442,6 @@ async def test_list_work_items_create_verify_cleanup_pattern(
         assert get_result.data["fields"]["System.Title"].startswith(test_pattern), (
             f"Work item title should start with pattern {test_pattern} but got: {get_result.data['fields']['System.Title']}"
         )
-
 
 @pytest.mark.asyncio
 @requires_ado_creds

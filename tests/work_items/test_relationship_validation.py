@@ -1,8 +1,8 @@
 """Tests for work item relationship validation."""
 
 import pytest
+import logging
 from ado.work_items.validation import WorkItemValidator
-
 
 class TestRelationshipTypeValidation:
     """Test relationship type validation."""
@@ -41,7 +41,6 @@ class TestRelationshipTypeValidation:
         assert len(valid_types) > 0
         assert "System.LinkTypes.Hierarchy-Forward" in valid_types
         assert "System.LinkTypes.Related" in valid_types
-
 
 class TestRelationshipConstraintValidation:
     """Test relationship constraint validation."""
@@ -193,7 +192,6 @@ class TestRelationshipConstraintValidation:
         assert not is_valid
         assert "Unknown relationship type" in error
 
-
 class TestRelationshipSuggestions:
     """Test relationship type suggestions."""
 
@@ -263,7 +261,6 @@ class TestRelationshipSuggestions:
         assert "System.LinkTypes.Dependency-Forward" in suggestion_types
         assert "System.LinkTypes.Dependency-Reverse" in suggestion_types
         assert "System.LinkTypes.Duplicate-Forward" in suggestion_types
-
 
 class TestRelationshipValidationIntegration:
     """Test integration of relationship validation."""

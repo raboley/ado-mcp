@@ -3,8 +3,9 @@ name: test_run_and_get_pipeline_run_details
 
 trigger: none
 
-variables:
-  testVariable: 'default value'
+# Variables configured as queue-time settable in Terraform:
+# - testEnvironment (default: 'dev')
+# - customVar (default: 'default-value')
 
 jobs:
 - job: DelayJob
