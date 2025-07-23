@@ -36,7 +36,8 @@ cp .env.example .env
 
 ### 4. Provision Test Environment
 ```bash
-# This creates the ado-mcp2 project and all test pipelines automatically
+# This creates the ado-mcp2 project, repository, and all test pipelines automatically
+# YAML files are automatically copied to the repository and pipelines are configured
 task ado-up
 ```
 

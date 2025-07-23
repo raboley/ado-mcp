@@ -44,10 +44,10 @@ The ado-mcp project now uses a dynamic, Terraform-managed testing infrastructure
    task ado-up
    ```
 
-5. **Set up pipelines manually** (currently required):
-   - Follow the instructions in `terraform/pipeline_setup_requirements.json`
-   - Create each pipeline in Azure DevOps using the specified YAML files
-   - Ensure pipeline names exactly match the YAML file names
+5. **Set up pipelines** (automatically handled):
+   - YAML files are automatically copied to the Azure DevOps repository
+   - Pipelines are created via Terraform configuration
+   - No manual pipeline creation required
 
 6. **Run tests**:
    ```bash
@@ -177,6 +177,13 @@ task test
 ### Sequential Tests (for debugging)
 ```bash
 task test-sequential
+```
+
+### Tests with Extended Timeout
+The test suite includes a 300-second timeout per test to handle long-running operations:
+```bash
+# Default test run includes timeout
+task test
 ```
 
 ### Single Test
