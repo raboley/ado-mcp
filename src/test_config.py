@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 class ConfigError(Exception):
     """Raised when test configuration cannot be loaded or is invalid."""
+    __test__ = False  # Tell pytest this is not a test class
     pass
 
 
