@@ -27,11 +27,10 @@ async def mcp_client_no_auth(monkeypatch):
 
 @pytest.fixture
 async def pipeline_run_id(mcp_client):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     result = await mcp_client.call_tool(
-        "run_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
+        "run_pipeline", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details"}
     )
 
     pipeline_run = result.data
@@ -42,15 +41,10 @@ async def pipeline_run_id(mcp_client):
 
 @requires_ado_creds
 async def test_get_pipeline_run_with_valid_id(mcp_client: Client, pipeline_run_id: int):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     result = await mcp_client.call_tool(
-        "get_pipeline_run",
-        {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
-            "run_id": pipeline_run_id,
+        "get_pipeline_run", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": pipeline_run_id,
         },
     )
 
@@ -70,21 +64,17 @@ async def test_get_pipeline_run_with_valid_id(mcp_client: Client, pipeline_run_i
         f"Expected 'createdDate' field in pipeline run but got fields: {list(pipeline_run.keys())}"
     )
 
-    assert pipeline_run["pipeline"]["id"] == pipeline_id, (
-        f"Expected pipeline ID {pipeline_id} but got {pipeline_run['pipeline']['id']}"
+    expected_pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
+    assert pipeline_run["pipeline"]["id"] == expected_pipeline_id, (
+        f"Expected pipeline ID {expected_pipeline_id} but got {pipeline_run['pipeline']['id']}"
     )
 
 @requires_ado_creds
 async def test_get_pipeline_run_state_validation(mcp_client: Client, pipeline_run_id: int):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     result = await mcp_client.call_tool(
-        "get_pipeline_run",
-        {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
-            "run_id": pipeline_run_id,
+        "get_pipeline_run", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": pipeline_run_id,
         },
     )
 
@@ -98,15 +88,10 @@ async def test_get_pipeline_run_state_validation(mcp_client: Client, pipeline_ru
 
 @requires_ado_creds
 async def test_get_pipeline_run_structure(mcp_client: Client, pipeline_run_id: int):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     result = await mcp_client.call_tool(
-        "get_pipeline_run",
-        {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
-            "run_id": pipeline_run_id,
+        "get_pipeline_run", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": pipeline_run_id,
         },
     )
 
@@ -132,15 +117,10 @@ async def test_get_pipeline_run_structure(mcp_client: Client, pipeline_run_id: i
 
 @requires_ado_creds
 async def test_get_pipeline_run_with_authentication(mcp_client: Client, pipeline_run_id: int):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     result = await mcp_client.call_tool(
-        "get_pipeline_run",
-        {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
-            "run_id": pipeline_run_id,
+        "get_pipeline_run", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": pipeline_run_id,
         },
     )
 
@@ -152,13 +132,11 @@ async def test_get_pipeline_run_with_authentication(mcp_client: Client, pipeline
 
 @requires_ado_creds
 async def test_get_pipeline_run_nonexistent_run(mcp_client: Client):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     try:
         result = await mcp_client.call_tool(
-            "get_pipeline_run",
-            {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": 999999999},
+            "get_pipeline_run", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": 999999999},
         )
 
         if result.data is None:
@@ -170,15 +148,10 @@ async def test_get_pipeline_run_nonexistent_run(mcp_client: Client):
 
 @requires_ado_creds
 async def test_get_pipeline_run_invalid_project(mcp_client: Client):
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     try:
         result = await mcp_client.call_tool(
-            "get_pipeline_run",
-            {
-                "project_id": "00000000-0000-0000-0000-000000000000",
-                "pipeline_id": pipeline_id,
-                "run_id": 123456,
+            "get_pipeline_run", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": 123456,
             },
         )
 
@@ -191,12 +164,11 @@ async def test_get_pipeline_run_invalid_project(mcp_client: Client):
 
 @requires_ado_creds
 async def test_get_pipeline_run_wrong_pipeline_id(mcp_client: Client, pipeline_run_id: int):
-    project_id = get_project_id()
+    project_name = get_project_name()
     
     try:
         result = await mcp_client.call_tool(
-            "get_pipeline_run",
-            {"project_id": project_id, "pipeline_id": 999, "run_id": pipeline_run_id},
+            "get_pipeline_run", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": pipeline_run_id},
         )
 
         if result.data is None:

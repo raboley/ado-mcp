@@ -20,11 +20,10 @@ async def mcp_client():
 
 @requires_ado_creds
 async def test_get_pipeline_basic(mcp_client: Client):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     result = await mcp_client.call_tool(
-        "get_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
+        "get_pipeline", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details"}
     )
 
     pipeline = result.data
@@ -33,7 +32,7 @@ async def test_get_pipeline_basic(mcp_client: Client):
         f"Expected pipeline to be dict but got {type(pipeline).__name__}"
     )
     assert pipeline["id"] == await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details"), (
-        f"Expected pipeline ID {await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")} but got {pipeline['id']}"
+        f"Expected pipeline ID {await get_pipeline_id_by_name(mcp_client, 'test_run_and_get_pipeline_run_details')} but got {pipeline['id']}"
     )
 
     required_fields = ["name", "folder"]
@@ -45,13 +44,13 @@ async def test_get_pipeline_basic(mcp_client: Client):
 @requires_ado_creds
 async def test_get_pipeline_github_resources(mcp_client: Client):
     result = await mcp_client.call_tool(
-        "get_pipeline", {"project_id": get_project_id(), "pipeline_id": await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")}
+        "get_pipeline", {"project_name": get_project_name(), "pipeline_name": "github-resources-test-stable"}
     )
 
     pipeline = result.data
     assert pipeline is not None, f"Expected pipeline data but got None"
     assert pipeline["id"] == await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable"), (
-        f"Expected pipeline ID {await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")} but got {pipeline['id']}"
+        f"Expected pipeline ID {await get_pipeline_id_by_name(mcp_client, 'github-resources-test-stable')} but got {pipeline['id']}"
     )
     assert pipeline["name"] == "github-resources-test-stable", (
         f"Expected pipeline name 'github-resources-test-stable' but got '{pipeline['name']}'"
@@ -60,14 +59,13 @@ async def test_get_pipeline_github_resources(mcp_client: Client):
 @requires_ado_creds
 async def test_get_pipeline_parameterized(mcp_client: Client):
     result = await mcp_client.call_tool(
-        "get_pipeline",
-        {"project_id": get_project_id(), "pipeline_id": await get_pipeline_id_by_name(mcp_client, "preview-test-parameterized")},
+        "get_pipeline", {"project_name": get_project_name(), "pipeline_name": "preview-test-parameterized"},
     )
 
     pipeline = result.data
     assert pipeline is not None, f"Expected pipeline data but got None"
     assert pipeline["id"] == await get_pipeline_id_by_name(mcp_client, "preview-test-parameterized"), (
-        f"Expected pipeline ID {await get_pipeline_id_by_name(mcp_client, "preview-test-parameterized")} but got {pipeline['id']}"
+        f"Expected pipeline ID {await get_pipeline_id_by_name(mcp_client, 'preview-test-parameterized')} but got {pipeline['id']}"
     )
     assert "preview-test-parameterized" in pipeline["name"], (
         f"Expected pipeline name to contain 'preview-test-parameterized' but got '{pipeline['name']}'"
@@ -76,7 +74,7 @@ async def test_get_pipeline_parameterized(mcp_client: Client):
 @requires_ado_creds
 async def test_get_pipeline_structure(mcp_client: Client):
     result = await mcp_client.call_tool(
-        "get_pipeline", {"project_id": get_project_id(), "pipeline_id": await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")}
+        "get_pipeline", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details"}
     )
 
     pipeline = result.data
@@ -111,7 +109,7 @@ async def test_get_pipeline_structure(mcp_client: Client):
 @requires_ado_creds
 async def test_get_pipeline_url_format(mcp_client: Client):
     result = await mcp_client.call_tool(
-        "get_pipeline", {"project_id": get_project_id(), "pipeline_id": await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")}
+        "get_pipeline", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details"}
     )
 
     pipeline = result.data
@@ -125,14 +123,14 @@ async def test_get_pipeline_url_format(mcp_client: Client):
         f"Expected Azure DevOps URL but got: {web_link}"
     )
     assert str(await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")) in web_link, (
-        f"Expected web link to contain pipeline ID {await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")} but got: {web_link}"
+        f"Expected web link to contain pipeline ID {await get_pipeline_id_by_name(mcp_client, 'test_run_and_get_pipeline_run_details')} but got: {web_link}"
     )
 
 @requires_ado_creds
 async def test_get_pipeline_nonexistent_pipeline(mcp_client: Client):
     try:
         result = await mcp_client.call_tool(
-            "get_pipeline", {"project_id": get_project_id(), "pipeline_id": 999999}
+            "get_pipeline", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details"}
         )
 
         if result.data is None:
@@ -148,11 +146,7 @@ async def test_get_pipeline_nonexistent_pipeline(mcp_client: Client):
 async def test_get_pipeline_invalid_project(mcp_client: Client):
     try:
         result = await mcp_client.call_tool(
-            "get_pipeline",
-            {
-                "project_id": "00000000-0000-0000-0000-000000000000",
-                "pipeline_id": await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details"),
-            },
+            "get_pipeline", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details"},
         )
 
         if result.data is None:
@@ -167,7 +161,7 @@ async def test_get_pipeline_invalid_project(mcp_client: Client):
 @requires_ado_creds
 async def test_get_pipeline_folder_information(mcp_client: Client):
     result = await mcp_client.call_tool(
-        "get_pipeline", {"project_id": get_project_id(), "pipeline_id": await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")}
+        "get_pipeline", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details"}
     )
 
     pipeline = result.data
@@ -184,13 +178,13 @@ async def test_get_pipeline_folder_information(mcp_client: Client):
 @requires_ado_creds
 async def test_get_pipeline_project_reference(mcp_client: Client):
     result = await mcp_client.call_tool(
-        "get_pipeline", {"project_id": get_project_id(), "pipeline_id": await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")}
+        "get_pipeline", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details"}
     )
 
     pipeline = result.data
     assert pipeline is not None, f"Expected pipeline data but got None"
     assert pipeline["id"] == await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details"), (
-        f"Expected pipeline ID {await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")} but got {pipeline['id']}"
+        f"Expected pipeline ID {await get_pipeline_id_by_name(mcp_client, 'test_run_and_get_pipeline_run_details')} but got {pipeline['id']}"
     )
 
 async def test_get_pipeline_tool_registration():

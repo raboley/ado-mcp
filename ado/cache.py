@@ -397,6 +397,22 @@ class AdoCache:
         self._cache.clear()
         logger.info("Cleared all cache entries")
 
+    def invalidate_pipelines(self, project_id: str) -> None:
+        """Invalidate pipeline cache for a specific project."""
+        key = f"pipelines:{project_id}"
+        name_map_key = f"pipeline_names:{project_id}"
+        
+        if key in self._cache:
+            del self._cache[key]
+            self._cache_size_gauge.add(-1, {"cache_type": "pipelines"})
+            self._cache_eviction_counter.add(1, {"cache_type": "pipelines", "reason": "manual_invalidate"})
+            logger.info(f"Invalidated pipeline cache for project {project_id}")
+        
+        if name_map_key in self._cache:
+            del self._cache[name_map_key]
+            self._cache_size_gauge.add(-1, {"cache_type": "pipeline_names"})
+            self._cache_eviction_counter.add(1, {"cache_type": "pipeline_names", "reason": "manual_invalidate"})
+
     def get_stats(self) -> Dict[str, Any]:
         """Get cache statistics including hit/miss rates."""
         total_entries = len(self._cache)

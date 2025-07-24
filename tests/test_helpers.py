@@ -215,8 +215,8 @@ async def test_resolve_pipeline_from_url_build_results(mcp_client: Client):
     pipeline_run = run_result.data
     build_id = pipeline_run["id"]
     
-    # Create the URL with the real build ID
-    test_url = f"https://dev.azure.com/RussellBoley/ado-mcp2/_build/results?buildId={build_id}&view=results"
+    # Create the URL with the real build ID and correct project name
+    test_url = f"https://dev.azure.com/RussellBoley/{project_name}/_build/results?buildId={build_id}&view=results"
 
     result = await mcp_client.call_tool("resolve_pipeline_from_url", {"url": test_url})
 
@@ -234,7 +234,7 @@ async def test_resolve_pipeline_from_url_build_results(mcp_client: Client):
     assert "pipeline_name" in resolution, "Should have pipeline_name"
     assert "suggested_actions" in resolution, "Should have suggested_actions"
 
-    assert resolution["project_name"] == "ado-mcp2", "Should resolve correct project"
+    assert resolution["project_name"] == project_name, f"Should resolve correct project {project_name}"
     assert resolution["build_id"] == build_id, f"Should extract correct build_id {build_id}"
     assert resolution["pipeline_name"] == pipeline_name, f"Should resolve correct pipeline name"
 

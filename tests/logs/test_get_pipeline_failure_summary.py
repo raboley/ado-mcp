@@ -20,11 +20,10 @@ async def mcp_client():
 
 @pytest.fixture
 async def completed_run_id(mcp_client):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     result = await mcp_client.call_tool(
-        "run_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
+        "run_pipeline", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details"}
     )
 
     pipeline_run = result.data
@@ -39,15 +38,10 @@ async def completed_run_id(mcp_client):
 async def test_get_pipeline_failure_summary_basic_structure(
     mcp_client: Client, completed_run_id: int
 ):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     result = await mcp_client.call_tool(
-        "get_pipeline_failure_summary",
-        {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
-            "run_id": completed_run_id,
+        "get_pipeline_failure_summary", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": completed_run_id,
         },
     )
 
@@ -79,15 +73,10 @@ async def test_get_pipeline_failure_summary_basic_structure(
 async def test_get_pipeline_failure_summary_with_max_lines(
     mcp_client: Client, completed_run_id: int
 ):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     result = await mcp_client.call_tool(
-        "get_pipeline_failure_summary",
-        {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
-            "run_id": completed_run_id,
+        "get_pipeline_failure_summary", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": completed_run_id,
             "max_lines": 50,
         },
     )
@@ -111,15 +100,10 @@ async def test_get_pipeline_failure_summary_with_max_lines(
 async def test_get_pipeline_failure_summary_unlimited_lines(
     mcp_client: Client, completed_run_id: int
 ):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     result = await mcp_client.call_tool(
-        "get_pipeline_failure_summary",
-        {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
-            "run_id": completed_run_id,
+        "get_pipeline_failure_summary", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": completed_run_id,
             "max_lines": 0,
         },
     )
@@ -136,15 +120,10 @@ async def test_get_pipeline_failure_summary_unlimited_lines(
 async def test_get_pipeline_failure_summary_task_structure(
     mcp_client: Client, completed_run_id: int
 ):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     result = await mcp_client.call_tool(
-        "get_pipeline_failure_summary",
-        {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
-            "run_id": completed_run_id,
+        "get_pipeline_failure_summary", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": completed_run_id,
         },
     )
 
@@ -215,8 +194,7 @@ async def test_get_pipeline_failure_summary_wrong_pipeline_id(
 ):
     try:
         result = await mcp_client.call_tool(
-            "get_pipeline_failure_summary",
-            {"project_id": get_project_id(), "pipeline_id": 999, "run_id": completed_run_id},
+            "get_pipeline_failure_summary", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": completed_run_id},
         )
 
         if result.data is not None:
@@ -232,15 +210,10 @@ async def test_get_pipeline_failure_summary_wrong_pipeline_id(
 async def test_get_pipeline_failure_summary_successful_run_handling(
     mcp_client: Client, completed_run_id: int
 ):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     result = await mcp_client.call_tool(
-        "get_pipeline_failure_summary",
-        {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
-            "run_id": completed_run_id,
+        "get_pipeline_failure_summary", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": completed_run_id,
         },
     )
 

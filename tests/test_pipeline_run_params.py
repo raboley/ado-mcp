@@ -23,16 +23,25 @@ async def mcp_client():
 
 @requires_ado_creds
 async def test_run_pipeline_with_template_parameters_correct_names(mcp_client: Client):
+    # Get project name
+    projects_result = await mcp_client.call_tool("list_projects", {})
+    project_name = None
     project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "preview-test-parameterized")
+    
+    for project in projects_result.data:
+        if project["id"] == project_id:
+            project_name = project["name"]
+            break
+    
+    assert project_name is not None, f"Should find project name for ID {project_id}"
 
     template_parameters = {"testEnvironment": "dev", "enableDebug": True}
 
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
+            "project_name": project_name,
+            "pipeline_name": "preview-test-parameterized",
             "template_parameters": template_parameters,
         },
     )
@@ -47,14 +56,23 @@ async def test_run_pipeline_with_template_parameters_correct_names(mcp_client: C
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
-    assert pipeline_run["pipeline"]["id"] == pipeline_id, (
-        f"Expected pipeline ID {pipeline_id} but got {pipeline_run['pipeline']['id']}"
+    assert pipeline_run["pipeline"]["name"] == "preview-test-parameterized", (
+        f"Expected pipeline name 'preview-test-parameterized' but got {pipeline_run['pipeline']['name']}"
     )
 
 @requires_ado_creds
 async def test_run_pipeline_with_branch(mcp_client: Client):
+    # Get project name
+    projects_result = await mcp_client.call_tool("list_projects", {})
+    project_name = None
     project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")
+    
+    for project in projects_result.data:
+        if project["id"] == project_id:
+            project_name = project["name"]
+            break
+    
+    assert project_name is not None, f"Should find project name for ID {project_id}"
 
     # Use external repository override instead of self branch override
     resources = {
@@ -66,7 +84,11 @@ async def test_run_pipeline_with_branch(mcp_client: Client):
     }
 
     result = await mcp_client.call_tool(
-        "run_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id, "resources": resources}
+        "run_pipeline", {
+            "project_name": project_name, 
+            "pipeline_name": "github-resources-test-stable", 
+            "resources": resources
+        }
     )
 
     pipeline_run = result.data
@@ -84,9 +106,17 @@ async def test_run_pipeline_with_branch(mcp_client: Client):
 @requires_ado_creds
 async def test_run_pipeline_with_runtime_variables_api_format(mcp_client: Client):
     """Test that variables can be overridden at queue time using an agent-based pipeline."""
+    # Get project name
+    projects_result = await mcp_client.call_tool("list_projects", {})
+    project_name = None
     project_id = get_project_id()
-    # Use the agent-based pipeline that now has queue-time settable variables
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "slow.log-test-complex")
+    
+    for project in projects_result.data:
+        if project["id"] == project_id:
+            project_name = project["name"]
+            break
+    
+    assert project_name is not None, f"Should find project name for ID {project_id}"
 
     # Override the queue-time settable variables
     variables = {
@@ -98,7 +128,11 @@ async def test_run_pipeline_with_runtime_variables_api_format(mcp_client: Client
     # Run pipeline with variable overrides
     result = await mcp_client.call_tool(
         "run_pipeline",
-        {"project_id": project_id, "pipeline_id": pipeline_id, "variables": variables},
+        {
+            "project_name": project_name, 
+            "pipeline_name": "slow.log-test-complex", 
+            "variables": variables
+        },
     )
 
     pipeline_run = result.data
@@ -112,8 +146,17 @@ async def test_run_pipeline_with_runtime_variables_api_format(mcp_client: Client
 
 @requires_ado_creds
 async def test_run_pipeline_and_get_outcome_with_all_params(mcp_client: Client):
+    # Get project name
+    projects_result = await mcp_client.call_tool("list_projects", {})
+    project_name = None
     project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")
+    
+    for project in projects_result.data:
+        if project["id"] == project_id:
+            project_name = project["name"]
+            break
+    
+    assert project_name is not None, f"Should find project name for ID {project_id}"
 
     # Use external repository override instead of self branch override
     resources = {
@@ -128,8 +171,8 @@ async def test_run_pipeline_and_get_outcome_with_all_params(mcp_client: Client):
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
+            "project_name": project_name,
+            "pipeline_name": "github-resources-test-stable",
             "resources": resources,
         },
     )
@@ -143,8 +186,8 @@ async def test_run_pipeline_and_get_outcome_with_all_params(mcp_client: Client):
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
-    assert pipeline_run["pipeline"]["id"] == pipeline_id, (
-        f"Expected pipeline ID {pipeline_id} but got {pipeline_run['pipeline']['id']}"
+    assert pipeline_run["pipeline"]["name"] == "github-resources-test-stable", (
+        f"Expected pipeline name 'github-resources-test-stable' but got {pipeline_run['pipeline']['name']}"
     )
 
 @requires_ado_creds
@@ -204,8 +247,17 @@ async def test_run_pipeline_and_get_outcome_by_name_with_branch(mcp_client: Clie
 
 @requires_ado_creds
 async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
+    # Get project name
+    projects_result = await mcp_client.call_tool("list_projects", {})
+    project_name = None
     project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "slow.log-test-complex")
+    
+    for project in projects_result.data:
+        if project["id"] == project_id:
+            project_name = project["name"]
+            break
+    
+    assert project_name is not None, f"Should find project name for ID {project_id}"
 
     stages_to_skip = ["Deploy"]
 
@@ -213,8 +265,8 @@ async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
         result = await mcp_client.call_tool(
             "run_pipeline",
             {
-                "project_id": project_id,
-                "pipeline_id": pipeline_id,
+                "project_name": project_name,
+                "pipeline_name": "slow.log-test-complex",
                 "stages_to_skip": stages_to_skip,
             },
         )
@@ -238,10 +290,20 @@ async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_no_params_unchanged(mcp_client: Client):
+    # Get project name
+    projects_result = await mcp_client.call_tool("list_projects", {})
+    project_name = None
     project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
+    
+    for project in projects_result.data:
+        if project["id"] == project_id:
+            project_name = project["name"]
+            break
+    
+    assert project_name is not None, f"Should find project name for ID {project_id}"
+    
     result = await mcp_client.call_tool(
-        "run_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
+        "run_pipeline", {"project_name": project_name, "pipeline_name": "test_run_and_get_pipeline_run_details"}
     )
 
     pipeline_run = result.data
@@ -257,13 +319,23 @@ async def test_run_pipeline_no_params_unchanged(mcp_client: Client):
 
 @requires_ado_creds
 async def test_run_pipeline_with_empty_params(mcp_client: Client):
+    # Get project name
+    projects_result = await mcp_client.call_tool("list_projects", {})
+    project_name = None
     project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
+    
+    for project in projects_result.data:
+        if project["id"] == project_id:
+            project_name = project["name"]
+            break
+    
+    assert project_name is not None, f"Should find project name for ID {project_id}"
+    
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
+            "project_name": project_name,
+            "pipeline_name": "test_run_and_get_pipeline_run_details",
             "variables": {},
             "template_parameters": {},
             "stages_to_skip": [],

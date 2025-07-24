@@ -1,7 +1,7 @@
 variable "project_name" {
   description = "Name of the test project to create"
   type        = string
-  default     = "ado-mcp2"
+  default     = "ado-mcp-test"
 }
 
 variable "project_description" {

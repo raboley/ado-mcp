@@ -20,11 +20,10 @@ async def mcp_client():
 
 @pytest.fixture
 async def build_id(mcp_client):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
+    project_name = get_project_name()
+    pipeline_name = "test_run_and_get_pipeline_run_details"
     result = await mcp_client.call_tool(
-        "run_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
+        "run_pipeline", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details"}
     )
 
     pipeline_run = result.data
@@ -70,7 +69,6 @@ async def test_get_build_by_id_valid_build(mcp_client: Client, build_id: int):
 async def test_get_build_by_id_maps_to_correct_pipeline(mcp_client: Client, build_id: int):
     project_id = get_project_id()
     pipeline_id = await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details")
-    
     result = await mcp_client.call_tool(
         "get_build_by_id", {"project_id": project_id, "build_id": build_id}
     )

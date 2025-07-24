@@ -33,8 +33,8 @@ steps:
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": get_project_id(),
-            "pipeline_id": await get_pipeline_id_by_name(mcp_client, "preview-test-valid"),
+            "project_name": get_project_name(),
+            "pipeline_name": "preview-test-valid",
             "yaml_override": yaml_override,
         },
     )
@@ -55,8 +55,7 @@ steps:
 
 @requires_ado_creds
 async def test_preview_pipeline_yaml_override_complex(mcp_client: Client):
-    parameterized_pipeline_id = await get_pipeline_id_by_name(mcp_client, "preview-test-parameterized")
-
+    parameterized_pipeline_name = "preview-test-parameterized"
     yaml_override = """
 name: Complex Override Test Pipeline
 trigger: none
@@ -97,8 +96,8 @@ stages:
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": get_project_id(),
-            "pipeline_id": parameterized_pipeline_id,
+            "project_name": get_project_name(),
+            "pipeline_name": "preview-test-parameterized",
             "yaml_override": yaml_override,
         },
     )
@@ -122,8 +121,7 @@ stages:
 
 @requires_ado_creds
 async def test_preview_pipeline_yaml_override_with_resources(mcp_client: Client):
-    github_resources_pipeline_id = await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")
-
+    github_resources_pipeline_name = "github-resources-test-stable"
     yaml_override = """
 name: GitHub Resources Override Test
 trigger: none
@@ -151,8 +149,8 @@ steps:
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": get_project_id(),
-            "pipeline_id": github_resources_pipeline_id,
+            "project_name": get_project_name(),
+            "pipeline_name": "github-resources-test-stable",
             "yaml_override": yaml_override,
             "resources": resources,
         },
@@ -191,8 +189,8 @@ steps:
         result = await mcp_client.call_tool(
             "preview_pipeline",
             {
-                "project_id": get_project_id(),
-                "pipeline_id": await get_pipeline_id_by_name(mcp_client, "preview-test-valid"),
+                "project_name": get_project_name(),
+                "pipeline_name": "preview-test-valid",
                 "yaml_override": invalid_yaml_override,
             },
         )
@@ -227,8 +225,8 @@ steps:
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": get_project_id(),
-            "pipeline_id": await get_pipeline_id_by_name(mcp_client, "preview-test-valid"),
+            "project_name": get_project_name(),
+            "pipeline_name": "preview-test-valid",
             "yaml_override": yaml_override,
         },
     )

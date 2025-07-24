@@ -11,6 +11,7 @@ from typing import Optional, Tuple, List
 from opentelemetry import trace
 
 from .cache import ado_cache
+from .utils.fuzzy_matching import FuzzyMatcher, create_suggestion_error_message
 from .models import (
     Project,
     Pipeline,
@@ -102,13 +103,26 @@ class AdoLookups:
             pipeline_name: Pipeline name (fuzzy matching enabled)
 
         Returns:
-            Tuple of (Project, Pipeline) if found, None otherwise
+            Tuple of (Project, Pipeline) if found, raises exception with suggestions otherwise
         """
         # Find project first
         project = self.find_project(project_name)
         if not project:
-            logger.warning(f"Project '{project_name}' not found")
-            return None
+            # Get all projects for fuzzy matching suggestions
+            projects = ado_cache.get_projects()
+            if projects:
+                matcher = FuzzyMatcher()
+                matches = matcher.find_matches(
+                    project_name, projects, name_extractor=lambda p: p.name
+                )
+                error_msg = create_suggestion_error_message(
+                    project_name,
+                    "Project",
+                    matches
+                )
+                raise ValueError(error_msg)
+            else:
+                raise ValueError(f"Project '{project_name}' not found and no projects available")
 
         # Ensure pipelines are cached for this project
         self.ensure_pipelines_cached(project.id)
@@ -116,8 +130,21 @@ class AdoLookups:
         # Find pipeline
         pipeline = ado_cache.find_pipeline_by_name(project.id, pipeline_name)
         if not pipeline:
-            logger.warning(f"Pipeline '{pipeline_name}' not found in project '{project.name}'")
-            return None
+            # Get all pipelines for fuzzy matching suggestions
+            pipelines = ado_cache.get_pipelines(project.id)
+            if pipelines:
+                matcher = FuzzyMatcher()
+                matches = matcher.find_matches(
+                    pipeline_name, pipelines, name_extractor=lambda p: p.name
+                )
+                error_msg = create_suggestion_error_message(
+                    pipeline_name,
+                    "Pipeline",
+                    matches
+                )
+                raise ValueError(error_msg)
+            else:
+                raise ValueError(f"Pipeline '{pipeline_name}' not found in project '{project.name}' and no pipelines available")
 
         return (project, pipeline)
 
@@ -126,13 +153,11 @@ class AdoLookups:
         Get project ID and pipeline ID by names.
 
         Returns:
-            Tuple of (project_id, pipeline_id) if found, None otherwise
+            Tuple of (project_id, pipeline_id) if found, raises exception with suggestions otherwise
         """
-        result = self.find_pipeline(project_name, pipeline_name)
-        if result:
-            project, pipeline = result
-            return (project.id, pipeline.id)
-        return None
+        # find_pipeline now raises ValueError with suggestions if not found
+        project, pipeline = self.find_pipeline(project_name, pipeline_name)
+        return (project.id, pipeline.id)
 
     # High-level operations using names
     def run_pipeline_by_name(
@@ -147,13 +172,10 @@ class AdoLookups:
             request: Optional request with variables, parameters, and branch
 
         Returns:
-            PipelineRun object if successful, None otherwise
+            PipelineRun object if successful, raises exception with suggestions if pipeline not found
         """
-        ids = self.get_pipeline_ids(project_name, pipeline_name)
-        if not ids:
-            return None
-
-        project_id, pipeline_id = ids
+        # get_pipeline_ids now raises ValueError with suggestions if not found
+        project_id, pipeline_id = self.get_pipeline_ids(project_name, pipeline_name)
         logger.info(f"Running pipeline '{pipeline_name}' in project '{project_name}'")
         return self.client.run_pipeline(project_id, pipeline_id, request)
 

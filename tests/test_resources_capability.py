@@ -21,8 +21,8 @@ async def mcp_client():
 
 @requires_ado_creds
 async def test_resources_parameter_capability(mcp_client: Client):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")
+    project_name = get_project_name()
+    pipeline_name = "github-resources-test-stable"
 
     resources = {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}
 
@@ -31,8 +31,8 @@ async def test_resources_parameter_capability(mcp_client: Client):
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
+            "project_name": project_name,
+            "pipeline_name": pipeline_name,
             "resources": resources,
             "template_parameters": template_parameters,
         },
@@ -53,9 +53,9 @@ async def test_resources_parameter_capability(mcp_client: Client):
 
 @requires_ado_creds
 async def test_template_parameters_capability(mcp_client: Client):
-    project_id = get_project_id()
+    project_name = get_project_name()
     # Use a pipeline that supports template parameters
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "preview-test-parameterized")
+    pipeline_name = "preview-test-parameterized"
 
     # Use template parameters that the pipeline actually supports
     template_parameters = {"testEnvironment": "dev", "enableDebug": True}
@@ -63,8 +63,8 @@ async def test_template_parameters_capability(mcp_client: Client):
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
+            "project_name": project_name,
+            "pipeline_name": pipeline_name,
             "template_parameters": template_parameters,
         },
     )
@@ -84,9 +84,9 @@ async def test_template_parameters_capability(mcp_client: Client):
 
 @requires_ado_creds
 async def test_branch_selection_capability(mcp_client: Client):
-    project_id = get_project_id()
+    project_name = get_project_name()
     # Use external repository override instead of self branch override
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")
+    pipeline_name = "github-resources-test-stable"
 
     # Use external repository resource override instead of branch override
     resources = {
@@ -98,7 +98,7 @@ async def test_branch_selection_capability(mcp_client: Client):
     }
 
     result = await mcp_client.call_tool(
-        "run_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id, "resources": resources}
+        "run_pipeline", {"project_name": project_name, "pipeline_name": pipeline_name, "resources": resources}
     )
 
     pipeline_run = result.data
@@ -149,9 +149,9 @@ async def test_name_based_capabilities(mcp_client: Client):
 
 @requires_ado_creds
 async def test_comprehensive_capabilities_demo(mcp_client: Client):
-    project_id = get_project_id()
+    project_name = get_project_name()
     # Use an agent-based pipeline that supports comprehensive capabilities
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "slow.log-test-complex")
+    pipeline_name = "slow.log-test-complex"
 
     # Use queue-time variables instead of branch override for server pool compatibility
     variables = {
@@ -160,7 +160,7 @@ async def test_comprehensive_capabilities_demo(mcp_client: Client):
     }
 
     result = await mcp_client.call_tool(
-        "run_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id, "variables": variables}
+        "run_pipeline", {"project_name": project_name, "pipeline_name": pipeline_name, "variables": variables}
     )
 
     pipeline_run = result.data
@@ -178,9 +178,9 @@ async def test_comprehensive_capabilities_demo(mcp_client: Client):
 
 @requires_ado_creds
 async def test_github_resources_concept_validation(mcp_client: Client):
-    project_id = get_project_id()
+    project_name = get_project_name()
     # Use the GitHub resources pipeline to validate external repository functionality
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "github-resources-test-stable")
+    pipeline_name = "github-resources-test-stable"
 
     # Test external repository resource control
     resources = {
@@ -198,8 +198,8 @@ async def test_github_resources_concept_validation(mcp_client: Client):
 
     result = await mcp_client.call_tool(
         "run_pipeline", {
-            "project_id": project_id, 
-            "pipeline_id": pipeline_id, 
+            "project_name": project_name, 
+            "pipeline_name": pipeline_name, 
             "resources": resources, 
             "template_parameters": template_parameters
         }
