@@ -1,13 +1,12 @@
 """MCP tool definitions for Azure DevOps Work Items type introspection."""
 
 import logging
-from typing import List, Optional
 
 from ado.work_items.client import WorkItemsClient
 from ado.work_items.models import (
-    WorkItemType,
-    WorkItemField,
     ClassificationNode,
+    WorkItemField,
+    WorkItemType,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,7 +24,7 @@ def register_type_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def list_work_item_types(
         project_id: str,
-    ) -> List[WorkItemType]:
+    ) -> list[WorkItemType]:
         """
         List all work item types available in a project.
 
@@ -73,7 +72,7 @@ def register_type_tools(mcp_instance, client_container):
     def get_work_item_type_fields(
         project_id: str,
         work_item_type: str,
-    ) -> List[WorkItemField]:
+    ) -> list[WorkItemField]:
         """
         Get all fields available for a specific work item type.
 
@@ -255,8 +254,8 @@ def register_type_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def list_area_paths(
         project_id: str,
-        depth: Optional[int] = None,
-    ) -> List[ClassificationNode]:
+        depth: int | None = None,
+    ) -> list[ClassificationNode]:
         """
         List area paths (classification nodes) for a project.
 
@@ -311,8 +310,8 @@ def register_type_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def list_iteration_paths(
         project_id: str,
-        depth: Optional[int] = None,
-    ) -> List[ClassificationNode]:
+        depth: int | None = None,
+    ) -> list[ClassificationNode]:
         """
         List iteration paths (classification nodes) for a project.
 

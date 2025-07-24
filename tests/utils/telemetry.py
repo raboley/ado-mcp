@@ -5,12 +5,14 @@ Provides tools for analyzing spans to verify cache behavior, API calls,
 and performance characteristics in end-to-end tests.
 """
 
+from typing import Any
+
 import pytest
-from typing import List, Dict, Any
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
 
 class SpanAnalyzer:
     """
@@ -20,14 +22,14 @@ class SpanAnalyzer:
     characteristics through telemetry data.
     """
 
-    def __init__(self, spans: List[Any]):
+    def __init__(self, spans: list[Any]):
         self.spans = spans
 
-    def find_spans_by_name(self, name: str) -> List[Any]:
+    def find_spans_by_name(self, name: str) -> list[Any]:
         """Find all spans with the given name."""
         return [span for span in self.spans if span.name == name]
 
-    def get_span_attributes(self, span: Any) -> Dict[str, Any]:
+    def get_span_attributes(self, span: Any) -> dict[str, Any]:
         """Get all attributes from a span."""
         return dict(span.attributes or {})
 
@@ -92,9 +94,10 @@ class SpanAnalyzer:
         """Check if any cache operations were recorded."""
         return len(self.find_spans_by_name("cache_get")) > 0
 
-    def get_all_span_names(self) -> List[str]:
+    def get_all_span_names(self) -> list[str]:
         """Get all span names for debugging."""
         return [span.name for span in self.spans]
+
 
 @pytest.fixture
 def telemetry_setup():
@@ -124,6 +127,7 @@ def telemetry_setup():
     # Clean up
     memory_exporter.clear()
 
+
 def analyze_spans(memory_exporter: InMemorySpanExporter) -> SpanAnalyzer:
     """
     Create a SpanAnalyzer from the current spans in the exporter.
@@ -135,6 +139,7 @@ def analyze_spans(memory_exporter: InMemorySpanExporter) -> SpanAnalyzer:
         SpanAnalyzer: Analyzer for the captured spans
     """
     return SpanAnalyzer(memory_exporter.get_finished_spans())
+
 
 def clear_spans(memory_exporter: InMemorySpanExporter) -> None:
     """Clear all captured spans from the exporter."""

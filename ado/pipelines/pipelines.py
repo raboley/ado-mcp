@@ -1,11 +1,10 @@
 """Pipeline CRUD operations."""
 
 import logging
-import re
 
 import requests
-from opentelemetry import trace
 import yaml
+from opentelemetry import trace
 
 from ..models import CreatePipelineRequest, Pipeline, PipelinePreviewRequest, PreviewRun
 

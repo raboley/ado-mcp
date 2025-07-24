@@ -1,4 +1,5 @@
 import os
+
 import pytest
 from fastmcp.client import Client
 
@@ -8,22 +9,27 @@ from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 async def client():
     async with Client(mcp) as client:
         yield client
 
+
 @pytest.fixture
 def project_id():
     return get_project_id()
 
+
 def get_current_user_email():
     return os.getenv("AZURE_DEVOPS_USER_EMAIL", "raboley@gmail.com")
+
 
 async def test_update_work_items_batch_tool_registration(client):
     tools = await client.list_tools()
     tool_names = [tool.name for tool in tools]
     assert "update_work_items_batch" in tool_names
+
 
 @requires_ado_creds
 async def test_update_work_items_batch_basic_functionality(client, project_id):
@@ -107,6 +113,7 @@ async def test_update_work_items_batch_basic_functionality(client, project_id):
             except Exception:
                 pass
 
+
 @requires_ado_creds
 async def test_update_work_items_batch_error_handling_fail_policy(client, project_id):
     current_user = get_current_user_email()
@@ -166,6 +173,7 @@ async def test_update_work_items_batch_error_handling_fail_policy(client, projec
             )
         except Exception:
             pass
+
 
 @requires_ado_creds
 async def test_update_work_items_batch_error_handling_omit_policy(client, project_id):
@@ -237,7 +245,7 @@ async def test_update_work_items_batch_error_handling_omit_policy(client, projec
             if item["id"] == valid_id:
                 found_valid = True
                 assert item["fields"]["System.Title"] == "Updated valid item via omit policy", (
-                    f"Valid item should be updated"
+                    "Valid item should be updated"
                 )
                 break
 
@@ -251,6 +259,7 @@ async def test_update_work_items_batch_error_handling_omit_policy(client, projec
         except Exception:
             pass
 
+
 async def test_update_work_items_batch_empty_list(client, project_id):
     result = await client.call_tool(
         "update_work_items_batch", {"project_id": project_id, "work_item_updates": []}
@@ -260,6 +269,7 @@ async def test_update_work_items_batch_empty_list(client, project_id):
         f"Should handle empty list gracefully but got error: {result.content}"
     )
     assert result.data == [], f"Should return empty list but got: {result.data}"
+
 
 async def test_update_work_items_batch_too_many_items(client, project_id):
     large_update_list = []
@@ -281,6 +291,7 @@ async def test_update_work_items_batch_too_many_items(client, project_id):
 
     assert "200" in str(exc_info.value), f"Error message should mention 200 limit: {exc_info.value}"
 
+
 async def test_update_work_items_batch_invalid_project(client):
     work_item_updates = [
         {
@@ -298,6 +309,7 @@ async def test_update_work_items_batch_invalid_project(client):
     assert "404" in str(exc_info.value) or "not found" in str(exc_info.value).lower(), (
         f"Should get not found error but got: {exc_info.value}"
     )
+
 
 @requires_ado_creds
 async def test_update_work_items_batch_validation_only(client, project_id):
@@ -351,7 +363,7 @@ async def test_update_work_items_batch_validation_only(client, project_id):
         )
 
         assert get_result.data["fields"]["System.Title"] == original_title, (
-            f"Work item should not be updated during validation-only operation"
+            "Work item should not be updated during validation-only operation"
         )
 
     finally:
@@ -361,6 +373,7 @@ async def test_update_work_items_batch_validation_only(client, project_id):
             )
         except Exception:
             pass
+
 
 @requires_ado_creds
 async def test_update_work_items_batch_malformed_operations(client, project_id):

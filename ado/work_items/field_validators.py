@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import Any, Optional
+from typing import Any
 
 from ado.cache import ado_cache
 
@@ -40,7 +40,7 @@ class FieldValidator:
 
     @staticmethod
     def validate_field_value(
-        field_name: str, field_value: Any, field_type: Optional[str] = None
+        field_name: str, field_value: Any, field_type: str | None = None
     ) -> bool:
         """
         Validate a field value based on its type.
@@ -73,7 +73,7 @@ class FieldValidator:
             elif field_type == "Integer":
                 return isinstance(field_value, int)
             elif field_type == "Double":
-                return isinstance(field_value, (int, float))
+                return isinstance(field_value, int | float)
             elif field_type == "DateTime":
                 if isinstance(field_value, str):
                     try:

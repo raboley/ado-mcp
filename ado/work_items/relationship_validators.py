@@ -1,7 +1,6 @@
 """Relationship validation helpers for work item operations."""
 
 import logging
-from typing import List, Tuple, Optional
 
 from .models import WorkItemRelationType
 
@@ -14,7 +13,7 @@ class RelationshipValidator:
     @staticmethod
     def validate_relationship_constraints(
         source_work_item_type: str, target_work_item_type: str, relationship_type: str
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """
         Validate constraints for work item relationships.
 
@@ -182,7 +181,7 @@ class RelationshipValidator:
         return relationship_type in valid_types
 
     @staticmethod
-    def get_valid_relationship_types() -> List[str]:
+    def get_valid_relationship_types() -> list[str]:
         """
         Get list of all valid relationship types.
 
@@ -206,7 +205,7 @@ class RelationshipValidator:
     @staticmethod
     def suggest_relationship_types(
         source_work_item_type: str, target_work_item_type: str
-    ) -> List[Tuple[str, str]]:
+    ) -> list[tuple[str, str]]:
         """
         Suggest appropriate relationship types for two work item types.
 

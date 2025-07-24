@@ -1,11 +1,11 @@
 """Query client methods for Azure DevOps Work Items API operations."""
 
 import logging
-from typing import Any, Dict, List, Optional
+
+from opentelemetry import trace
 
 from ado.client import AdoClient
 from ado.errors import AdoError
-from opentelemetry import trace
 from ado.work_items.models import WorkItemQueryResult
 
 logger = logging.getLogger(__name__)
@@ -29,9 +29,9 @@ class QueryClient:
     def query_work_items(
         self,
         project_id: str,
-        wiql_query: Optional[str] = None,
-        top: Optional[int] = None,
-        skip: Optional[int] = None,
+        wiql_query: str | None = None,
+        top: int | None = None,
+        skip: int | None = None,
     ) -> WorkItemQueryResult:
         """
         Query work items using WIQL (Work Item Query Language).

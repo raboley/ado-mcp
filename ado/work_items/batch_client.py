@@ -1,7 +1,7 @@
 """Batch client methods for Azure DevOps Work Items API operations."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ado.client import AdoClient
 from ado.errors import AdoError
@@ -30,12 +30,12 @@ class BatchClient:
     def get_work_items_batch(
         self,
         project_id: str,
-        work_item_ids: List[int],
-        fields: Optional[List[str]] = None,
+        work_item_ids: list[int],
+        fields: list[str] | None = None,
         expand_relations: bool = False,
-        as_of: Optional[str] = None,
+        as_of: str | None = None,
         error_policy: str = "omit",
-    ) -> List[WorkItem]:
+    ) -> list[WorkItem]:
         """
         Get multiple work items by their IDs in a single API call.
 
@@ -115,12 +115,12 @@ class BatchClient:
     def update_work_items_batch(
         self,
         project_id: str,
-        work_item_updates: List[Dict[str, Any]],
+        work_item_updates: list[dict[str, Any]],
         validate_only: bool = False,
         bypass_rules: bool = False,
         suppress_notifications: bool = False,
         error_policy: str = "fail",
-    ) -> List[WorkItem]:
+    ) -> list[WorkItem]:
         """
         Update multiple work items in a batch operation using individual API calls.
 
@@ -248,10 +248,10 @@ class BatchClient:
     def delete_work_items_batch(
         self,
         project_id: str,
-        work_item_ids: List[int],
+        work_item_ids: list[int],
         destroy: bool = False,
         error_policy: str = "fail",
-    ) -> List[bool]:
+    ) -> list[bool]:
         """
         Delete multiple work items in a batch operation using individual API calls.
 
@@ -343,7 +343,7 @@ class BatchClient:
         self,
         project_id: str,
         work_item_id: int,
-        operations: List[JsonPatchOperation],
+        operations: list[JsonPatchOperation],
         validate_only: bool = False,
         bypass_rules: bool = False,
         suppress_notifications: bool = False,

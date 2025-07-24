@@ -1,14 +1,15 @@
 import os
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 from fastmcp.client import Client
 
+from ado.cache import ado_cache
+from ado.work_items.path_validators import PathValidator
+from ado.work_items.validation import WorkItemValidator
 from server import mcp
 from src.test_config import get_project_id
-from tests.ado.test_client import requires_ado_creds
-from ado.work_items.validation import WorkItemValidator
-from ado.work_items.path_validators import PathValidator
-from ado.cache import ado_cache
+
 
 @pytest.fixture
 async def mcp_client():
@@ -19,9 +20,11 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @pytest.fixture
 def project_id():
     return get_project_id()
+
 
 @pytest.fixture(autouse=True)
 def clear_cache():
@@ -29,8 +32,8 @@ def clear_cache():
     yield
     ado_cache.clear_all()
 
-class TestPathValidation:
 
+class TestPathValidation:
     def test_validate_path_format_valid_paths(self):
         valid_paths = [
             "Project",
@@ -60,9 +63,7 @@ class TestPathValidation:
         ]
 
         for path in invalid_paths:
-            assert not PathValidator._validate_path_format(path), (
-                f"Path should be invalid: {path}"
-            )
+            assert not PathValidator._validate_path_format(path), f"Path should be invalid: {path}"
 
     def test_sanitize_path(self):
         test_cases = [
@@ -82,8 +83,8 @@ class TestPathValidation:
                 f"Sanitizing '{input_path}' should produce '{expected}' but got '{result}'"
             )
 
-class TestFieldValidation:
 
+class TestFieldValidation:
     def test_validate_priority_field(self):
         valid_priorities = [1, 2, 3, 4]
         for priority in valid_priorities:
@@ -151,8 +152,8 @@ class TestFieldValidation:
                 f"Field type '{field_type}' with value '{value}' should be {'valid' if expected else 'invalid'}"
             )
 
-class TestWorkItemTypeValidation:
 
+class TestWorkItemTypeValidation:
     def test_validate_common_work_item_types(self):
         common_types = ["Bug", "Task", "User Story", "Feature", "Epic", "Test Case", "Issue"]
 
@@ -190,8 +191,8 @@ class TestWorkItemTypeValidation:
 
         mock_get_types.assert_called_with("project-123")
 
-class TestPathSuggestions:
 
+class TestPathSuggestions:
     @patch.object(ado_cache, "get_area_paths")
     def test_suggest_area_paths(self, mock_get_paths):
         node1 = Mock()
@@ -232,11 +233,14 @@ class TestPathSuggestions:
         assert suggestions == [], "Should return empty list when no cache available"
         mock_get_paths.assert_called_with("project-123")
 
+
 @patch("ado.work_items.validation.WorkItemValidator.validate_work_item_type")
 @patch("ado.work_items.validation.WorkItemValidator.validate_field_value")
 def test_validation_integration_with_tools(mock_validate_field, mock_validate_type):
-    from ado.work_items.tools import register_work_item_tools
     from unittest.mock import Mock
+
+    from ado.work_items.tools import register_work_item_tools
+
     mock_validate_type.return_value = True
     mock_validate_field.return_value = True
 
@@ -248,6 +252,7 @@ def test_validation_integration_with_tools(mock_validate_field, mock_validate_ty
 
     assert mock_mcp.tool.called, "Should register work item tools with MCP"
     assert mock_mcp.tool.call_count >= 8, "Should register multiple work item tools"
+
 
 def test_validation_priority_check_unit():
     from ado.work_items.validation import WorkItemValidator
@@ -263,6 +268,7 @@ def test_validation_priority_check_unit():
     assert not WorkItemValidator.validate_field_value("System.Priority", -1, "Integer")
     assert not WorkItemValidator.validate_field_value("System.Priority", "1", "Integer")
 
+
 def test_validation_bypass_logic_unit():
     from ado.work_items.validation import WorkItemValidator
 
@@ -274,8 +280,8 @@ def test_validation_bypass_logic_unit():
     result_invalid = WorkItemValidator.validate_field_value("System.Priority", 10, "Integer")
     assert result_invalid is False, "Invalid priority should fail validation"
 
-class TestStateTransitionValidation:
 
+class TestStateTransitionValidation:
     async def test_state_transition_same_state_allowed(self):
         from ado.work_items.validation import WorkItemValidator
 

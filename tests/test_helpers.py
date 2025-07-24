@@ -10,32 +10,39 @@ from tests.ado.test_client import requires_ado_creds
 # Mark all tests in this module as asyncio
 pytestmark = pytest.mark.asyncio
 
+
 async def get_pipeline_id_by_name(mcp_client: Client, pipeline_name: str) -> int:
     """
     Helper function to get pipeline ID by name.
-    
+
     Args:
         mcp_client: MCP client instance
         pipeline_name: Name of the pipeline to find
-        
+
     Returns:
         Pipeline ID as integer
-        
+
     Raises:
         AssertionError: If pipeline not found or lookup fails
     """
-    project_id = get_project_id()
-    
+    get_project_id()
+
     result = await mcp_client.call_tool(
-        "find_pipeline_by_name", {"project_name": get_project_name(), "pipeline_name": pipeline_name}
+        "find_pipeline_by_name",
+        {"project_name": get_project_name(), "pipeline_name": pipeline_name},
     )
-    
+
     pipeline_info = result.data
     assert pipeline_info is not None, f"Failed to find pipeline '{pipeline_name}'"
-    assert "pipeline" in pipeline_info, f"Pipeline info should contain pipeline key but got: {pipeline_info}"
-    assert "id" in pipeline_info["pipeline"], f"Pipeline should have ID but got: {pipeline_info['pipeline']}"
-    
+    assert "pipeline" in pipeline_info, (
+        f"Pipeline info should contain pipeline key but got: {pipeline_info}"
+    )
+    assert "id" in pipeline_info["pipeline"], (
+        f"Pipeline should have ID but got: {pipeline_info['pipeline']}"
+    )
+
     return pipeline_info["pipeline"]["id"]
+
 
 @pytest.fixture
 async def mcp_client():
@@ -46,10 +53,13 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @requires_ado_creds
 async def test_analyze_pipeline_input_with_url(mcp_client: Client):
     # Use a sample build ID URL for testing URL parsing (doesn't need to exist)
-    test_url = "https://dev.azure.com/RussellBoley/ado-mcp/_build/results?buildId=12345&view=results"
+    test_url = (
+        "https://dev.azure.com/RussellBoley/ado-mcp/_build/results?buildId=12345&view=results"
+    )
 
     result = await mcp_client.call_tool("analyze_pipeline_input", {"user_input": test_url})
 
@@ -98,6 +108,7 @@ async def test_analyze_pipeline_input_with_url(mcp_client: Client):
         f"Should suggest get_build_by_id but got steps: {analysis['next_steps']}"
     )
 
+
 @requires_ado_creds
 async def test_analyze_pipeline_input_with_pipeline_name(mcp_client: Client):
     result = await mcp_client.call_tool(
@@ -116,6 +127,7 @@ async def test_analyze_pipeline_input_with_pipeline_name(mcp_client: Client):
     assert len(analysis["next_steps"]) > 0, (
         f"Should provide guidance but got {len(analysis['next_steps'])} steps"
     )
+
 
 @requires_ado_creds
 async def test_find_pipeline_by_name_exact_match(mcp_client: Client):
@@ -171,6 +183,7 @@ async def test_find_pipeline_by_name_exact_match(mcp_client: Client):
             f"Should match exact name but got '{best_match['pipeline']['name']}'"
         )
 
+
 @requires_ado_creds
 async def test_find_pipeline_by_name_fuzzy_match(mcp_client: Client):
     project_id = get_project_id()
@@ -200,21 +213,21 @@ async def test_find_pipeline_by_name_fuzzy_match(mcp_client: Client):
                 f"Should have valid match type but got '{match['match_type']}'"
             )
 
+
 @requires_ado_creds
 async def test_resolve_pipeline_from_url_build_results(mcp_client: Client):
-    # First create a real build to get a valid URL structure  
+    # First create a real build to get a valid URL structure
     project_name = get_project_name()
     pipeline_name = "test_run_and_get_pipeline_run_details"
-    
+
     # Run a pipeline to get a real build ID
-    run_result = await mcp_client.call_tool("run_pipeline_by_name", {
-        "project_name": project_name,
-        "pipeline_name": pipeline_name
-    })
-    
+    run_result = await mcp_client.call_tool(
+        "run_pipeline_by_name", {"project_name": project_name, "pipeline_name": pipeline_name}
+    )
+
     pipeline_run = run_result.data
     build_id = pipeline_run["id"]
-    
+
     # Create the URL with the real build ID and correct project name
     test_url = f"https://dev.azure.com/RussellBoley/{project_name}/_build/results?buildId={build_id}&view=results"
 
@@ -234,14 +247,17 @@ async def test_resolve_pipeline_from_url_build_results(mcp_client: Client):
     assert "pipeline_name" in resolution, "Should have pipeline_name"
     assert "suggested_actions" in resolution, "Should have suggested_actions"
 
-    assert resolution["project_name"] == project_name, f"Should resolve correct project {project_name}"
+    assert resolution["project_name"] == project_name, (
+        f"Should resolve correct project {project_name}"
+    )
     assert resolution["build_id"] == build_id, f"Should extract correct build_id {build_id}"
-    assert resolution["pipeline_name"] == pipeline_name, f"Should resolve correct pipeline name"
+    assert resolution["pipeline_name"] == pipeline_name, "Should resolve correct pipeline name"
 
     assert len(resolution["suggested_actions"]) > 0, "Should provide suggested actions"
     assert any("get_pipeline_run" in action for action in resolution["suggested_actions"]), (
         "Should suggest get_pipeline_run"
     )
+
 
 @requires_ado_creds
 async def test_helper_tools_tool_registration(mcp_client: Client):
@@ -275,6 +291,7 @@ async def test_helper_tools_tool_registration(mcp_client: Client):
     )
     assert "project" in input_schema["properties"], "Should have optional project parameter"
 
+
 @pytest.fixture
 async def mcp_client_with_unset_ado_env(monkeypatch):
     monkeypatch.delenv("ADO_ORGANIZATION_URL", raising=False)
@@ -287,6 +304,7 @@ async def mcp_client_with_unset_ado_env(monkeypatch):
     async with Client(server.mcp) as client:
         yield client
 
+
 async def test_helper_tools_no_client(mcp_client_with_unset_ado_env: Client):
     result = await mcp_client_with_unset_ado_env.call_tool(
         "analyze_pipeline_input", {"user_input": "test"}
@@ -296,6 +314,7 @@ async def test_helper_tools_no_client(mcp_client_with_unset_ado_env: Client):
     assert "error" in analysis, "Should return error when no client available"
     assert "ADO client not available" in analysis["error"], "Should indicate client unavailable"
     assert "suggestion" in analysis, "Should provide suggestion"
+
 
 @requires_ado_creds
 async def test_analyze_pipeline_input_with_yaml_file(mcp_client: Client):

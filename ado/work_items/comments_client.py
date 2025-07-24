@@ -2,7 +2,6 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 
 from ado.client import AdoClient
 from ado.errors import AdoError
@@ -86,10 +85,10 @@ class CommentsClient:
         self,
         project_id: str,
         work_item_id: int,
-        top: Optional[int] = None,
-        skip: Optional[int] = None,
+        top: int | None = None,
+        skip: int | None = None,
         include_deleted: bool = False,
-    ) -> List[WorkItemComment]:
+    ) -> list[WorkItemComment]:
         """
         Get comments for a work item.
 
@@ -157,12 +156,12 @@ class CommentsClient:
         self,
         project_id: str,
         work_item_id: int,
-        top: Optional[int] = None,
-        skip: Optional[int] = None,
-        expand: Optional[str] = None,
-        from_date: Optional[str] = None,
-        to_date: Optional[str] = None,
-    ) -> List[WorkItemRevision]:
+        top: int | None = None,
+        skip: int | None = None,
+        expand: str | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+    ) -> list[WorkItemRevision]:
         """
         Get revision history for a work item with optional date filtering.
 
@@ -277,7 +276,7 @@ class CommentsClient:
         source_work_item_id: int,
         target_work_item_id: int,
         relationship_type: str,
-        comment: Optional[str] = None,
+        comment: str | None = None,
     ) -> WorkItem:
         """
         Create a link between two work items.
@@ -346,7 +345,7 @@ class CommentsClient:
 
     def get_work_item_relations(
         self, project_id: str, work_item_id: int, depth: int = 1
-    ) -> List[WorkItemRelation]:
+    ) -> list[WorkItemRelation]:
         """
         Get relationships for a work item.
 

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -11,7 +11,7 @@ class Project(BaseModel):
 
     id: str
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     url: str
     state: str
     revision: int
@@ -55,8 +55,8 @@ class PipelineConfiguration(BaseModel):
     """
 
     type: ConfigurationType
-    path: Optional[str] = None
-    repository: Optional[Repository] = None
+    path: str | None = None
+    repository: Repository | None = None
 
 
 class ReferenceLinks(BaseModel):
@@ -64,7 +64,7 @@ class ReferenceLinks(BaseModel):
     Represents reference links for ADO objects.
     """
 
-    links: Optional[Dict[str, Any]] = None
+    links: dict[str, Any] | None = None
 
 
 class Pipeline(BaseModel):
@@ -76,9 +76,9 @@ class Pipeline(BaseModel):
     name: str
     revision: int
     url: str
-    folder: Optional[str] = None
-    configuration: Optional[PipelineConfiguration] = None
-    links: Optional[ReferenceLinks] = Field(None, alias="_links")
+    folder: str | None = None
+    configuration: PipelineConfiguration | None = None
+    links: ReferenceLinks | None = Field(None, alias="_links")
 
     model_config = {"populate_by_name": True}
 
@@ -89,7 +89,7 @@ class CreatePipelineRequest(BaseModel):
     """
 
     name: str
-    folder: Optional[str] = None
+    folder: str | None = None
     configuration: PipelineConfiguration
 
 
@@ -121,9 +121,9 @@ class PipelineReference(BaseModel):
     """
 
     id: int
-    name: Optional[str] = None
-    url: Optional[str] = None
-    folder: Optional[str] = None
+    name: str | None = None
+    url: str | None = None
+    folder: str | None = None
 
 
 class PipelineRun(BaseModel):
@@ -132,15 +132,15 @@ class PipelineRun(BaseModel):
     """
 
     id: int
-    name: Optional[str] = None
+    name: str | None = None
     url: str
-    state: Optional[RunState] = None
-    result: Optional[RunResult] = None
-    createdDate: Optional[str] = None
-    finishedDate: Optional[str] = None
-    pipeline: Optional[PipelineReference] = None
-    resources: Optional[Dict[str, Any]] = None
-    variables: Optional[Dict[str, Any]] = None
+    state: RunState | None = None
+    result: RunResult | None = None
+    createdDate: str | None = None
+    finishedDate: str | None = None
+    pipeline: PipelineReference | None = None
+    resources: dict[str, Any] | None = None
+    variables: dict[str, Any] | None = None
 
     def is_completed(self) -> bool:
         """
@@ -184,12 +184,12 @@ class PipelinePreviewRequest(BaseModel):
     Request model for previewing a pipeline without executing it.
     """
 
-    previewRun: Optional[bool] = True
-    yamlOverride: Optional[str] = None
+    previewRun: bool | None = True
+    yamlOverride: str | None = None
     resources: Optional["RunResourcesParameters"] = None
-    templateParameters: Optional[Dict[str, Any]] = None
-    variables: Optional[Dict[str, Any]] = None
-    stagesToSkip: Optional[List[str]] = None
+    templateParameters: dict[str, Any] | None = None
+    variables: dict[str, Any] | None = None
+    stagesToSkip: list[str] | None = None
 
 
 class PreviewRun(BaseModel):
@@ -197,13 +197,13 @@ class PreviewRun(BaseModel):
     Represents the result of a pipeline preview operation.
     """
 
-    finalYaml: Optional[str] = None
-    id: Optional[int] = None
-    name: Optional[str] = None
-    url: Optional[str] = None
-    resources: Optional[Dict[str, Any]] = None
-    variables: Optional[Dict[str, Any]] = None
-    pipeline: Optional[PipelineReference] = None
+    finalYaml: str | None = None
+    id: int | None = None
+    name: str | None = None
+    url: str | None = None
+    resources: dict[str, Any] | None = None
+    variables: dict[str, Any] | None = None
+    pipeline: PipelineReference | None = None
 
 
 class TimelineRecord(BaseModel):
@@ -211,17 +211,17 @@ class TimelineRecord(BaseModel):
     Represents a single record in the build timeline (stage, job, task, etc.).
     """
 
-    id: Optional[str] = None
-    name: Optional[str] = None
-    type: Optional[str] = None  # Stage, Job, Phase, Task, Checkpoint
-    state: Optional[str] = None  # completed, inProgress
-    result: Optional[str] = None  # succeeded, failed, skipped
-    startTime: Optional[str] = None
-    finishTime: Optional[str] = None
-    log: Optional[Dict[str, Any]] = None  # Contains log ID reference
-    task: Optional[Dict[str, Any]] = None  # Contains task information
-    issues: Optional[List[Dict[str, Any]]] = None  # Contains error/warning messages
-    parentId: Optional[str] = None
+    id: str | None = None
+    name: str | None = None
+    type: str | None = None  # Stage, Job, Phase, Task, Checkpoint
+    state: str | None = None  # completed, inProgress
+    result: str | None = None  # succeeded, failed, skipped
+    startTime: str | None = None
+    finishTime: str | None = None
+    log: dict[str, Any] | None = None  # Contains log ID reference
+    task: dict[str, Any] | None = None  # Contains task information
+    issues: list[dict[str, Any]] | None = None  # Contains error/warning messages
+    parentId: str | None = None
 
 
 class TimelineResponse(BaseModel):
@@ -229,12 +229,12 @@ class TimelineResponse(BaseModel):
     Represents the response from the build timeline API.
     """
 
-    records: List[TimelineRecord]
-    lastChangedBy: Optional[str] = None  # Can be either string (user ID) or dict (user object)
-    lastChangedOn: Optional[str] = None
-    id: Optional[str] = None
-    changeId: Optional[int] = None
-    url: Optional[str] = None
+    records: list[TimelineRecord]
+    lastChangedBy: str | None = None  # Can be either string (user ID) or dict (user object)
+    lastChangedOn: str | None = None
+    id: str | None = None
+    changeId: int | None = None
+    url: str | None = None
 
 
 class StepFailure(BaseModel):
@@ -245,11 +245,11 @@ class StepFailure(BaseModel):
     step_name: str
     step_type: str  # Task, Job, Stage, Phase
     result: str  # failed, succeeded, skipped
-    log_id: Optional[int] = None
-    issues: List[str] = []
-    log_content: Optional[str] = None
-    start_time: Optional[str] = None
-    finish_time: Optional[str] = None
+    log_id: int | None = None
+    issues: list[str] = []
+    log_content: str | None = None
+    start_time: str | None = None
+    finish_time: str | None = None
 
 
 class FailureSummary(BaseModel):
@@ -258,10 +258,10 @@ class FailureSummary(BaseModel):
     """
 
     total_failed_steps: int
-    root_cause_tasks: List[StepFailure]  # Only Task-level failures (root causes)
-    hierarchy_failures: List[StepFailure]  # Job/Stage level that failed due to tasks
-    pipeline_url: Optional[str] = None
-    build_id: Optional[int] = None
+    root_cause_tasks: list[StepFailure]  # Only Task-level failures (root causes)
+    hierarchy_failures: list[StepFailure]  # Job/Stage level that failed due to tasks
+    pipeline_url: str | None = None
+    build_id: int | None = None
 
 
 class LogEntry(BaseModel):
@@ -274,7 +274,7 @@ class LogEntry(BaseModel):
     lastChangedOn: str
     lineCount: int
     url: str
-    signedContent: Optional[Dict[str, Any]] = None
+    signedContent: dict[str, Any] | None = None
 
 
 class LogCollection(BaseModel):
@@ -282,7 +282,7 @@ class LogCollection(BaseModel):
     Represents the collection of logs for a pipeline run.
     """
 
-    logs: List[LogEntry]
+    logs: list[LogEntry]
     url: str
 
 
@@ -294,10 +294,10 @@ class RepositoryResourceParameters(BaseModel):
     Parameters for repository resources as defined by Azure DevOps API.
     """
 
-    refName: Optional[str] = None
-    token: Optional[str] = None
-    tokenType: Optional[str] = None
-    version: Optional[str] = None
+    refName: str | None = None
+    token: str | None = None
+    tokenType: str | None = None
+    version: str | None = None
 
 
 class BuildResourceParameters(BaseModel):
@@ -305,7 +305,7 @@ class BuildResourceParameters(BaseModel):
     Parameters for build resources as defined by Azure DevOps API.
     """
 
-    version: Optional[str] = None
+    version: str | None = None
 
 
 class ContainerResourceParameters(BaseModel):
@@ -313,7 +313,7 @@ class ContainerResourceParameters(BaseModel):
     Parameters for container resources as defined by Azure DevOps API.
     """
 
-    version: Optional[str] = None
+    version: str | None = None
 
 
 class PackageResourceParameters(BaseModel):
@@ -321,7 +321,7 @@ class PackageResourceParameters(BaseModel):
     Parameters for package resources as defined by Azure DevOps API.
     """
 
-    version: Optional[str] = None
+    version: str | None = None
 
 
 class PipelineResourceParameters(BaseModel):
@@ -329,7 +329,7 @@ class PipelineResourceParameters(BaseModel):
     Parameters for pipeline resources as defined by Azure DevOps API.
     """
 
-    version: Optional[str] = None
+    version: str | None = None
 
 
 class RunResourcesParameters(BaseModel):
@@ -337,11 +337,11 @@ class RunResourcesParameters(BaseModel):
     Complete resources parameters structure as defined by Azure DevOps API.
     """
 
-    repositories: Optional[Dict[str, RepositoryResourceParameters]] = None
-    builds: Optional[Dict[str, BuildResourceParameters]] = None
-    containers: Optional[Dict[str, ContainerResourceParameters]] = None
-    packages: Optional[Dict[str, PackageResourceParameters]] = None
-    pipelines: Optional[Dict[str, PipelineResourceParameters]] = None
+    repositories: dict[str, RepositoryResourceParameters] | None = None
+    builds: dict[str, BuildResourceParameters] | None = None
+    containers: dict[str, ContainerResourceParameters] | None = None
+    packages: dict[str, PackageResourceParameters] | None = None
+    pipelines: dict[str, PipelineResourceParameters] | None = None
 
 
 class Variable(BaseModel):
@@ -350,28 +350,28 @@ class Variable(BaseModel):
     """
 
     value: str
-    isSecret: Optional[bool] = None
+    isSecret: bool | None = None
 
 
 class PipelineRunRequest(BaseModel):
     """
     Request model for running a pipeline with parameters, variables, and branch selection.
     Matches Azure DevOps API specification.
-    
+
     Note: The 'branch' parameter is only supported for pipelines that:
     1. Have a 'resources' section defined in their YAML
     2. Use VM-based pools (not server pools)
     3. Are designed to work with repository checkouts
-    
+
     Server-pool pipelines or simple pipelines without resources may not support branch overrides.
     """
 
-    resources: Optional[RunResourcesParameters] = None
-    templateParameters: Optional[Dict[str, Any]] = None
-    variables: Optional[Dict[str, Any]] = None  # Accept any variable format
-    stagesToSkip: Optional[List[str]] = None
-    branch: Optional[str] = None  # Branch to run the pipeline from (e.g., "refs/heads/main")
-                                  # Only supported for pipelines with resources sections
+    resources: RunResourcesParameters | None = None
+    templateParameters: dict[str, Any] | None = None
+    variables: dict[str, Any] | None = None  # Accept any variable format
+    stagesToSkip: list[str] | None = None
+    branch: str | None = None  # Branch to run the pipeline from (e.g., "refs/heads/main")
+    # Only supported for pipelines with resources sections
 
 
 class PipelineOutcome(BaseModel):
@@ -383,5 +383,5 @@ class PipelineOutcome(BaseModel):
 
     pipeline_run: PipelineRun
     success: bool
-    failure_summary: Optional[FailureSummary] = None
+    failure_summary: FailureSummary | None = None
     execution_time_seconds: float

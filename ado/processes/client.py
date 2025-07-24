@@ -1,15 +1,19 @@
 """Client for Azure DevOps Processes and Templates operations."""
 
 import logging
-from typing import List, Optional
 
 from ado.cache import ado_cache
 from ado.client import AdoClient
 from ado.errors import AdoError
-from .models import Process, ProcessTemplate, WorkItemTemplate, ProjectProcessInfo, TeamInfo
+
+from .models import Process, ProjectProcessInfo, WorkItemTemplate
 from .utils import (
-    handle_api_error, extract_process_properties, find_default_team, 
-    create_fallback_process, find_process_name_from_projects, is_recoverable_process_error
+    create_fallback_process,
+    extract_process_properties,
+    find_default_team,
+    find_process_name_from_projects,
+    handle_api_error,
+    is_recoverable_process_error,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,7 +46,9 @@ class ProcessesClient:
         cache_key = f"project_process_id:{project_id}"
         cached_result = ado_cache._get(cache_key)
         if cached_result:
-            logger.info(f"Retrieved process ID from cache for project '{project_id}': {cached_result}")
+            logger.info(
+                f"Retrieved process ID from cache for project '{project_id}': {cached_result}"
+            )
             return cached_result
 
         try:
@@ -54,8 +60,11 @@ class ProcessesClient:
 
             properties = response.get("value", [])
             process_props = extract_process_properties(properties)
-            
-            process_id = process_props["currentProcessTemplateId"] or process_props["originalProcessTemplateId"]
+
+            process_id = (
+                process_props["currentProcessTemplateId"]
+                or process_props["originalProcessTemplateId"]
+            )
             if not process_id:
                 raise AdoError(
                     f"Could not find process template ID for project '{project_id}'",
@@ -63,7 +72,9 @@ class ProcessesClient:
                 )
 
             ado_cache._set(cache_key, process_id, 3600)
-            logger.info(f"Successfully retrieved process ID for project '{project_id}': {process_id}")
+            logger.info(
+                f"Successfully retrieved process ID for project '{project_id}': {process_id}"
+            )
             return process_id
 
         except Exception as e:
@@ -88,7 +99,7 @@ class ProcessesClient:
 
             properties = response.get("value", [])
             process_props = extract_process_properties(properties)
-            
+
             if not process_props["currentProcessTemplateId"]:
                 raise AdoError(
                     f"Could not find process template ID for project '{project_id}'",
@@ -99,13 +110,15 @@ class ProcessesClient:
             result = ProjectProcessInfo(**process_info)
 
             ado_cache._set(cache_key, result.model_dump(), 3600)
-            logger.info(f"Successfully retrieved process info for project '{project_id}': {result.processTemplateName}")
+            logger.info(
+                f"Successfully retrieved process info for project '{project_id}': {result.processTemplateName}"
+            )
             return result
 
         except Exception as e:
             handle_api_error("get process info", f"project '{project_id}'", e)
 
-    def list_processes(self) -> List[Process]:
+    def list_processes(self) -> list[Process]:
         """List all available process templates in the organization."""
         logger.info("Listing available processes")
 
@@ -170,22 +183,28 @@ class ProcessesClient:
 
             process = Process(**process_data)
             ado_cache._set(cache_key, process.model_dump(), 3600)
-            logger.info(f"Successfully retrieved process details for '{process.name}' ({process_id})")
+            logger.info(
+                f"Successfully retrieved process details for '{process.name}' ({process_id})"
+            )
             return process
 
         except Exception as e:
             if is_recoverable_process_error(e, process_id):
-                logger.warning(f"Process '{process_id}' not accessible via process API (likely custom template), attempting fallback")
-                
+                logger.warning(
+                    f"Process '{process_id}' not accessible via process API (likely custom template), attempting fallback"
+                )
+
                 try:
                     process_name = find_process_name_from_projects(self.client, process_id)
                     process_data = create_fallback_process(process_id, process_name)
                     process = Process(**process_data)
-                    
+
                     ado_cache._set(cache_key, process.model_dump(), 3600)
-                    logger.info(f"Created fallback process details for custom process '{process_name}' ({process_id})")
+                    logger.info(
+                        f"Created fallback process details for custom process '{process_name}' ({process_id})"
+                    )
                     return process
-                    
+
                 except Exception as fallback_error:
                     logger.error(f"Failed to create fallback process details: {fallback_error}")
 
@@ -198,7 +217,9 @@ class ProcessesClient:
         cache_key = f"default_team_id:{project_id}"
         cached_result = ado_cache._get(cache_key)
         if cached_result:
-            logger.info(f"Retrieved default team ID from cache for project '{project_id}': {cached_result}")
+            logger.info(
+                f"Retrieved default team ID from cache for project '{project_id}': {cached_result}"
+            )
             return cached_result
 
         try:
@@ -220,15 +241,17 @@ class ProcessesClient:
                 )
 
             ado_cache._set(cache_key, default_team_id, 3600)
-            logger.info(f"Successfully retrieved default team ID for project '{project_id}': {default_team_id}")
+            logger.info(
+                f"Successfully retrieved default team ID for project '{project_id}': {default_team_id}"
+            )
             return default_team_id
 
         except Exception as e:
             handle_api_error("get default team ID", f"project '{project_id}'", e)
 
     def get_work_item_templates(
-        self, project_id: str, team_id: Optional[str] = None, work_item_type: Optional[str] = None
-    ) -> List[WorkItemTemplate]:
+        self, project_id: str, team_id: str | None = None, work_item_type: str | None = None
+    ) -> list[WorkItemTemplate]:
         """Get work item templates for a team."""
         if not team_id:
             team_id = self.get_default_team_id(project_id)
@@ -266,16 +289,20 @@ class ProcessesClient:
             return templates
 
         except Exception as e:
-            handle_api_error("get work item templates", f"project '{project_id}', team '{team_id}'", e)
+            handle_api_error(
+                "get work item templates", f"project '{project_id}', team '{team_id}'", e
+            )
 
     def get_work_item_template(
-        self, project_id: str, template_id: str, team_id: Optional[str] = None
+        self, project_id: str, template_id: str, team_id: str | None = None
     ) -> WorkItemTemplate:
         """Get detailed information about a specific work item template."""
         if not team_id:
             team_id = self.get_default_team_id(project_id)
 
-        logger.info(f"Getting work item template '{template_id}' for project '{project_id}', team '{team_id}'")
+        logger.info(
+            f"Getting work item template '{template_id}' for project '{project_id}', team '{team_id}'"
+        )
 
         cache_key = f"work_item_template:{project_id}:{team_id}:{template_id}"
         cached_result = ado_cache._get(cache_key)

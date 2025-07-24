@@ -3,8 +3,6 @@
 
 import asyncio
 import json
-import sys
-import subprocess
 
 
 async def test_preview_pipeline():

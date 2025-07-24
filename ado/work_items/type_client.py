@@ -1,12 +1,12 @@
 """Client methods for Azure DevOps Work Items Type Introspection API operations."""
 
 import logging
-from typing import List, Optional
 
+from opentelemetry import trace
+
+from ado.cache import ado_cache
 from ado.client import AdoClient
 from ado.errors import AdoError
-from ado.cache import ado_cache
-from opentelemetry import trace
 from ado.work_items.models import (
     ClassificationNode,
     WorkItemField,
@@ -34,7 +34,7 @@ class TypeClient:
     def list_work_item_types(
         self,
         project_id: str,
-    ) -> List[WorkItemType]:
+    ) -> list[WorkItemType]:
         """
         Get all work item types for a project.
 
@@ -147,7 +147,7 @@ class TypeClient:
         self,
         project_id: str,
         work_item_type: str,
-    ) -> List[WorkItemField]:
+    ) -> list[WorkItemField]:
         """
         Get all fields for a specific work item type.
 
@@ -256,8 +256,8 @@ class TypeClient:
     def list_area_paths(
         self,
         project_id: str,
-        depth: Optional[int] = None,
-    ) -> List[ClassificationNode]:
+        depth: int | None = None,
+    ) -> list[ClassificationNode]:
         """
         Get area paths (classification nodes) for a project.
 
@@ -314,8 +314,8 @@ class TypeClient:
     def list_iteration_paths(
         self,
         project_id: str,
-        depth: Optional[int] = None,
-    ) -> List[ClassificationNode]:
+        depth: int | None = None,
+    ) -> list[ClassificationNode]:
         """
         Get iteration paths (classification nodes) for a project.
 

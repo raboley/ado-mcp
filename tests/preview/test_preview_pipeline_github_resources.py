@@ -1,17 +1,17 @@
-import os
 import logging
+import os
 
 import pytest
 from fastmcp.client import Client
 
 from server import mcp
-from src.test_config import get_project_id, get_project_name
+from src.test_config import get_project_name
 from tests.ado.test_client import requires_ado_creds
-from tests.test_helpers import get_pipeline_id_by_name
 
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 async def mcp_client():
@@ -21,6 +21,7 @@ async def mcp_client():
         )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
+
 
 class TestPreviewPipelineGitHubResources:
     @requires_ado_creds
@@ -34,13 +35,13 @@ class TestPreviewPipelineGitHubResources:
 
         preview_data = result.data
         assert preview_data is not None, (
-            f"Expected preview data for public GitHub repository but got None"
+            "Expected preview data for public GitHub repository but got None"
         )
         assert preview_data.get("finalYaml") is not None, (
-            f"Expected finalYaml in preview data but got None"
+            "Expected finalYaml in preview data but got None"
         )
         assert len(preview_data["finalYaml"]) > 0, (
-            f"Expected non-empty finalYaml but got empty string"
+            "Expected non-empty finalYaml but got empty string"
         )
 
         final_yaml = preview_data["finalYaml"]
@@ -79,9 +80,9 @@ class TestPreviewPipelineGitHubResources:
         )
 
         preview_data = result.data
-        assert preview_data is not None, f"Expected preview data with explicit token but got None"
+        assert preview_data is not None, "Expected preview data with explicit token but got None"
         assert preview_data.get("finalYaml") is not None, (
-            f"Expected finalYaml in preview data but got None"
+            "Expected finalYaml in preview data but got None"
         )
         assert "Taskfile" in preview_data["finalYaml"], (
             f"Expected 'Taskfile' in finalYaml but not found. Got: {preview_data['finalYaml'][:200]}..."
@@ -108,10 +109,10 @@ class TestPreviewPipelineGitHubResources:
 
         preview_data = result.data
         assert preview_data is not None, (
-            f"Expected preview data for branch override test but got None"
+            "Expected preview data for branch override test but got None"
         )
         assert preview_data.get("finalYaml") is not None, (
-            f"Expected finalYaml in preview data but got None"
+            "Expected finalYaml in preview data but got None"
         )
         assert "stable branch 0.0.1" in preview_data["finalYaml"], (
             f"Expected 'stable branch 0.0.1' indicating branch override but not found. Got: {preview_data['finalYaml'][:200]}..."
@@ -135,10 +136,10 @@ class TestPreviewPipelineGitHubResources:
         )
         preview_data = result.data
         assert preview_data is not None, (
-            f"Expected preview data for GitHub token injection test but got None"
+            "Expected preview data for GitHub token injection test but got None"
         )
         assert preview_data.get("finalYaml") is not None, (
-            f"Expected finalYaml in preview data but got None"
+            "Expected finalYaml in preview data but got None"
         )
 
     @requires_ado_creds
@@ -150,10 +151,10 @@ class TestPreviewPipelineGitHubResources:
 
         preview_data = result.data
         assert preview_data is not None, (
-            f"Expected preview data for public repo without token but got None"
+            "Expected preview data for public repo without token but got None"
         )
         assert preview_data.get("finalYaml") is not None, (
-            f"Expected finalYaml in preview data but got None"
+            "Expected finalYaml in preview data but got None"
         )
         assert "Taskfile" in preview_data["finalYaml"], (
             f"Expected 'Taskfile' in finalYaml but not found. Got: {preview_data['finalYaml'][:200]}..."
@@ -175,10 +176,10 @@ class TestPreviewPipelineGitHubResources:
 
         preview_data = result.data
         assert preview_data is not None, (
-            f"Expected preview data for template parameters test but got None"
+            "Expected preview data for template parameters test but got None"
         )
         assert preview_data.get("finalYaml") is not None, (
-            f"Expected finalYaml in preview data but got None"
+            "Expected finalYaml in preview data but got None"
         )
         assert "/usr/local/bin" in preview_data["finalYaml"], (
             f"Expected '/usr/local/bin' parameter in finalYaml but not found. Got: {preview_data['finalYaml'][:200]}..."
@@ -223,7 +224,7 @@ class TestPreviewPipelineGitHubResources:
             f"Expected 'job: dev_stable' in stable branch YAML but not found. Got: {stable_yaml[:200]}..."
         )
         assert stable_yaml != main_yaml, (
-            f"Expected different YAML between main and stable branches but they were identical"
+            "Expected different YAML between main and stable branches but they were identical"
         )
 
         assert "ref: refs/heads/main" in main_yaml, (
@@ -258,10 +259,10 @@ class TestPreviewPipelineGitHubResources:
         )
         preview_data = result.data
         assert preview_data is not None, (
-            f"Expected preview data for explicit token override test but got None"
+            "Expected preview data for explicit token override test but got None"
         )
         assert preview_data.get("finalYaml") is not None, (
-            f"Expected finalYaml in preview data but got None"
+            "Expected finalYaml in preview data but got None"
         )
 
     @requires_ado_creds
@@ -282,10 +283,10 @@ class TestPreviewPipelineGitHubResources:
 
         preview_data = result.data
         assert preview_data is not None, (
-            f"Expected preview data for GitHub type without token test but got None"
+            "Expected preview data for GitHub type without token test but got None"
         )
         assert preview_data.get("finalYaml") is not None, (
-            f"Expected finalYaml in preview data but got None"
+            "Expected finalYaml in preview data but got None"
         )
 
     @requires_ado_creds
@@ -304,10 +305,10 @@ class TestPreviewPipelineGitHubResources:
         )
         preview_data = result.data
         assert preview_data is not None, (
-            f"Expected preview data for public repository without type test but got None"
+            "Expected preview data for public repository without type test but got None"
         )
         assert preview_data.get("finalYaml") is not None, (
-            f"Expected finalYaml in preview data but got None"
+            "Expected finalYaml in preview data but got None"
         )
 
     @requires_ado_creds
@@ -320,7 +321,7 @@ class TestPreviewPipelineGitHubResources:
 
         project_name = get_project_name()
         pipeline_name = "github-resources-test-stable"
-        result = await mcp_client.call_tool(
+        await mcp_client.call_tool(
             "preview_pipeline",
             {
                 "project_name": project_name,
@@ -329,5 +330,4 @@ class TestPreviewPipelineGitHubResources:
             },
         )
 
-        preview_data = result.data
         assert True, "Unsupported repository type test completed without crashing"

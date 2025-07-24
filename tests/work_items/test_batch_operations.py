@@ -1,4 +1,5 @@
 import os
+
 import pytest
 from fastmcp.client import Client
 
@@ -8,22 +9,29 @@ from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 async def client():
     async with Client(mcp) as client:
         yield client
 
+
 @pytest.fixture
 def project_id():
     return get_project_id()
 
+
 def get_current_user_email():
     return os.getenv("AZURE_DEVOPS_USER_EMAIL", "raboley@gmail.com")
+
 
 async def test_get_work_items_batch_tool_registration(client):
     tools = await client.list_tools()
     tool_names = [tool.name for tool in tools]
-    assert "get_work_items_batch" in tool_names, f"get_work_items_batch tool should be registered but found: {tool_names}"
+    assert "get_work_items_batch" in tool_names, (
+        f"get_work_items_batch tool should be registered but found: {tool_names}"
+    )
+
 
 @requires_ado_creds
 async def test_get_work_items_batch_basic_functionality(client, project_id):
@@ -79,6 +87,7 @@ async def test_get_work_items_batch_basic_functionality(client, project_id):
             except Exception:
                 pass
 
+
 @requires_ado_creds
 async def test_get_work_items_batch_with_field_filtering(client, project_id):
     current_user = get_current_user_email()
@@ -116,8 +125,12 @@ async def test_get_work_items_batch_with_field_filtering(client, project_id):
         work_item = result.data[0]
         fields = work_item["fields"]
 
-        assert "System.Title" in fields, f"Should have System.Title field but found: {list(fields.keys())}"
-        assert "System.State" in fields, f"Should have System.State field but found: {list(fields.keys())}"
+        assert "System.Title" in fields, (
+            f"Should have System.Title field but found: {list(fields.keys())}"
+        )
+        assert "System.State" in fields, (
+            f"Should have System.State field but found: {list(fields.keys())}"
+        )
 
     finally:
         try:
@@ -126,6 +139,7 @@ async def test_get_work_items_batch_with_field_filtering(client, project_id):
             )
         except Exception:
             pass
+
 
 @requires_ado_creds
 async def test_get_work_items_batch_error_handling_omit_policy(client, project_id):
@@ -169,7 +183,9 @@ async def test_get_work_items_batch_error_handling_omit_policy(client, project_i
         )
 
         returned_ids = [item["id"] for item in result.data]
-        assert valid_id in returned_ids, f"Valid work item {valid_id} should be in results but found: {returned_ids}"
+        assert valid_id in returned_ids, (
+            f"Valid work item {valid_id} should be in results but found: {returned_ids}"
+        )
 
     finally:
         try:
@@ -178,6 +194,7 @@ async def test_get_work_items_batch_error_handling_omit_policy(client, project_i
             )
         except Exception:
             pass
+
 
 @requires_ado_creds
 async def test_get_work_items_batch_error_handling_fail_policy(client, project_id):
@@ -228,6 +245,7 @@ async def test_get_work_items_batch_error_handling_fail_policy(client, project_i
         except Exception:
             pass
 
+
 async def test_get_work_items_batch_empty_list(client, project_id):
     result = await client.call_tool(
         "get_work_items_batch", {"project_id": project_id, "work_item_ids": []}
@@ -238,6 +256,7 @@ async def test_get_work_items_batch_empty_list(client, project_id):
     )
     assert result.data == [], f"Should return empty list but got: {result.data}"
 
+
 async def test_get_work_items_batch_too_many_ids(client, project_id):
     large_id_list = list(range(1, 202))
 
@@ -246,7 +265,10 @@ async def test_get_work_items_batch_too_many_ids(client, project_id):
             "get_work_items_batch", {"project_id": project_id, "work_item_ids": large_id_list}
         )
 
-    assert "200" in str(exc_info.value), f"Error message should mention 200 limit but got: {exc_info.value}"
+    assert "200" in str(exc_info.value), (
+        f"Error message should mention 200 limit but got: {exc_info.value}"
+    )
+
 
 async def test_get_work_items_batch_invalid_project(client):
     with pytest.raises(Exception) as exc_info:

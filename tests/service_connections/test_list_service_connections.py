@@ -1,4 +1,5 @@
 import os
+
 import pytest
 from fastmcp.client import Client
 
@@ -8,6 +9,7 @@ from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -16,6 +18,7 @@ async def mcp_client():
         )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
+
 
 @requires_ado_creds
 async def test_list_service_connections_returns_valid_list(mcp_client: Client):
@@ -55,6 +58,7 @@ async def test_list_service_connections_returns_valid_list(mcp_client: Client):
             f"Expected string type for connection type, got {type(connection['type'])}"
         )
 
+
 @requires_ado_creds
 async def test_list_service_connections_github_type(mcp_client: Client):
     project_id = get_project_id()
@@ -72,6 +76,7 @@ async def test_list_service_connections_github_type(mcp_client: Client):
         assert "github" in github_conn["type"].lower(), (
             f"Expected 'github' in connection type '{github_conn['type']}' but it was not found"
         )
+
 
 @requires_ado_creds
 async def test_list_service_connections_structure(mcp_client: Client):
@@ -114,6 +119,7 @@ async def test_list_service_connections_structure(mcp_client: Client):
                 f"Expected non-empty connection type at index {i}, got empty string"
             )
 
+
 @requires_ado_creds
 async def test_list_service_connections_types(mcp_client: Client):
     project_id = get_project_id()
@@ -125,7 +131,7 @@ async def test_list_service_connections_types(mcp_client: Client):
     )
 
     if len(service_connections) > 0:
-        connection_types = set(conn["type"] for conn in service_connections)
+        connection_types = {conn["type"] for conn in service_connections}
 
         assert len(connection_types) > 0, (
             f"Expected at least one connection type but found none. Connections: {service_connections}"
@@ -135,7 +141,8 @@ async def test_list_service_connections_types(mcp_client: Client):
             assert isinstance(conn_type, str), (
                 f"Expected string type for connection type, got {type(conn_type)}"
             )
-            assert len(conn_type) > 0, f"Expected non-empty connection type, got empty string"
+            assert len(conn_type) > 0, "Expected non-empty connection type, got empty string"
+
 
 @requires_ado_creds
 async def test_list_service_connections_invalid_project(mcp_client: Client):
@@ -152,6 +159,7 @@ async def test_list_service_connections_invalid_project(mcp_client: Client):
         assert True, (
             f"Exception is expected for invalid project but got unexpected exception type: {type(e).__name__} with message: {str(e)}"
         )
+
 
 @requires_ado_creds
 async def test_list_service_connections_specific_connection_details(mcp_client: Client):
@@ -170,9 +178,10 @@ async def test_list_service_connections_specific_connection_details(mcp_client: 
                     f"Expected string type for connection ID, got {type(connection['id'])}"
                 )
                 assert len(connection["id"]) > 0, (
-                    f"Expected non-empty connection ID for pipeline reference, got empty string"
+                    "Expected non-empty connection ID for pipeline reference, got empty string"
                 )
                 break
+
 
 async def test_list_service_connections_tool_registration():
     async with Client(mcp) as client:

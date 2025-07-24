@@ -1,24 +1,24 @@
 import os
-from fastmcp.client import Client
-import pytest
 import time
-from unittest.mock import Mock, patch, MagicMock
-from requests.exceptions import HTTPError, RequestException, Timeout
-from requests import Response
+from unittest.mock import MagicMock, Mock, patch
 
+import pytest
+from requests.exceptions import HTTPError, RequestException, Timeout
+
+from ado.auth import AuthManager, EnvironmentPatAuthProvider, PatAuthProvider
 from ado.client import AdoClient
-from ado.config import AdoMcpConfig, RetryConfig, AuthConfig, TelemetryConfig
+from ado.config import AdoMcpConfig, AuthConfig, RetryConfig, TelemetryConfig
 from ado.errors import (
-    AdoError,
     AdoAuthenticationError,
+    AdoConfigurationError,
+    AdoError,
+    AdoNetworkError,
     AdoRateLimitError,
     AdoTimeoutError,
-    AdoNetworkError,
-    AdoConfigurationError,
 )
-from ado.auth import AuthManager, PatAuthProvider, EnvironmentPatAuthProvider
 from ado.retry import RetryManager
 from ado.telemetry import TelemetryManager
+
 
 class TestStructuredErrors:
     def test_ado_error_structure(self):
@@ -79,6 +79,7 @@ class TestStructuredErrors:
             f"Expected HTTPError but got {type(error.original_exception)}"
         )
 
+
 class TestConfiguration:
     def test_default_config_creation(self):
         config = AdoMcpConfig()
@@ -95,7 +96,7 @@ class TestConfiguration:
         assert config.auth.timeout_seconds == 30, (
             f"Expected auth timeout 30 but got {config.auth.timeout_seconds}"
         )
-        assert config.telemetry.enabled == True, (
+        assert config.telemetry.enabled, (
             f"Expected telemetry enabled True but got {config.telemetry.enabled}"
         )
         assert config.request_timeout_seconds == 30, (
@@ -129,7 +130,7 @@ class TestConfiguration:
             assert config.auth.timeout_seconds == 45, (
                 f"Expected auth timeout 45 but got {config.auth.timeout_seconds}"
             )
-            assert config.telemetry.enabled == False, (
+            assert not config.telemetry.enabled, (
                 f"Expected telemetry enabled False but got {config.telemetry.enabled}"
             )
 
@@ -155,6 +156,7 @@ class TestConfiguration:
         assert config.request_timeout_seconds == 60, (
             f"Expected request_timeout_seconds 60 but got {config.request_timeout_seconds}"
         )
+
 
 class TestAuthenticationChaining:
     def test_auth_manager_provider_chain(self):
@@ -249,6 +251,7 @@ class TestAuthenticationChaining:
         assert credential1.token == credential2.token, (
             f"Expected same token '{credential1.token}' from fresh credential but got '{credential2.token}'"
         )
+
 
 class TestRetryMechanism:
     def test_retry_manager_success_no_retry(self):
@@ -355,12 +358,13 @@ class TestRetryMechanism:
             f"Expected 'Network error' in exception message but got '{str(exc_info.value)}'"
         )
 
+
 class TestTelemetryIntegration:
     def test_telemetry_manager_initialization(self):
         config = TelemetryConfig(enabled=True)
         telemetry = TelemetryManager(config)
 
-        assert telemetry.config.enabled == True, (
+        assert telemetry.config.enabled, (
             f"Expected telemetry enabled True but got {telemetry.config.enabled}"
         )
         assert telemetry.config.service_name == "ado-mcp", (
@@ -410,6 +414,7 @@ class TestTelemetryIntegration:
             f"Expected auth recording to work without errors but got exception: {error_msg if not recording_works else 'none'}"
         )
 
+
 class TestClientIntegration:
     def test_client_with_production_config(self):
         config = AdoMcpConfig(
@@ -445,7 +450,6 @@ class TestClientIntegration:
         client = AdoClient(
             organization_url="https://test.visualstudio.com", pat="test-pat", config=config
         )
-        initial_auth_method = client.auth_method
 
         client.refresh_authentication()
 
@@ -475,8 +479,8 @@ class TestClientIntegration:
         # Patch both requests.request and remove session to trigger fallback
         with patch("requests.request", return_value=mock_response):
             # Ensure we don't have a session to trigger the fallback path
-            if hasattr(client, 'session'):
-                delattr(client, 'session')
+            if hasattr(client, "session"):
+                delattr(client, "session")
             with pytest.raises(AdoRateLimitError) as exc_info:
                 client._send_request("GET", "https://test.visualstudio.com/_apis/test")
 
@@ -500,11 +504,11 @@ class TestClientIntegration:
 
         # Create a RequestException without response attribute to trigger network error handling
         network_error = RequestException("Network error")
-        
+
         with patch("requests.request", side_effect=network_error):
             # Ensure we don't have a session to trigger the fallback path
-            if hasattr(client, 'session'):
-                delattr(client, 'session')
+            if hasattr(client, "session"):
+                delattr(client, "session")
             with pytest.raises(AdoNetworkError) as exc_info:
                 client._send_request("GET", "https://test.visualstudio.com/_apis/test")
 
@@ -527,11 +531,11 @@ class TestClientIntegration:
         )
 
         timeout_error = Timeout("Request timeout")
-        
+
         with patch("requests.request", side_effect=timeout_error):
             # Ensure we don't have a session to trigger the fallback path
-            if hasattr(client, 'session'):
-                delattr(client, 'session')
+            if hasattr(client, "session"):
+                delattr(client, "session")
             with pytest.raises(AdoTimeoutError) as exc_info:
                 client._send_request("GET", "https://test.visualstudio.com/_apis/test")
 

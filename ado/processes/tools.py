@@ -1,10 +1,9 @@
 """MCP tools for Azure DevOps Processes and Templates."""
 
 import logging
-from typing import List, Optional
 
 from ado.processes.client import ProcessesClient
-from ado.processes.models import Process, WorkItemTemplate, ProjectProcessInfo
+from ado.processes.models import Process, ProjectProcessInfo, WorkItemTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ def register_process_tools(mcp_instance, client_container):
     """
 
     @mcp_instance.tool
-    def get_project_process_id(project_id: str) -> Optional[str]:
+    def get_project_process_id(project_id: str) -> str | None:
         """
         Get the process template ID for a project.
 
@@ -59,7 +58,7 @@ def register_process_tools(mcp_instance, client_container):
             raise
 
     @mcp_instance.tool
-    def get_project_process_info(project_id: str) -> Optional[ProjectProcessInfo]:
+    def get_project_process_info(project_id: str) -> ProjectProcessInfo | None:
         """
         Get comprehensive process information for a project.
 
@@ -102,7 +101,7 @@ def register_process_tools(mcp_instance, client_container):
             raise
 
     @mcp_instance.tool
-    def list_processes() -> Optional[List[Process]]:
+    def list_processes() -> list[Process] | None:
         """
         List all available process templates in the organization.
 
@@ -140,7 +139,7 @@ def register_process_tools(mcp_instance, client_container):
             raise
 
     @mcp_instance.tool
-    def get_process_details(process_id: str) -> Optional[Process]:
+    def get_process_details(process_id: str) -> Process | None:
         """
         Get detailed information about a specific process template.
 
@@ -184,8 +183,8 @@ def register_process_tools(mcp_instance, client_container):
 
     @mcp_instance.tool
     def get_work_item_templates(
-        project_id: str, team_id: Optional[str] = None, work_item_type: Optional[str] = None
-    ) -> Optional[List[WorkItemTemplate]]:
+        project_id: str, team_id: str | None = None, work_item_type: str | None = None
+    ) -> list[WorkItemTemplate] | None:
         """
         Get work item templates for a team.
 
@@ -238,8 +237,8 @@ def register_process_tools(mcp_instance, client_container):
 
     @mcp_instance.tool
     def get_work_item_template(
-        project_id: str, template_id: str, team_id: Optional[str] = None
-    ) -> Optional[WorkItemTemplate]:
+        project_id: str, template_id: str, team_id: str | None = None
+    ) -> WorkItemTemplate | None:
         """
         Get detailed information about a specific work item template.
 

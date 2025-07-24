@@ -5,14 +5,14 @@ import pytest
 from fastmcp.client import Client
 from fastmcp.exceptions import ToolError
 
-from server import mcp
-from tests.ado.test_client import requires_ado_creds
-from tests.test_helpers import get_pipeline_id_by_name
 from ado.cache import ado_cache
-from tests.utils.telemetry import telemetry_setup, analyze_spans, clear_spans
-from src.test_config import get_project_id, get_project_name, get_organization_url
+from server import mcp
+from src.test_config import get_organization_url, get_project_id, get_project_name
+from tests.ado.test_client import requires_ado_creds
+from tests.utils.telemetry import analyze_spans, clear_spans
 
 pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 async def mcp_client():
@@ -27,6 +27,7 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @pytest.fixture
 async def mcp_client_with_unset_ado_env(monkeypatch):
     monkeypatch.delenv("ADO_ORGANIZATION_URL", raising=False)
@@ -39,6 +40,7 @@ async def mcp_client_with_unset_ado_env(monkeypatch):
     async with Client(server.mcp) as client:
         yield client
 
+
 @requires_ado_creds
 async def test_list_projects_returns_valid_list(mcp_client: Client):
     result = await mcp_client.call_tool("list_projects")
@@ -49,6 +51,7 @@ async def test_list_projects_returns_valid_list(mcp_client: Client):
         assert isinstance(project, dict), f"Expected project to be dict, got {type(project)}"
         assert "id" in project, f"Project missing 'id' field, has keys: {list(project.keys())}"
         assert "name" in project, f"Project missing 'name' field, has keys: {list(project.keys())}"
+
 
 @requires_ado_creds
 async def test_list_pipelines_returns_valid_list(mcp_client: Client):
@@ -85,6 +88,7 @@ async def test_list_pipelines_returns_valid_list(mcp_client: Client):
 
     if not pipelines_found:
         pytest.skip("No pipelines found in any project.")
+
 
 @requires_ado_creds
 async def test_create_pipeline_creates_valid_pipeline(mcp_client: Client):
@@ -186,6 +190,7 @@ async def test_create_pipeline_creates_valid_pipeline(mcp_client: Client):
         f"Pipeline {pipeline_id} should be deleted but still appears in list"
     )
 
+
 @requires_ado_creds
 async def test_list_service_connections_returns_valid_list(mcp_client: Client):
     projects_result = await mcp_client.call_tool("list_projects")
@@ -208,6 +213,7 @@ async def test_list_service_connections_returns_valid_list(mcp_client: Client):
     assert isinstance(connections, list), (
         f"Expected list of service connections, got {type(connections)}"
     )
+
 
 @requires_ado_creds
 async def test_delete_pipeline_removes_pipeline(mcp_client: Client):
@@ -258,7 +264,7 @@ async def test_delete_pipeline_removes_pipeline(mcp_client: Client):
     )
 
     pipeline = create_result.data
-    assert hasattr(pipeline, "id"), f"Created pipeline should have id attribute but does not"
+    assert hasattr(pipeline, "id"), "Created pipeline should have id attribute but does not"
     pipeline_id = pipeline.id
 
     pipelines_before = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
@@ -279,6 +285,7 @@ async def test_delete_pipeline_removes_pipeline(mcp_client: Client):
     assert pipeline_id not in pipeline_ids_after, (
         f"Pipeline {pipeline_id} should be deleted but still appears in list"
     )
+
 
 @requires_ado_creds
 async def test_get_pipeline_returns_valid_details(mcp_client: Client):
@@ -311,6 +318,7 @@ async def test_get_pipeline_returns_valid_details(mcp_client: Client):
     assert details.get("id") == pipeline_id, (
         f"Expected pipeline id {pipeline_id}, got {details.get('id')}"
     )
+
 
 @requires_ado_creds
 async def test_run_and_get_pipeline_run_details(mcp_client: Client):
@@ -352,19 +360,23 @@ async def test_run_and_get_pipeline_run_details(mcp_client: Client):
     )
     assert run_status["id"] == run_id, f"Expected run_id {run_id}, got {run_status['id']}"
 
+
 async def test_no_client_check_authentication(mcp_client_with_unset_ado_env: Client):
     result = await mcp_client_with_unset_ado_env.call_tool("check_ado_authentication")
     assert result.data is False, (
         f"Expected authentication to fail (False) when no client available, got {result.data}"
     )
 
+
 async def test_no_client_list_projects(mcp_client_with_unset_ado_env: Client):
     result = await mcp_client_with_unset_ado_env.call_tool("list_projects")
     assert result.data == [], f"Expected empty list when no client available, got {result.data}"
 
+
 async def test_no_client_list_pipelines(mcp_client_with_unset_ado_env: Client):
     result = await mcp_client_with_unset_ado_env.call_tool("list_pipelines", {"project_id": "any"})
     assert result.data == [], f"Expected empty list when no client available, got {result.data}"
+
 
 async def test_no_client_get_pipeline(mcp_client_with_unset_ado_env: Client):
     result = await mcp_client_with_unset_ado_env.call_tool(
@@ -372,17 +384,20 @@ async def test_no_client_get_pipeline(mcp_client_with_unset_ado_env: Client):
     )
     assert result.data is None, f"Expected None when no client available, got {result.data}"
 
+
 async def test_no_client_run_pipeline(mcp_client_with_unset_ado_env: Client):
     result = await mcp_client_with_unset_ado_env.call_tool(
         "run_pipeline", {"project_name": "any", "pipeline_name": "any"}
     )
     assert result.data is None, f"Expected None when no client available, got {result.data}"
 
+
 async def test_no_client_get_pipeline_run(mcp_client_with_unset_ado_env: Client):
     result = await mcp_client_with_unset_ado_env.call_tool(
         "get_pipeline_run", {"project_name": "any", "pipeline_name": "any", "run_id": 1}
     )
     assert result.data is None, f"Expected None when no client available, got {result.data}"
+
 
 @requires_ado_creds
 async def test_set_organization_failure_and_recovery(mcp_client: Client):
@@ -424,6 +439,7 @@ async def test_set_organization_failure_and_recovery(mcp_client: Client):
         "Authentication should succeed after switching to valid org but failed"
     )
 
+
 @requires_ado_creds
 async def test_pipeline_lifecycle_fire_and_forget(mcp_client: Client):
     project_name = get_project_name()
@@ -455,6 +471,7 @@ async def test_pipeline_lifecycle_fire_and_forget(mcp_client: Client):
         f"Expected state to be one of {accepted_states}, got '{pipeline_run['state']}'"
     )
 
+
 @requires_ado_creds
 async def test_pipeline_lifecycle_wait_for_completion(mcp_client: Client):
     project_name = get_project_name()
@@ -482,7 +499,8 @@ async def test_pipeline_lifecycle_wait_for_completion(mcp_client: Client):
         await __import__("asyncio").sleep(5)
 
         status_result = await mcp_client.call_tool(
-            "get_pipeline_run", {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id},
+            "get_pipeline_run",
+            {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id},
         )
 
         current_run = status_result.data
@@ -509,6 +527,7 @@ async def test_pipeline_lifecycle_wait_for_completion(mcp_client: Client):
         f"Expected result to be 'succeeded' or 'failed', got '{final_run['result']}'"
     )
 
+
 @requires_ado_creds
 async def test_multiple_pipeline_runs(mcp_client: Client):
     project_name = get_project_name()
@@ -516,7 +535,7 @@ async def test_multiple_pipeline_runs(mcp_client: Client):
 
     run_ids = []
 
-    for i in range(3):
+    for _i in range(3):
         run_result = await mcp_client.call_tool(
             "run_pipeline_by_name", {"project_name": project_name, "pipeline_name": pipeline_name}
         )
@@ -536,7 +555,8 @@ async def test_multiple_pipeline_runs(mcp_client: Client):
 
     for run_id in run_ids:
         status_result = await mcp_client.call_tool(
-            "get_pipeline_run", {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id},
+            "get_pipeline_run",
+            {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id},
         )
 
         current_run = status_result.data
@@ -552,6 +572,7 @@ async def test_multiple_pipeline_runs(mcp_client: Client):
         assert current_run["state"] is not None, (
             f"Run {run_id} should have a non-None state but got None"
         )
+
 
 @requires_ado_creds
 async def test_pipeline_run_status_progression(mcp_client: Client):
@@ -576,7 +597,8 @@ async def test_pipeline_run_status_progression(mcp_client: Client):
 
     for i in range(6):
         status_result = await mcp_client.call_tool(
-            "get_pipeline_run", {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id},
+            "get_pipeline_run",
+            {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id},
         )
 
         current_run = status_result.data
@@ -609,7 +631,9 @@ async def test_pipeline_run_status_progression(mcp_client: Client):
         f"Expected final state to be one of {valid_states}, got '{final_status['state']}'"
     )
 
+
 # --- Tests for pipeline preview functionality ---
+
 
 @requires_ado_creds
 async def test_preview_pipeline_valid_yaml(mcp_client: Client):
@@ -629,6 +653,7 @@ async def test_preview_pipeline_valid_yaml(mcp_client: Client):
     assert isinstance(preview_data["finalYaml"], str), "Final YAML should be a string"
     assert len(preview_data["finalYaml"]) > 0, "Final YAML should not be empty"
 
+
 @requires_ado_creds
 async def test_preview_pipeline_with_yaml_override(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
@@ -646,7 +671,11 @@ steps:
 
     result = await mcp_client.call_tool(
         "preview_pipeline",
-        {"project_name": project_name, "pipeline_name": pipeline_name, "yaml_override": yaml_override},
+        {
+            "project_name": project_name,
+            "pipeline_name": pipeline_name,
+            "yaml_override": yaml_override,
+        },
     )
 
     preview_data = result.data
@@ -657,6 +686,7 @@ steps:
     final_yaml = preview_data["finalYaml"]
     assert "Override Test Pipeline" in final_yaml, "Final YAML should contain override content"
     assert "This is an override!" in final_yaml, "Final YAML should contain override script"
+
 
 @requires_ado_creds
 async def test_preview_pipeline_with_variables(mcp_client: Client):
@@ -679,6 +709,7 @@ async def test_preview_pipeline_with_variables(mcp_client: Client):
     assert final_yaml is not None, "Final YAML should not be None"
     assert len(final_yaml) > 0, "Final YAML should not be empty"
 
+
 @requires_ado_creds
 async def test_preview_pipeline_with_template_parameters(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
@@ -699,6 +730,7 @@ async def test_preview_pipeline_with_template_parameters(mcp_client: Client):
     assert preview_data is not None, "Preview with template parameters should not be None"
     assert isinstance(preview_data, dict), "Preview should be a dictionary"
     assert "finalYaml" in preview_data, "Preview should contain finalYaml field"
+
 
 @requires_ado_creds
 async def test_preview_pipeline_error_handling(mcp_client: Client):
@@ -721,6 +753,7 @@ async def test_preview_pipeline_error_handling(mcp_client: Client):
     except Exception as e:
         assert isinstance(e, Exception), "Should raise a proper exception type"
 
+
 @requires_ado_creds
 async def test_preview_pipeline_nonexistent_pipeline(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
@@ -741,30 +774,35 @@ async def test_preview_pipeline_nonexistent_pipeline(mcp_client: Client):
     except Exception as e:
         assert isinstance(e, Exception), "Should raise a proper exception type"
 
+
 async def test_preview_pipeline_no_client(mcp_client_with_unset_ado_env: Client):
     result = await mcp_client_with_unset_ado_env.call_tool(
         "preview_pipeline", {"project_name": "any", "pipeline_name": "any"}
     )
     assert result.data is None, "Preview should return None when client is unavailable"
 
+
 # --- Tests for pipeline logs functionality ---
+
 
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_simple_pipeline(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
     pipeline_name = "log-test-failing"  # log-test-failing pipeline
-    
+
     # Run the failing pipeline to get a real run ID
     pipeline_run_result = await mcp_client.call_tool(
-        "run_pipeline_and_get_outcome_by_name", {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
+        "run_pipeline_and_get_outcome_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
     )
-    
+
     outcome = pipeline_run_result.data
     assert outcome["success"] is False, f"Pipeline should fail but got success={outcome['success']}"
     run_id = outcome["pipeline_run"]["id"]
 
     result = await mcp_client.call_tool(
-        "get_pipeline_failure_summary_by_name", {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id},
+        "get_pipeline_failure_summary_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id},
     )
 
     summary = result.data
@@ -774,41 +812,48 @@ async def test_get_pipeline_failure_summary_simple_pipeline(mcp_client: Client):
     assert "total_failed_steps" in summary, "Summary should have total_failed_steps"
     assert "root_cause_tasks" in summary, "Summary should have root_cause_tasks"
     assert "hierarchy_failures" in summary, "Summary should have hierarchy_failures"
-    
+
     # The test should pass if the pipeline failed and we get a summary structure
     # More flexible assertions since actual failure structure may vary
-    assert summary["total_failed_steps"] >= 0, f"Should have valid failed steps count, got {summary['total_failed_steps']}"
-    
+    assert summary["total_failed_steps"] >= 0, (
+        f"Should have valid failed steps count, got {summary['total_failed_steps']}"
+    )
+
     # If there are root cause tasks, verify their structure
     if len(summary["root_cause_tasks"]) > 0:
         root_cause = summary["root_cause_tasks"][0]
         assert "step_name" in root_cause, "Root cause should have step_name"
         assert "step_type" in root_cause, "Root cause should have step_type"
         assert "result" in root_cause, "Root cause should have result"
-        assert root_cause["result"] == "failed", f"Root cause should have failed result, got {root_cause['result']}"
-        
-    # If there are hierarchy failures, verify their structure    
+        assert root_cause["result"] == "failed", (
+            f"Root cause should have failed result, got {root_cause['result']}"
+        )
+
+    # If there are hierarchy failures, verify their structure
     if len(summary["hierarchy_failures"]) > 0:
         hierarchy_failure = summary["hierarchy_failures"][0]
         assert "step_name" in hierarchy_failure, "Hierarchy failure should have step_name"
         assert "step_type" in hierarchy_failure, "Hierarchy failure should have step_type"
 
+
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_complex_pipeline(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
     pipeline_name = "slow.log-test-complex"  # log-test-complex pipeline
-    
+
     # Run the failing pipeline to get a real run ID
     pipeline_run_result = await mcp_client.call_tool(
-        "run_pipeline_and_get_outcome_by_name", {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
+        "run_pipeline_and_get_outcome_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
     )
-    
+
     outcome = pipeline_run_result.data
     assert outcome["success"] is False, f"Pipeline should fail but got success={outcome['success']}"
     run_id = outcome["pipeline_run"]["id"]
 
     result = await mcp_client.call_tool(
-        "get_pipeline_failure_summary_by_name", {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id},
+        "get_pipeline_failure_summary_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id},
     )
 
     summary = result.data
@@ -816,11 +861,15 @@ async def test_get_pipeline_failure_summary_complex_pipeline(mcp_client: Client)
     assert isinstance(summary, dict), "Summary should be a dictionary"
 
     # More flexible assertions for the complex pipeline
-    assert summary["total_failed_steps"] >= 0, f"Should have valid failed steps count, got {summary['total_failed_steps']}"
-    
+    assert summary["total_failed_steps"] >= 0, (
+        f"Should have valid failed steps count, got {summary['total_failed_steps']}"
+    )
+
     # Check for either root cause tasks or hierarchy failures (pipeline may fail in different ways)
     total_failures = len(summary["root_cause_tasks"]) + len(summary["hierarchy_failures"])
-    assert total_failures > 0, f"Should have some failures (root cause or hierarchy), got {total_failures}"
+    assert total_failures > 0, (
+        f"Should have some failures (root cause or hierarchy), got {total_failures}"
+    )
 
     # If there are root cause tasks, look for unit test failures
     unit_tests_failure = None
@@ -835,20 +884,22 @@ async def test_get_pipeline_failure_summary_complex_pipeline(mcp_client: Client)
         if unit_tests_failure.get("log_content"):
             log_content = unit_tests_failure["log_content"]
             # Look for common failure indicators in the log
-            assert any(indicator in log_content for indicator in ["FAIL", "ERROR", "exit 1", "failed"]), \
-                f"Log should contain failure indicators, got: {log_content[:200]}..."
+            assert any(
+                indicator in log_content for indicator in ["FAIL", "ERROR", "exit 1", "failed"]
+            ), f"Log should contain failure indicators, got: {log_content[:200]}..."
+
 
 @requires_ado_creds
 async def test_get_failed_step_logs_with_filter(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
     pipeline_name = "slow.log-test-complex"  # log-test-complex pipeline
-    
+
     # Run the failing pipeline to get a real run ID
     pipeline_run_result = await mcp_client.call_tool(
         "run_pipeline_and_get_outcome_by_name",
         {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
     )
-    
+
     outcome = pipeline_run_result.data
     assert outcome["success"] is False, f"Pipeline should fail but got success={outcome['success']}"
     run_id = outcome["pipeline_run"]["id"]
@@ -865,11 +916,11 @@ async def test_get_failed_step_logs_with_filter(mcp_client: Client):
     failure_summary = result.data
     assert failure_summary is not None, "Failure summary should not be None"
     assert isinstance(failure_summary, dict), "Failure summary should be a dict"
-    
+
     # Check that we have failure information
     assert "total_failed_steps" in failure_summary, "Should have total_failed_steps field"
     assert "root_cause_tasks" in failure_summary, "Should have root_cause_tasks field"
-    
+
     # If there are failed steps, check the structure
     if failure_summary["total_failed_steps"] > 0 and len(failure_summary["root_cause_tasks"]) > 0:
         root_task = failure_summary["root_cause_tasks"][0]
@@ -877,17 +928,18 @@ async def test_get_failed_step_logs_with_filter(mcp_client: Client):
         assert "result" in root_task, "Should have result field"
         assert root_task["result"] == "failed", "Should be failed"
 
+
 @requires_ado_creds
 async def test_get_failed_step_logs_all_steps(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
     pipeline_name = "log-test-failing"  # log-test-failing pipeline
-    
+
     # Run the failing pipeline to get a real run ID
     pipeline_run_result = await mcp_client.call_tool(
         "run_pipeline_and_get_outcome_by_name",
         {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
     )
-    
+
     outcome = pipeline_run_result.data
     assert outcome["success"] is False, f"Pipeline should fail but got success={outcome['success']}"
     run_id = outcome["pipeline_run"]["id"]
@@ -900,33 +952,37 @@ async def test_get_failed_step_logs_all_steps(mcp_client: Client):
     failure_summary = result.data
     assert failure_summary is not None, "Failure summary should not be None"
     assert isinstance(failure_summary, dict), "Failure summary should be a dict"
-    
+
     # Check that we have failure information
     assert "total_failed_steps" in failure_summary, "Should have total_failed_steps field"
     assert "root_cause_tasks" in failure_summary, "Should have root_cause_tasks field"
-    
+
     # If there are failed steps, check the structure (but be flexible as some failures might not have root causes)
     if failure_summary["total_failed_steps"] > 0:
         # It's possible to have failed steps but no root cause tasks in some scenarios
-        assert isinstance(failure_summary["root_cause_tasks"], list), "root_cause_tasks should be a list"
+        assert isinstance(failure_summary["root_cause_tasks"], list), (
+            "root_cause_tasks should be a list"
+        )
+
 
 @requires_ado_creds
 async def test_get_pipeline_timeline(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
     pipeline_name = "log-test-failing"  # log-test-failing pipeline
-    
+
     # Run the failing pipeline to get a real run ID
     pipeline_run_result = await mcp_client.call_tool(
-        "run_pipeline_and_get_outcome_by_name", {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
+        "run_pipeline_and_get_outcome_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
     )
-    
+
     outcome = pipeline_run_result.data
     assert outcome["success"] is False, f"Pipeline should fail but got success={outcome['success']}"
     run_id = outcome["pipeline_run"]["id"]
 
     # Get project_id and pipeline_id for the timeline call
     project_id = get_project_id()
-    
+
     # Find pipeline by name to get its ID
     pipelines_result = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
     pipelines = pipelines_result.data
@@ -936,9 +992,10 @@ async def test_get_pipeline_timeline(mcp_client: Client):
             pipeline_id = pipeline["id"]
             break
     assert pipeline_id is not None, f"Pipeline '{pipeline_name}' not found"
-    
+
     result = await mcp_client.call_tool(
-        "get_pipeline_timeline", {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id},
+        "get_pipeline_timeline",
+        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id},
     )
 
     timeline = result.data
@@ -952,11 +1009,13 @@ async def test_get_pipeline_timeline(mcp_client: Client):
     record_types = [record.get("type") for record in records]
     # Timeline should have some record types (Task, Stage, Job, Phase are all valid)
     valid_types = {"Task", "Stage", "Job", "Phase"}
-    assert any(rt in valid_types for rt in record_types if rt), f"Should have valid record types, got: {set(record_types)}"
+    assert any(rt in valid_types for rt in record_types if rt), (
+        f"Should have valid record types, got: {set(record_types)}"
+    )
 
     # Look for any failed records, not just tasks
     failed_records = [r for r in records if r.get("result") == "failed"]
-    
+
     # If there are failed records, verify their structure
     if len(failed_records) > 0:
         failed_record = failed_records[0]
@@ -966,23 +1025,25 @@ async def test_get_pipeline_timeline(mcp_client: Client):
         if "log" in failed_record and failed_record["log"]:
             assert failed_record["log"]["id"] is not None, "Should have log ID if log exists"
 
+
 @requires_ado_creds
 async def test_list_pipeline_logs(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
     pipeline_name = "log-test-failing"  # log-test-failing pipeline
-    
+
     # Run the failing pipeline to get a real run ID
     pipeline_run_result = await mcp_client.call_tool(
-        "run_pipeline_and_get_outcome_by_name", {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
+        "run_pipeline_and_get_outcome_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
     )
-    
+
     outcome = pipeline_run_result.data
     assert outcome["success"] is False, f"Pipeline should fail but got success={outcome['success']}"
     run_id = outcome["pipeline_run"]["id"]
 
     # Get project_id and pipeline_id for the logs call
     project_id = get_project_id()
-    
+
     # Find pipeline by name to get its ID
     pipelines_result = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
     pipelines = pipelines_result.data
@@ -992,9 +1053,10 @@ async def test_list_pipeline_logs(mcp_client: Client):
             pipeline_id = pipeline["id"]
             break
     assert pipeline_id is not None, f"Pipeline '{pipeline_name}' not found"
-    
+
     result = await mcp_client.call_tool(
-        "list_pipeline_logs", {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id},
+        "list_pipeline_logs",
+        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id},
     )
 
     logs = result.data
@@ -1014,23 +1076,25 @@ async def test_list_pipeline_logs(mcp_client: Client):
         assert isinstance(log_entry["id"], int), "Log ID should be integer"
         assert log_entry["lineCount"] >= 0, "Line count should be non-negative"
 
+
 @requires_ado_creds
 async def test_get_log_content_by_id(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
     pipeline_name = "log-test-failing"  # log-test-failing pipeline
-    
+
     # Run the failing pipeline to get a real run ID
     pipeline_run_result = await mcp_client.call_tool(
-        "run_pipeline_and_get_outcome_by_name", {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
+        "run_pipeline_and_get_outcome_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
     )
-    
+
     outcome = pipeline_run_result.data
     assert outcome["success"] is False, f"Pipeline should fail but got success={outcome['success']}"
     run_id = outcome["pipeline_run"]["id"]
-    
+
     # Get project_id and pipeline_id for the logs call
     project_id = get_project_id()
-    
+
     # Find pipeline by name to get its ID
     pipelines_result = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
     pipelines = pipelines_result.data
@@ -1040,21 +1104,23 @@ async def test_get_log_content_by_id(mcp_client: Client):
             pipeline_id = pipeline["id"]
             break
     assert pipeline_id is not None, f"Pipeline '{pipeline_name}' not found"
-    
+
     # Get logs to find the right log ID dynamically
     logs_result = await mcp_client.call_tool(
-        "list_pipeline_logs", {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id},
+        "list_pipeline_logs",
+        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id},
     )
-    
+
     logs = logs_result.data
     log_entries = logs["logs"]
     assert len(log_entries) > 0, "Should have log entries"
-    
+
     # Use the first available log ID
     log_id = log_entries[0]["id"]
 
     result = await mcp_client.call_tool(
-        "get_log_content_by_id", {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id, "log_id": log_id},
+        "get_log_content_by_id",
+        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id, "log_id": log_id},
     )
 
     log_content = result.data
@@ -1068,23 +1134,25 @@ async def test_get_log_content_by_id(mcp_client: Client):
     # Just verify it's a valid log - specific content may vary
     assert isinstance(log_content, str), "Log content should be a string"
 
+
 @requires_ado_creds
 async def test_get_log_content_by_id_with_line_limit(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
     pipeline_name = "log-test-failing"  # log-test-failing pipeline
-    
+
     # Run the failing pipeline to get a real run ID
     pipeline_run_result = await mcp_client.call_tool(
-        "run_pipeline_and_get_outcome_by_name", {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
+        "run_pipeline_and_get_outcome_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
     )
-    
+
     outcome = pipeline_run_result.data
     assert outcome["success"] is False, f"Pipeline should fail but got success={outcome['success']}"
     run_id = outcome["pipeline_run"]["id"]
-    
+
     # Get project_id and pipeline_id for the logs call
     project_id = get_project_id()
-    
+
     # Find pipeline by name to get its ID
     pipelines_result = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
     pipelines = pipelines_result.data
@@ -1094,22 +1162,24 @@ async def test_get_log_content_by_id_with_line_limit(mcp_client: Client):
             pipeline_id = pipeline["id"]
             break
     assert pipeline_id is not None, f"Pipeline '{pipeline_name}' not found"
-    
+
     # Get logs to find the right log ID dynamically
     logs_result = await mcp_client.call_tool(
-        "list_pipeline_logs", {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id},
+        "list_pipeline_logs",
+        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id},
     )
-    
+
     logs = logs_result.data
     log_entries = logs["logs"]
     assert len(log_entries) > 0, "Should have log entries"
-    
+
     # Use the first available log ID
     log_id = log_entries[0]["id"]
 
     # Test with default 100 lines
     result_default = await mcp_client.call_tool(
-        "get_log_content_by_id", {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id, "log_id": log_id},
+        "get_log_content_by_id",
+        {"project_id": project_id, "pipeline_id": pipeline_id, "run_id": run_id, "log_id": log_id},
     )
 
     # Test with 10 lines
@@ -1165,31 +1235,40 @@ async def test_get_log_content_by_id_with_line_limit(mcp_client: Client):
         expected_limited_lines = all_lines[-10:]
         # Strip empty lines for comparison since log formatting can vary
         limited_lines_clean = [line for line in limited_lines if line.strip()]
-        expected_lines_clean = [line for line in expected_limited_lines if line.strip()]
+        [line for line in expected_limited_lines if line.strip()]
         assert len(limited_lines_clean) <= 10, "Limited lines should be at most 10 non-empty lines"
+
 
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_with_line_limit(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
     pipeline_name = "log-test-failing"  # log-test-failing pipeline
-    
+
     # Run the failing pipeline to get a real run ID
     pipeline_run_result = await mcp_client.call_tool(
-        "run_pipeline_and_get_outcome_by_name", {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
+        "run_pipeline_and_get_outcome_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
     )
-    
+
     outcome = pipeline_run_result.data
     assert outcome["success"] is False, f"Pipeline should fail but got success={outcome['success']}"
     run_id = outcome["pipeline_run"]["id"]
 
     # Test with default 100 lines
     result_default = await mcp_client.call_tool(
-        "get_pipeline_failure_summary_by_name", {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id},
+        "get_pipeline_failure_summary_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id},
     )
 
     # Test with 5 lines
     result_limited = await mcp_client.call_tool(
-        "get_pipeline_failure_summary_by_name", {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id, "max_lines": 5},
+        "get_pipeline_failure_summary_by_name",
+        {
+            "project_name": project_name,
+            "pipeline_name": pipeline_name,
+            "run_id": run_id,
+            "max_lines": 5,
+        },
     )
 
     default_summary = result_default.data
@@ -1199,9 +1278,13 @@ async def test_get_pipeline_failure_summary_with_line_limit(mcp_client: Client):
     assert limited_summary is not None, "Limited summary should not be None"
 
     # Check that both summaries have valid structure (root cause tasks may be empty)
-    total_default_failures = len(default_summary["root_cause_tasks"]) + len(default_summary["hierarchy_failures"])
-    total_limited_failures = len(limited_summary["root_cause_tasks"]) + len(limited_summary["hierarchy_failures"])
-    
+    total_default_failures = len(default_summary["root_cause_tasks"]) + len(
+        default_summary["hierarchy_failures"]
+    )
+    total_limited_failures = len(limited_summary["root_cause_tasks"]) + len(
+        limited_summary["hierarchy_failures"]
+    )
+
     # Either root cause tasks or hierarchy failures should exist
     assert total_default_failures >= 0, "Default summary should have valid failure structure"
     assert total_limited_failures >= 0, "Limited summary should have valid failure structure"
@@ -1231,17 +1314,18 @@ async def test_get_pipeline_failure_summary_with_line_limit(mcp_client: Client):
             f"Default log should have max 100 lines, got {len(default_log_lines)}"
         )
 
+
 @requires_ado_creds
 async def test_get_failed_step_logs_with_line_limit(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
     pipeline_name = "log-test-failing"  # log-test-failing pipeline
-    
+
     # Run the failing pipeline to get a real run ID
     pipeline_run_result = await mcp_client.call_tool(
         "run_pipeline_and_get_outcome_by_name",
         {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 120},
     )
-    
+
     outcome = pipeline_run_result.data
     assert outcome["success"] is False, f"Pipeline should fail but got success={outcome['success']}"
     run_id = outcome["pipeline_run"]["id"]
@@ -1255,7 +1339,12 @@ async def test_get_failed_step_logs_with_line_limit(mcp_client: Client):
     # Test with 3 lines
     result_limited = await mcp_client.call_tool(
         "get_pipeline_failure_summary_by_name",
-        {"project_name": project_name, "pipeline_name": pipeline_name, "run_id": run_id, "max_lines": 3},
+        {
+            "project_name": project_name,
+            "pipeline_name": pipeline_name,
+            "run_id": run_id,
+            "max_lines": 3,
+        },
     )
 
     default_summary = result_default.data
@@ -1263,20 +1352,21 @@ async def test_get_failed_step_logs_with_line_limit(mcp_client: Client):
 
     assert default_summary is not None, "Default summary should not be None"
     assert limited_summary is not None, "Limited summary should not be None"
-    
+
     # Both should have the same structure, but limited might have truncated logs
     assert "total_failed_steps" in default_summary, "Default should have total_failed_steps"
     assert "total_failed_steps" in limited_summary, "Limited should have total_failed_steps"
 
     # Check if there are root cause tasks with log content and compare line limits
-    if (default_summary["total_failed_steps"] > 0 and 
-        len(default_summary["root_cause_tasks"]) > 0 and 
-        limited_summary["total_failed_steps"] > 0 and 
-        len(limited_summary["root_cause_tasks"]) > 0):
-        
+    if (
+        default_summary["total_failed_steps"] > 0
+        and len(default_summary["root_cause_tasks"]) > 0
+        and limited_summary["total_failed_steps"] > 0
+        and len(limited_summary["root_cause_tasks"]) > 0
+    ):
         default_task = default_summary["root_cause_tasks"][0]
         limited_task = limited_summary["root_cause_tasks"][0]
-        
+
         if default_task.get("log_content") and limited_task.get("log_content"):
             default_log_lines = default_task["log_content"].splitlines()
             limited_log_lines = limited_task["log_content"].splitlines()
@@ -1287,6 +1377,7 @@ async def test_get_failed_step_logs_with_line_limit(mcp_client: Client):
             assert len(default_log_lines) <= 100, (
                 f"Default log should have max 100 lines, got {len(default_log_lines)}"
             )
+
 
 async def test_logs_tools_no_client(mcp_client_with_unset_ado_env: Client):
     # Test failure summary
@@ -1306,6 +1397,7 @@ async def test_logs_tools_no_client(mcp_client_with_unset_ado_env: Client):
         "get_pipeline_timeline", {"project_id": "any", "pipeline_id": 1, "run_id": 1}
     )
     assert result.data is None, "Should return None when client unavailable"
+
 
 @requires_ado_creds
 async def test_run_pipeline_and_get_outcome_success(mcp_client: Client):
@@ -1340,6 +1432,7 @@ async def test_run_pipeline_and_get_outcome_success(mcp_client: Client):
     assert outcome["execution_time_seconds"] > 0, "Should have positive execution time"
     assert outcome["execution_time_seconds"] < 300, "Should complete within timeout"
 
+
 @requires_ado_creds
 async def test_run_pipeline_and_get_outcome_failure(mcp_client: Client):
     project_name = get_project_name()  # ado-mcp project
@@ -1347,7 +1440,8 @@ async def test_run_pipeline_and_get_outcome_failure(mcp_client: Client):
 
     # Note: This is a "slow" pipeline that uses agents, so it may take longer
     result = await mcp_client.call_tool(
-        "run_pipeline_and_get_outcome_by_name", {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 600},
+        "run_pipeline_and_get_outcome_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name, "timeout_seconds": 600},
     )
 
     outcome = result.data
@@ -1379,11 +1473,13 @@ async def test_run_pipeline_and_get_outcome_failure(mcp_client: Client):
     assert "hierarchy_failures" in failure_summary, "Should have hierarchy failures"
 
     assert failure_summary["total_failed_steps"] > 0, "Should have failed steps"
-    
+
     # Verify that we have either root cause tasks or hierarchy failures (or both)
     has_root_causes = len(failure_summary["root_cause_tasks"]) > 0
     has_hierarchy_failures = len(failure_summary["hierarchy_failures"]) > 0
-    assert has_root_causes or has_hierarchy_failures, "Should have either root cause tasks or hierarchy failures"
+    assert has_root_causes or has_hierarchy_failures, (
+        "Should have either root cause tasks or hierarchy failures"
+    )
 
     # If we have root cause tasks, verify their structure
     if has_root_causes:
@@ -1392,14 +1488,17 @@ async def test_run_pipeline_and_get_outcome_failure(mcp_client: Client):
         assert "step_type" in root_cause, "Root cause should have step type"
         assert "result" in root_cause, "Root cause should have result"
         assert root_cause["step_type"] == "Task", "Root cause should be a Task"
-    
+
     # If we have hierarchy failures, verify their structure
     if has_hierarchy_failures:
         hierarchy_failure = failure_summary["hierarchy_failures"][0]
         assert "step_name" in hierarchy_failure, "Hierarchy failure should have step name"
-        assert "step_type" in hierarchy_failure, "Hierarchy failure should have step type"  
+        assert "step_type" in hierarchy_failure, "Hierarchy failure should have step type"
         assert "result" in hierarchy_failure, "Hierarchy failure should have result"
-        assert hierarchy_failure["step_type"] in ["Job", "Stage", "Phase"], "Hierarchy failure should be Job, Stage, or Phase"
+        assert hierarchy_failure["step_type"] in ["Job", "Stage", "Phase"], (
+            "Hierarchy failure should be Job, Stage, or Phase"
+        )
+
 
 @requires_ado_creds
 async def test_run_pipeline_and_get_outcome_custom_timeout(mcp_client: Client):
@@ -1407,7 +1506,10 @@ async def test_run_pipeline_and_get_outcome_custom_timeout(mcp_client: Client):
     pipeline_name = "test_run_and_get_pipeline_run_details"  # test_run_and_get_pipeline_run_details (quick success pipeline)
 
     result = await mcp_client.call_tool(
-        "run_pipeline_and_get_outcome_by_name", {"project_name": project_name, "pipeline_name": pipeline_name,
+        "run_pipeline_and_get_outcome_by_name",
+        {
+            "project_name": project_name,
+            "pipeline_name": pipeline_name,
             "timeout_seconds": 600,  # Custom longer timeout
         },
     )
@@ -1417,12 +1519,14 @@ async def test_run_pipeline_and_get_outcome_custom_timeout(mcp_client: Client):
     assert outcome["success"] is True, "Should be successful"
     assert outcome["execution_time_seconds"] < 600, "Should complete well within timeout"
 
+
 async def test_run_pipeline_and_get_outcome_no_client(mcp_client_with_unset_ado_env: Client):
     result = await mcp_client_with_unset_ado_env.call_tool(
         "run_pipeline_and_get_outcome",
         {"project_name": "any", "pipeline_name": "any", "timeout_seconds": 300},
     )
     assert result.data is None, "Should return None when client unavailable"
+
 
 async def test_run_pipeline_and_get_outcome_tool_registration(mcp_client: Client):
     # List available tools
@@ -1443,10 +1547,10 @@ async def test_run_pipeline_and_get_outcome_tool_registration(mcp_client: Client
     # Find the tool and verify its schema
     outcome_tool = next(tool for tool in tools if tool.name == "run_pipeline_and_get_outcome")
     assert outcome_tool.description is not None, "Tool should have description"
-    assert ("runs a pipeline and waits" in outcome_tool.description.lower() or 
-           "execute a pipeline" in outcome_tool.description.lower()), (
-        "Tool description should mention pipeline running and waiting"
-    )
+    assert (
+        "runs a pipeline and waits" in outcome_tool.description.lower()
+        or "execute a pipeline" in outcome_tool.description.lower()
+    ), "Tool description should mention pipeline running and waiting"
 
     # Verify input schema has required parameters
     input_schema = outcome_tool.inputSchema
@@ -1463,23 +1567,21 @@ async def test_run_pipeline_and_get_outcome_tool_registration(mcp_client: Client
     assert "pipeline_name" in required, "pipeline_name should be required"
     # timeout_seconds should have a default, so not required
 
+
 @requires_ado_creds
 async def test_get_build_by_id_success(mcp_client: Client):
     project_name = get_project_name()
     project_id = get_project_id()
-    
+
     # Get a recent completed build dynamically instead of using hardcoded ID
-    pipelines_result = await mcp_client.call_tool("list_available_pipelines", {
-        "project_name": project_name
-    })
-    
+    await mcp_client.call_tool("list_available_pipelines", {"project_name": project_name})
+
     # Find any pipeline and run it to get a build ID
     pipeline_name = "test_run_and_get_pipeline_run_details"  # Fast test pipeline
-    pipeline_result = await mcp_client.call_tool("run_pipeline_by_name", {
-        "project_name": project_name,
-        "pipeline_name": pipeline_name
-    })
-    
+    pipeline_result = await mcp_client.call_tool(
+        "run_pipeline_by_name", {"project_name": project_name, "pipeline_name": pipeline_name}
+    )
+
     pipeline_run = pipeline_result.data
     build_id = pipeline_run["id"]
 
@@ -1506,13 +1608,17 @@ async def test_get_build_by_id_success(mcp_client: Client):
     assert isinstance(definition["id"], int), "Definition ID should be integer"
 
     # Verify it matches the pipeline we ran
-    assert definition["name"] == pipeline_name, f"Expected pipeline name '{pipeline_name}', got '{definition['name']}'"
+    assert definition["name"] == pipeline_name, (
+        f"Expected pipeline name '{pipeline_name}', got '{definition['name']}'"
+    )
+
 
 async def test_get_build_by_id_no_client(mcp_client_with_unset_ado_env: Client):
     result = await mcp_client_with_unset_ado_env.call_tool(
         "get_build_by_id", {"project_id": "any", "build_id": 1}
     )
     assert result.data is None, "Should return None when client unavailable"
+
 
 async def test_get_build_by_id_tool_registration(mcp_client: Client):
     # List available tools
@@ -1549,13 +1655,16 @@ async def test_get_build_by_id_tool_registration(mcp_client: Client):
     assert "project_id" in required, "project_id should be required"
     assert "build_id" in required, "build_id should be required"
 
+
 # ========== MCP CACHING TESTS ==========
+
 
 @pytest.fixture
 async def fresh_cache():
     ado_cache.clear_all()
     yield
     ado_cache.clear_all()
+
 
 @requires_ado_creds
 async def test_list_available_projects_mcp_caching(
@@ -1585,6 +1694,7 @@ async def test_list_available_projects_mcp_caching(
 
     # Data should be consistent
     assert result1.data == result2.data
+
 
 @requires_ado_creds
 async def test_list_available_pipelines_mcp_caching(
@@ -1620,6 +1730,7 @@ async def test_list_available_pipelines_mcp_caching(
     # Data should be consistent
     assert result1.data == result2.data
 
+
 @requires_ado_creds
 async def test_find_project_by_name_mcp_caching(mcp_client: Client, telemetry_setup, fresh_cache):
     memory_exporter = telemetry_setup
@@ -1641,6 +1752,7 @@ async def test_find_project_by_name_mcp_caching(mcp_client: Client, telemetry_se
     assert analyzer.count_api_calls("list_projects") == 0
     assert result.data is not None
     assert result.data["name"] == project_name
+
 
 @requires_ado_creds
 async def test_find_pipeline_by_name_mcp_caching(mcp_client: Client, telemetry_setup, fresh_cache):
@@ -1681,6 +1793,7 @@ async def test_find_pipeline_by_name_mcp_caching(mcp_client: Client, telemetry_s
     assert result.data["pipeline"]["name"] == pipeline_name
     assert result.data["project"]["name"] == project_name
 
+
 @requires_ado_creds
 async def test_mcp_cache_expiration_behavior(mcp_client: Client, telemetry_setup, fresh_cache):
     memory_exporter = telemetry_setup
@@ -1695,7 +1808,7 @@ async def test_mcp_cache_expiration_behavior(mcp_client: Client, telemetry_setup
         clear_spans(memory_exporter)
 
         # Second call immediately - should use cache
-        result2 = await mcp_client.call_tool("list_available_projects")
+        await mcp_client.call_tool("list_available_projects")
         analyzer_cached = analyze_spans(memory_exporter)
         assert analyzer_cached.was_data_fetched_from_cache("projects")
 
@@ -1714,6 +1827,7 @@ async def test_mcp_cache_expiration_behavior(mcp_client: Client, telemetry_setup
     finally:
         # Restore original TTL
         ado_cache.PROJECT_TTL = original_ttl
+
 
 @requires_ado_creds
 async def test_name_based_pipeline_operations_caching(
@@ -1747,7 +1861,7 @@ async def test_name_based_pipeline_operations_caching(
     # Test run_pipeline_by_name (just check the lookup part, don't actually run)
     # We can't test actual execution easily, but we can test the name resolution uses cache
     try:
-        result = await mcp_client.call_tool(
+        await mcp_client.call_tool(
             "run_pipeline_by_name", {"project_name": project_name, "pipeline_name": pipeline_name}
         )
         # If it succeeds great, if it fails due to permissions etc, that's also fine

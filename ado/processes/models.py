@@ -1,7 +1,8 @@
 """Data models for Azure DevOps processes and templates."""
 
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Process(BaseModel):
@@ -14,14 +15,14 @@ class Process(BaseModel):
 
     id: str = Field(..., description="Process unique identifier (UUID)")
     name: str = Field(..., description="Process name (e.g., 'Agile', 'Scrum')")
-    description: Optional[str] = Field(None, description="Process description")
-    type: Optional[str] = Field(None, description="Process type (system, custom, inherited)")
-    isDefault: Optional[bool] = Field(None, description="Whether this is the default process")
-    isEnabled: Optional[bool] = Field(None, description="Whether the process is enabled")
-    customizationType: Optional[str] = Field(None, description="Customization type")
-    parentProcessTypeId: Optional[str] = Field(None, description="Parent process type ID")
-    url: Optional[str] = Field(None, description="API URL for the process")
-    links: Optional[Dict[str, Any]] = Field(None, description="Reference links", alias="_links")
+    description: str | None = Field(None, description="Process description")
+    type: str | None = Field(None, description="Process type (system, custom, inherited)")
+    isDefault: bool | None = Field(None, description="Whether this is the default process")
+    isEnabled: bool | None = Field(None, description="Whether the process is enabled")
+    customizationType: str | None = Field(None, description="Customization type")
+    parentProcessTypeId: str | None = Field(None, description="Parent process type ID")
+    url: str | None = Field(None, description="API URL for the process")
+    links: dict[str, Any] | None = Field(None, description="Reference links", alias="_links")
 
 
 class ProcessTemplate(BaseModel):
@@ -34,10 +35,10 @@ class ProcessTemplate(BaseModel):
 
     id: str = Field(..., description="Template unique identifier")
     name: str = Field(..., description="Template name")
-    description: Optional[str] = Field(None, description="Template description")
-    type: Optional[str] = Field(None, description="Template type")
-    url: Optional[str] = Field(None, description="API URL")
-    links: Optional[Dict[str, Any]] = Field(None, description="Reference links", alias="_links")
+    description: str | None = Field(None, description="Template description")
+    type: str | None = Field(None, description="Template type")
+    url: str | None = Field(None, description="API URL")
+    links: dict[str, Any] | None = Field(None, description="Reference links", alias="_links")
 
 
 class WorkItemTemplate(BaseModel):
@@ -50,11 +51,11 @@ class WorkItemTemplate(BaseModel):
 
     id: str = Field(..., description="Template unique identifier")
     name: str = Field(..., description="Template name")
-    description: Optional[str] = Field(None, description="Template description")
+    description: str | None = Field(None, description="Template description")
     workItemTypeName: str = Field(..., description="Associated work item type")
-    fields: Dict[str, Any] = Field(default_factory=dict, description="Predefined field values")
-    url: Optional[str] = Field(None, description="API URL")
-    links: Optional[Dict[str, Any]] = Field(None, description="Reference links", alias="_links")
+    fields: dict[str, Any] = Field(default_factory=dict, description="Predefined field values")
+    url: str | None = Field(None, description="API URL")
+    links: dict[str, Any] | None = Field(None, description="Reference links", alias="_links")
 
 
 class ProjectProcessInfo(BaseModel):
@@ -67,11 +68,9 @@ class ProjectProcessInfo(BaseModel):
 
     projectId: str = Field(..., description="Project unique identifier")
     currentProcessTemplateId: str = Field(..., description="Current process template ID")
-    originalProcessTemplateId: Optional[str] = Field(
-        None, description="Original process template ID"
-    )
-    processTemplateName: Optional[str] = Field(None, description="Process template name")
-    processTemplateType: Optional[str] = Field(None, description="Process template type")
+    originalProcessTemplateId: str | None = Field(None, description="Original process template ID")
+    processTemplateName: str | None = Field(None, description="Process template name")
+    processTemplateType: str | None = Field(None, description="Process template type")
 
     model_config = ConfigDict(extra="allow")
 
@@ -85,7 +84,7 @@ class TeamInfo(BaseModel):
 
     id: str = Field(..., description="Team unique identifier")
     name: str = Field(..., description="Team name")
-    description: Optional[str] = Field(None, description="Team description")
-    url: Optional[str] = Field(None, description="API URL")
-    projectId: Optional[str] = Field(None, description="Associated project ID")
-    projectName: Optional[str] = Field(None, description="Associated project name")
+    description: str | None = Field(None, description="Team description")
+    url: str | None = Field(None, description="API URL")
+    projectId: str | None = Field(None, description="Associated project ID")
+    projectName: str | None = Field(None, description="Associated project name")

@@ -2,7 +2,9 @@
 
 import asyncio
 import os
+
 from fastmcp.client import Client
+
 from server import mcp
 
 

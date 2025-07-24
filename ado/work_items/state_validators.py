@@ -1,7 +1,6 @@
 """State validation functionality for work item operations."""
 
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +28,8 @@ class StateValidator:
             True if the transition is allowed, False otherwise
         """
         try:
-            from ado.work_items.client import WorkItemsClient
             from ado.client_container import get_ado_client
+            from ado.work_items.client import WorkItemsClient
 
             # If states are the same, always allow (no transition)
             if from_state == to_state:

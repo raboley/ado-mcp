@@ -1,5 +1,4 @@
 import json
-from fastmcp.client import Client
 import logging
 import os
 import subprocess
@@ -9,10 +8,10 @@ from unittest.mock import Mock, patch
 import pytest
 import requests
 
+from ado.cache import ado_cache
 from ado.client import AdoClient
 from ado.errors import AdoAuthenticationError
-from ado.cache import ado_cache
-from tests.utils.telemetry import telemetry_setup, analyze_spans, clear_spans
+from tests.utils.telemetry import analyze_spans, clear_spans
 
 ADO_ORGANIZATION_URL = os.environ.get("ADO_ORGANIZATION_URL")
 ADO_PAT = os.environ.get("AZURE_DEVOPS_EXT_PAT")
@@ -21,6 +20,7 @@ requires_ado_creds = pytest.mark.skipif(
     not all([ADO_ORGANIZATION_URL, ADO_PAT]),
     reason="Skipping E2E test: ADO_ORGANIZATION_URL or AZURE_DEVOPS_EXT_PAT not set.",
 )
+
 
 @requires_ado_creds
 def test_ado_client_connects_successfully():
@@ -31,11 +31,13 @@ def test_ado_client_connects_successfully():
     except AdoAuthenticationError as e:
         pytest.fail(f"Authentication failed unexpectedly: {e}")
 
+
 def test_ado_client_raises_error_if_token_is_invalid():
     client = AdoClient(organization_url=ADO_ORGANIZATION_URL, pat="this-is-not-a-real-token")
 
     with pytest.raises(AdoAuthenticationError, match="The response contained a sign-in page"):
         client.check_authentication()
+
 
 def test_ado_client_init_raises_error_if_pat_is_missing(monkeypatch):
     monkeypatch.delenv("AZURE_DEVOPS_EXT_PAT", raising=False)
@@ -47,6 +49,7 @@ def test_ado_client_init_raises_error_if_pat_is_missing(monkeypatch):
         with pytest.raises(ValueError, match="No authentication method succeeded"):
             AdoClient(organization_url=ADO_ORGANIZATION_URL)
 
+
 @requires_ado_creds
 def test_ado_client_can_get_projects(caplog):
     with caplog.at_level(logging.INFO):
@@ -55,7 +58,7 @@ def test_ado_client_can_get_projects(caplog):
             "GET", f"{ADO_ORGANIZATION_URL}/_apis/projects?api-version=7.2-preview.4"
         )
 
-    assert projects is not None, f"API response was None, expected a dictionary with projects data"
+    assert projects is not None, "API response was None, expected a dictionary with projects data"
     assert "value" in projects, f"Response missing 'value' key: {list(projects.keys())}"
     assert isinstance(projects["value"], list), (
         f"'value' should be list but got {type(projects['value'])}"
@@ -63,6 +66,7 @@ def test_ado_client_can_get_projects(caplog):
     assert "AdoClient initialized using" in caplog.text, (
         f"Initialization log not found in: {caplog.text}"
     )
+
 
 @requires_ado_creds
 def test_ado_client_handles_http_error_gracefully(caplog):
@@ -76,6 +80,7 @@ def test_ado_client_handles_http_error_gracefully(caplog):
     assert any("HTTP Error" in message for message in caplog.messages), (
         f"HTTP error not logged as expected. Log messages: {caplog.messages}"
     )
+
 
 def test_ado_client_uses_explicit_pat_first(monkeypatch):
     monkeypatch.setenv("AZURE_DEVOPS_EXT_PAT", "env-token")
@@ -94,6 +99,7 @@ def test_ado_client_uses_explicit_pat_first(monkeypatch):
             f"Auth header should contain explicit token or Basic auth: {auth_header}"
         )
 
+
 def test_ado_client_uses_env_pat_when_no_explicit_pat(monkeypatch):
     monkeypatch.setenv("AZURE_DEVOPS_EXT_PAT", "env-token")
 
@@ -108,6 +114,7 @@ def test_ado_client_uses_env_pat_when_no_explicit_pat(monkeypatch):
         assert auth_header.startswith("Basic "), (
             f"Expected Basic auth header but got: {auth_header}"
         )
+
 
 def test_ado_client_uses_azure_cli_when_no_pat(monkeypatch):
     monkeypatch.delenv("AZURE_DEVOPS_EXT_PAT", raising=False)
@@ -132,6 +139,7 @@ def test_ado_client_uses_azure_cli_when_no_pat(monkeypatch):
             f"Expected Bearer token but got: {auth_header}"
         )
 
+
 def test_ado_client_raises_error_when_no_auth_available(monkeypatch):
     monkeypatch.delenv("AZURE_DEVOPS_EXT_PAT", raising=False)
 
@@ -141,6 +149,7 @@ def test_ado_client_raises_error_when_no_auth_available(monkeypatch):
     ):
         with pytest.raises(ValueError, match="No authentication method succeeded"):
             AdoClient(organization_url=ADO_ORGANIZATION_URL)
+
 
 def test_azure_cli_entra_provider_success():
     from ado.auth import AzureCliEntraAuthProvider
@@ -164,6 +173,7 @@ def test_azure_cli_entra_provider_success():
             f"Expected 'azure_cli_entra' but got '{credential.method}'"
         )
 
+
 def test_azure_cli_entra_provider_command_failure():
     from ado.auth import AzureCliEntraAuthProvider
 
@@ -176,6 +186,7 @@ def test_azure_cli_entra_provider_command_failure():
         credential = provider.get_credential()
 
         assert credential is None, "Expected None when command fails but got a credential"
+
 
 def test_azure_cli_entra_provider_handles_exceptions():
     from ado.auth import AzureCliEntraAuthProvider
@@ -197,6 +208,7 @@ def test_azure_cli_entra_provider_handles_exceptions():
         result = provider.get_credential()
         assert result is None, "Expected None on JSON parse error but got a credential"
 
+
 def test_azure_cli_entra_provider_empty_token():
     from ado.auth import AzureCliEntraAuthProvider
 
@@ -209,6 +221,7 @@ def test_azure_cli_entra_provider_empty_token():
         credential = provider.get_credential()
 
         assert credential is None, "Expected None for empty token but got a credential"
+
 
 def test_azure_cli_entra_provider_resource_id_is_correct():
     from ado.auth import AzureCliEntraAuthProvider
@@ -234,6 +247,7 @@ def test_azure_cli_entra_provider_resource_id_is_correct():
             timeout=10,
         )
 
+
 def test_azure_cli_file_provider_creation():
     from ado.auth import AzureCliFileAuthProvider
 
@@ -244,6 +258,7 @@ def test_azure_cli_file_provider_creation():
 
     credential = provider.get_credential()
     assert credential is None, "Expected None in test environment where CLI PAT file doesn't exist"
+
 
 def test_pat_provider_success():
     from ado.auth import PatAuthProvider
@@ -257,6 +272,7 @@ def test_pat_provider_success():
     )
     assert credential.auth_type == "basic", f"Expected 'basic' but got '{credential.auth_type}'"
     assert credential.method == "pat", f"Expected 'pat' but got '{credential.method}'"
+
 
 def test_azure_cli_authentication_integration():
     from ado.auth import AzureCliEntraAuthProvider, AzureCliFileAuthProvider
@@ -294,11 +310,13 @@ def test_azure_cli_authentication_integration():
 
     assert True
 
+
 @pytest.fixture
 def fresh_cache():
     ado_cache.clear_all()
     yield
     ado_cache.clear_all()
+
 
 @requires_ado_creds
 def test_list_available_projects_caching_behavior(telemetry_setup, fresh_cache):
@@ -328,6 +346,7 @@ def test_list_available_projects_caching_behavior(telemetry_setup, fresh_cache):
     )
 
     assert projects1 == projects2, "Cached data should match original data"
+
 
 @requires_ado_creds
 def test_list_pipelines_caching_behavior(telemetry_setup, fresh_cache):
@@ -362,6 +381,7 @@ def test_list_pipelines_caching_behavior(telemetry_setup, fresh_cache):
 
     assert pipelines1 == pipelines2, "Cached data should match original data"
 
+
 @requires_ado_creds
 def test_find_project_by_name_uses_cache(telemetry_setup, fresh_cache):
     memory_exporter = telemetry_setup
@@ -387,6 +407,7 @@ def test_find_project_by_name_uses_cache(telemetry_setup, fresh_cache):
         f"Found project name '{found_project.name}' doesn't match expected '{project_name}'"
     )
 
+
 @requires_ado_creds
 def test_cache_expiration_and_refresh(telemetry_setup, fresh_cache):
     memory_exporter = telemetry_setup
@@ -400,7 +421,7 @@ def test_cache_expiration_and_refresh(telemetry_setup, fresh_cache):
         projects1 = client.list_available_projects()
         clear_spans(memory_exporter)
 
-        projects2 = client.list_available_projects()
+        client.list_available_projects()
         analyzer_cached = analyze_spans(memory_exporter)
         assert analyzer_cached.was_data_fetched_from_cache("projects"), (
             "Immediate second call should use cache"

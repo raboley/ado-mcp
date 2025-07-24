@@ -1,16 +1,15 @@
 import os
-import time
 
 import pytest
 from fastmcp.client import Client
 
 from ado.models import PipelineRunRequest
 from server import mcp
-from src.test_config import get_project_id, get_project_name
+from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
-from tests.test_helpers import get_pipeline_id_by_name
 
 pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 async def mcp_client():
@@ -21,18 +20,19 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @requires_ado_creds
 async def test_run_pipeline_with_template_parameters_correct_names(mcp_client: Client):
     # Get project name
     projects_result = await mcp_client.call_tool("list_projects", {})
     project_name = None
     project_id = get_project_id()
-    
+
     for project in projects_result.data:
         if project["id"] == project_id:
             project_name = project["name"]
             break
-    
+
     assert project_name is not None, f"Should find project name for ID {project_id}"
 
     template_parameters = {"testEnvironment": "dev", "enableDebug": True}
@@ -47,12 +47,12 @@ async def test_run_pipeline_with_template_parameters_correct_names(mcp_client: C
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
     assert isinstance(pipeline_run, dict), (
         f"Expected pipeline run to be dict but got {type(pipeline_run)}"
     )
 
-    assert pipeline_run["id"] is not None, f"Expected pipeline run to have an ID but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run to have an ID but got None"
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
@@ -60,48 +60,45 @@ async def test_run_pipeline_with_template_parameters_correct_names(mcp_client: C
         f"Expected pipeline name 'preview-test-parameterized' but got {pipeline_run['pipeline']['name']}"
     )
 
+
 @requires_ado_creds
 async def test_run_pipeline_with_branch(mcp_client: Client):
     # Get project name
     projects_result = await mcp_client.call_tool("list_projects", {})
     project_name = None
     project_id = get_project_id()
-    
+
     for project in projects_result.data:
         if project["id"] == project_id:
             project_name = project["name"]
             break
-    
+
     assert project_name is not None, f"Should find project name for ID {project_id}"
 
     # Use external repository override instead of self branch override
-    resources = {
-        "repositories": {
-            "tooling": {
-                "refName": "refs/heads/main"
-            }
-        }
-    }
+    resources = {"repositories": {"tooling": {"refName": "refs/heads/main"}}}
 
     result = await mcp_client.call_tool(
-        "run_pipeline", {
-            "project_name": project_name, 
-            "pipeline_name": "github-resources-test-stable", 
-            "resources": resources
-        }
+        "run_pipeline",
+        {
+            "project_name": project_name,
+            "pipeline_name": "github-resources-test-stable",
+            "resources": resources,
+        },
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
     assert isinstance(pipeline_run, dict), (
         f"Expected pipeline run to be dict but got {type(pipeline_run)}"
     )
 
-    assert pipeline_run["id"] is not None, f"Expected pipeline run to have an ID but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run to have an ID but got None"
     # Verify the pipeline run started successfully with external repository override
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
+
 
 @requires_ado_creds
 async def test_run_pipeline_with_runtime_variables_api_format(mcp_client: Client):
@@ -110,39 +107,40 @@ async def test_run_pipeline_with_runtime_variables_api_format(mcp_client: Client
     projects_result = await mcp_client.call_tool("list_projects", {})
     project_name = None
     project_id = get_project_id()
-    
+
     for project in projects_result.data:
         if project["id"] == project_id:
             project_name = project["name"]
             break
-    
+
     assert project_name is not None, f"Should find project name for ID {project_id}"
 
     # Override the queue-time settable variables
     variables = {
         "buildConfiguration": "Debug",
         "appVersion": {"value": "2.0.0-test", "isSecret": False},
-        "customTestVar": "overridden-value"
+        "customTestVar": "overridden-value",
     }
 
     # Run pipeline with variable overrides
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
-            "project_name": project_name, 
-            "pipeline_name": "slow.log-test-complex", 
-            "variables": variables
+            "project_name": project_name,
+            "pipeline_name": "slow.log-test-complex",
+            "variables": variables,
         },
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
-    assert pipeline_run["id"] is not None, f"Expected pipeline run to have an ID but got None"
-    
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run to have an ID but got None"
+
     # Verify pipeline starts successfully with overridden variables
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
+
 
 @requires_ado_creds
 async def test_run_pipeline_and_get_outcome_with_all_params(mcp_client: Client):
@@ -150,22 +148,16 @@ async def test_run_pipeline_and_get_outcome_with_all_params(mcp_client: Client):
     projects_result = await mcp_client.call_tool("list_projects", {})
     project_name = None
     project_id = get_project_id()
-    
+
     for project in projects_result.data:
         if project["id"] == project_id:
             project_name = project["name"]
             break
-    
+
     assert project_name is not None, f"Should find project name for ID {project_id}"
 
     # Use external repository override instead of self branch override
-    resources = {
-        "repositories": {
-            "tooling": {
-                "refName": "refs/heads/main"
-            }
-        }
-    }
+    resources = {"repositories": {"tooling": {"refName": "refs/heads/main"}}}
 
     # Just test that pipeline starts with resources parameter - don't wait for completion
     result = await mcp_client.call_tool(
@@ -178,17 +170,20 @@ async def test_run_pipeline_and_get_outcome_with_all_params(mcp_client: Client):
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
-    assert isinstance(pipeline_run, dict), f"Expected pipeline run to be dict but got {type(pipeline_run)}"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
+    assert isinstance(pipeline_run, dict), (
+        f"Expected pipeline run to be dict but got {type(pipeline_run)}"
+    )
 
     # Verify pipeline starts successfully with external repository override
-    assert pipeline_run["id"] is not None, f"Expected pipeline run to have an ID but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run to have an ID but got None"
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
     assert pipeline_run["pipeline"]["name"] == "github-resources-test-stable", (
         f"Expected pipeline name 'github-resources-test-stable' but got {pipeline_run['pipeline']['name']}"
     )
+
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_with_template_parameters(mcp_client: Client):
@@ -207,15 +202,16 @@ async def test_run_pipeline_by_name_with_template_parameters(mcp_client: Client)
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
     assert isinstance(pipeline_run, dict), (
         f"Expected pipeline run to be dict but got {type(pipeline_run)}"
     )
 
-    assert pipeline_run["id"] is not None, f"Expected pipeline run to have an ID but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run to have an ID but got None"
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
+
 
 @requires_ado_creds
 async def test_run_pipeline_and_get_outcome_by_name_with_branch(mcp_client: Client):
@@ -235,7 +231,7 @@ async def test_run_pipeline_and_get_outcome_by_name_with_branch(mcp_client: Clie
     )
 
     outcome = result.data
-    assert outcome is not None, f"Expected outcome data but got None"
+    assert outcome is not None, "Expected outcome data but got None"
     assert isinstance(outcome, dict), f"Expected outcome to be dict but got {type(outcome)}"
 
     assert outcome["pipeline_run"]["state"] == "completed", (
@@ -245,18 +241,19 @@ async def test_run_pipeline_and_get_outcome_by_name_with_branch(mcp_client: Clie
         f"Expected pipeline to succeed but got success={outcome['success']} with failure summary: {outcome.get('failure_summary', 'None')}"
     )
 
+
 @requires_ado_creds
 async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
     # Get project name
     projects_result = await mcp_client.call_tool("list_projects", {})
     project_name = None
     project_id = get_project_id()
-    
+
     for project in projects_result.data:
         if project["id"] == project_id:
             project_name = project["name"]
             break
-    
+
     assert project_name is not None, f"Should find project name for ID {project_id}"
 
     stages_to_skip = ["Deploy"]
@@ -272,12 +269,12 @@ async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
         )
 
         pipeline_run = result.data
-        assert pipeline_run is not None, f"Expected pipeline run data but got None"
+        assert pipeline_run is not None, "Expected pipeline run data but got None"
         assert isinstance(pipeline_run, dict), (
             f"Expected pipeline run to be dict but got {type(pipeline_run)}"
         )
 
-        assert pipeline_run["id"] is not None, f"Expected pipeline run to have an ID but got None"
+        assert pipeline_run["id"] is not None, "Expected pipeline run to have an ID but got None"
         assert pipeline_run["state"] in ["unknown", "inProgress"], (
             f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
         )
@@ -288,34 +285,37 @@ async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
         else:
             raise
 
+
 @requires_ado_creds
 async def test_run_pipeline_no_params_unchanged(mcp_client: Client):
     # Get project name
     projects_result = await mcp_client.call_tool("list_projects", {})
     project_name = None
     project_id = get_project_id()
-    
+
     for project in projects_result.data:
         if project["id"] == project_id:
             project_name = project["name"]
             break
-    
+
     assert project_name is not None, f"Should find project name for ID {project_id}"
-    
+
     result = await mcp_client.call_tool(
-        "run_pipeline", {"project_name": project_name, "pipeline_name": "test_run_and_get_pipeline_run_details"}
+        "run_pipeline",
+        {"project_name": project_name, "pipeline_name": "test_run_and_get_pipeline_run_details"},
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
     assert isinstance(pipeline_run, dict), (
         f"Expected pipeline run to be dict but got {type(pipeline_run)}"
     )
 
-    assert pipeline_run["id"] is not None, f"Expected pipeline run to have an ID but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run to have an ID but got None"
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
+
 
 @requires_ado_creds
 async def test_run_pipeline_with_empty_params(mcp_client: Client):
@@ -323,14 +323,14 @@ async def test_run_pipeline_with_empty_params(mcp_client: Client):
     projects_result = await mcp_client.call_tool("list_projects", {})
     project_name = None
     project_id = get_project_id()
-    
+
     for project in projects_result.data:
         if project["id"] == project_id:
             project_name = project["name"]
             break
-    
+
     assert project_name is not None, f"Should find project name for ID {project_id}"
-    
+
     result = await mcp_client.call_tool(
         "run_pipeline",
         {
@@ -344,15 +344,16 @@ async def test_run_pipeline_with_empty_params(mcp_client: Client):
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
     assert isinstance(pipeline_run, dict), (
         f"Expected pipeline run to be dict but got {type(pipeline_run)}"
     )
 
-    assert pipeline_run["id"] is not None, f"Expected pipeline run to have an ID but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run to have an ID but got None"
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
+
 
 @requires_ado_creds
 async def test_pipeline_run_request_model():

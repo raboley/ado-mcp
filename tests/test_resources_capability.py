@@ -4,11 +4,11 @@ import pytest
 from fastmcp.client import Client
 
 from server import mcp
-from src.test_config import get_project_id, get_project_name
+from src.test_config import get_project_name
 from tests.ado.test_client import requires_ado_creds
-from tests.test_helpers import get_pipeline_id_by_name
 
 pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 async def mcp_client():
@@ -18,6 +18,7 @@ async def mcp_client():
         )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
+
 
 @requires_ado_creds
 async def test_resources_parameter_capability(mcp_client: Client):
@@ -39,7 +40,7 @@ async def test_resources_parameter_capability(mcp_client: Client):
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
     assert isinstance(pipeline_run, dict), (
         f"Expected pipeline run to be dict but got {type(pipeline_run)}"
     )
@@ -50,6 +51,7 @@ async def test_resources_parameter_capability(mcp_client: Client):
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run.get('state')}'"
     )
+
 
 @requires_ado_creds
 async def test_template_parameters_capability(mcp_client: Client):
@@ -70,7 +72,7 @@ async def test_template_parameters_capability(mcp_client: Client):
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
     assert isinstance(pipeline_run, dict), (
         f"Expected pipeline run to be dict but got {type(pipeline_run)}"
     )
@@ -81,6 +83,7 @@ async def test_template_parameters_capability(mcp_client: Client):
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run.get('state')}'"
     )
+
 
 @requires_ado_creds
 async def test_branch_selection_capability(mcp_client: Client):
@@ -89,20 +92,15 @@ async def test_branch_selection_capability(mcp_client: Client):
     pipeline_name = "github-resources-test-stable"
 
     # Use external repository resource override instead of branch override
-    resources = {
-        "repositories": {
-            "tooling": {
-                "refName": "refs/heads/main"
-            }
-        }
-    }
+    resources = {"repositories": {"tooling": {"refName": "refs/heads/main"}}}
 
     result = await mcp_client.call_tool(
-        "run_pipeline", {"project_name": project_name, "pipeline_name": pipeline_name, "resources": resources}
+        "run_pipeline",
+        {"project_name": project_name, "pipeline_name": pipeline_name, "resources": resources},
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
     assert isinstance(pipeline_run, dict), (
         f"Expected pipeline run to be dict but got {type(pipeline_run)}"
     )
@@ -113,6 +111,7 @@ async def test_branch_selection_capability(mcp_client: Client):
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run.get('state')}'"
     )
+
 
 @requires_ado_creds
 async def test_name_based_capabilities(mcp_client: Client):
@@ -121,13 +120,7 @@ async def test_name_based_capabilities(mcp_client: Client):
     pipeline_name = "github-resources-test-stable"
 
     # Use external repository override instead of self branch override
-    resources = {
-        "repositories": {
-            "tooling": {
-                "refName": "refs/heads/main"
-            }
-        }
-    }
+    resources = {"repositories": {"tooling": {"refName": "refs/heads/main"}}}
 
     result = await mcp_client.call_tool(
         "run_pipeline_by_name",
@@ -135,7 +128,7 @@ async def test_name_based_capabilities(mcp_client: Client):
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
     assert isinstance(pipeline_run, dict), (
         f"Expected pipeline run to be dict but got {type(pipeline_run)}"
     )
@@ -146,6 +139,7 @@ async def test_name_based_capabilities(mcp_client: Client):
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run.get('state')}'"
     )
+
 
 @requires_ado_creds
 async def test_comprehensive_capabilities_demo(mcp_client: Client):
@@ -154,17 +148,15 @@ async def test_comprehensive_capabilities_demo(mcp_client: Client):
     pipeline_name = "slow.log-test-complex"
 
     # Use queue-time variables instead of branch override for server pool compatibility
-    variables = {
-        "buildConfiguration": "Debug",
-        "appVersion": "1.2.0-test"
-    }
+    variables = {"buildConfiguration": "Debug", "appVersion": "1.2.0-test"}
 
     result = await mcp_client.call_tool(
-        "run_pipeline", {"project_name": project_name, "pipeline_name": pipeline_name, "variables": variables}
+        "run_pipeline",
+        {"project_name": project_name, "pipeline_name": pipeline_name, "variables": variables},
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
     assert isinstance(pipeline_run, dict), (
         f"Expected pipeline run to be dict but got {type(pipeline_run)}"
     )
@@ -176,6 +168,7 @@ async def test_comprehensive_capabilities_demo(mcp_client: Client):
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run.get('state')}'"
     )
 
+
 @requires_ado_creds
 async def test_github_resources_concept_validation(mcp_client: Client):
     project_name = get_project_name()
@@ -183,30 +176,22 @@ async def test_github_resources_concept_validation(mcp_client: Client):
     pipeline_name = "github-resources-test-stable"
 
     # Test external repository resource control
-    resources = {
-        "repositories": {
-            "tooling": {
-                "refName": "refs/heads/stable/0.0.1"
-            }
-        }
-    }
+    resources = {"repositories": {"tooling": {"refName": "refs/heads/stable/0.0.1"}}}
 
-    template_parameters = {
-        "taskfileVersion": "v3.28.0",
-        "installPath": "./test-bin"
-    }
+    template_parameters = {"taskfileVersion": "v3.28.0", "installPath": "./test-bin"}
 
     result = await mcp_client.call_tool(
-        "run_pipeline", {
-            "project_name": project_name, 
-            "pipeline_name": pipeline_name, 
-            "resources": resources, 
-            "template_parameters": template_parameters
-        }
+        "run_pipeline",
+        {
+            "project_name": project_name,
+            "pipeline_name": pipeline_name,
+            "resources": resources,
+            "template_parameters": template_parameters,
+        },
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
     assert isinstance(pipeline_run, dict), (
         f"Expected pipeline run to be dict but got {type(pipeline_run)}"
     )

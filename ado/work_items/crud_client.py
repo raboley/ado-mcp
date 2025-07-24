@@ -1,17 +1,18 @@
 """CRUD client methods for Azure DevOps Work Items API operations."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
+
+from opentelemetry import trace
 
 from ado.client import AdoClient
 from ado.errors import (
-    AdoError,
-    AdoRateLimitError,
-    AdoNetworkError,
-    AdoTimeoutError,
     AdoAuthenticationError,
+    AdoError,
+    AdoNetworkError,
+    AdoRateLimitError,
+    AdoTimeoutError,
 )
-from opentelemetry import trace
 from ado.work_items.models import (
     JsonPatchOperation,
     WorkItem,
@@ -39,7 +40,7 @@ class CrudClient:
         self,
         project_id: str,
         work_item_type: str,
-        fields: Dict[str, Any],
+        fields: dict[str, Any],
         validate_only: bool = False,
         bypass_rules: bool = False,
         suppress_notifications: bool = False,
@@ -164,9 +165,9 @@ class CrudClient:
         self,
         project_id: str,
         work_item_id: int,
-        fields: Optional[List[str]] = None,
-        as_of: Optional[str] = None,
-        expand: Optional[str] = None,
+        fields: list[str] | None = None,
+        as_of: str | None = None,
+        expand: str | None = None,
     ) -> WorkItem:
         """
         Get a single work item by ID.
@@ -223,7 +224,7 @@ class CrudClient:
         self,
         project_id: str,
         work_item_id: int,
-        operations: List[JsonPatchOperation],
+        operations: list[JsonPatchOperation],
         validate_only: bool = False,
         bypass_rules: bool = False,
         suppress_notifications: bool = False,

@@ -7,7 +7,6 @@ import subprocess
 import time
 from abc import ABC, abstractmethod
 from base64 import b64encode
-from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,8 +23,8 @@ class AuthCredential:
     token: str
     auth_type: str  # 'basic' or 'bearer'
     method: str  # 'pat', 'azure_cli', 'interactive', etc.
-    expires_at: Optional[float] = None
-    refresh_token: Optional[str] = None
+    expires_at: float | None = None
+    refresh_token: str | None = None
 
     def is_expired(self) -> bool:
         """Check if the credential is expired."""
@@ -33,7 +32,7 @@ class AuthCredential:
             return False
         return time.time() >= self.expires_at
 
-    def to_header(self) -> Dict[str, str]:
+    def to_header(self) -> dict[str, str]:
         """Convert credential to HTTP Authorization header."""
         if self.auth_type == "basic":
             encoded_token = b64encode(f":{self.token}".encode("ascii")).decode("ascii")
@@ -48,7 +47,7 @@ class AuthProvider(ABC):
     """Abstract base class for authentication providers."""
 
     @abstractmethod
-    def get_credential(self) -> Optional[AuthCredential]:
+    def get_credential(self) -> AuthCredential | None:
         """Get authentication credential."""
         pass
 
@@ -65,7 +64,7 @@ class PatAuthProvider(AuthProvider):
         """Initialize with PAT."""
         self.pat = pat
 
-    def get_credential(self) -> Optional[AuthCredential]:
+    def get_credential(self) -> AuthCredential | None:
         """Get PAT credential."""
         if not self.pat:
             return None
@@ -84,7 +83,7 @@ class EnvironmentPatAuthProvider(AuthProvider):
         """Initialize with environment variable name."""
         self.env_var = env_var
 
-    def get_credential(self) -> Optional[AuthCredential]:
+    def get_credential(self) -> AuthCredential | None:
         """Get PAT from environment variable."""
         pat = os.environ.get(self.env_var)
         if not pat:
@@ -100,7 +99,7 @@ class EnvironmentPatAuthProvider(AuthProvider):
 class AzureCliFileAuthProvider(AuthProvider):
     """Azure CLI file-based PAT authentication provider."""
 
-    def get_credential(self) -> Optional[AuthCredential]:
+    def get_credential(self) -> AuthCredential | None:
         """Get PAT from Azure CLI file storage."""
         try:
             azure_dir = Path.home() / ".azure" / "azuredevops"
@@ -135,7 +134,7 @@ class AzureCliEntraAuthProvider(AuthProvider):
         """Initialize with timeout."""
         self.timeout = timeout
 
-    def get_credential(self) -> Optional[AuthCredential]:
+    def get_credential(self) -> AuthCredential | None:
         """Get Microsoft Entra token for Azure DevOps."""
         try:
             # Use Azure CLI to get Microsoft Entra token for Azure DevOps
@@ -202,7 +201,7 @@ class AzureCliEntraAuthProvider(AuthProvider):
 class InteractiveAuthProvider(AuthProvider):
     """Interactive authentication provider (placeholder for future implementation)."""
 
-    def get_credential(self) -> Optional[AuthCredential]:
+    def get_credential(self) -> AuthCredential | None:
         """Get credential through interactive authentication."""
         # This would implement interactive authentication flow
         # For now, this is a placeholder
@@ -226,7 +225,7 @@ class AuthManager:
         """Initialize authentication manager."""
         self.config = config
         self.providers: list[AuthProvider] = []
-        self.cached_credential: Optional[AuthCredential] = None
+        self.cached_credential: AuthCredential | None = None
         self.cache_time: float = 0
 
     def add_provider(self, provider: AuthProvider):
@@ -234,7 +233,7 @@ class AuthManager:
         self.providers.append(provider)
         logger.debug(f"Added auth provider: {provider.get_name()}")
 
-    def setup_default_providers(self, explicit_pat: Optional[str] = None):
+    def setup_default_providers(self, explicit_pat: str | None = None):
         """Set up default authentication providers in order of precedence."""
         self.providers.clear()
 
@@ -323,7 +322,7 @@ class AuthManager:
         self.cache_time = 0
         logger.debug("Authentication cache invalidated")
 
-    def get_auth_headers(self) -> Dict[str, str]:
+    def get_auth_headers(self) -> dict[str, str]:
         """
         Get authentication headers for HTTP requests.
 

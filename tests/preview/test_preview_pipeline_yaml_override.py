@@ -1,13 +1,14 @@
 import os
+
 import pytest
 from fastmcp.client import Client
 
 from server import mcp
-from src.test_config import get_project_id, get_project_name
+from src.test_config import get_project_name
 from tests.ado.test_client import requires_ado_creds
-from tests.test_helpers import get_pipeline_id_by_name
 
 pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 async def mcp_client():
@@ -17,6 +18,7 @@ async def mcp_client():
         )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
+
 
 @requires_ado_creds
 async def test_preview_pipeline_yaml_override_simple(mcp_client: Client):
@@ -40,7 +42,7 @@ steps:
     )
 
     preview_data = result.data
-    assert preview_data is not None, f"Expected preview data with YAML override but got None"
+    assert preview_data is not None, "Expected preview data with YAML override but got None"
     assert "finalYaml" in preview_data, (
         f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
     )
@@ -53,9 +55,9 @@ steps:
         f"Expected 'Hello from YAML override!' in finalYaml but not found. Got: {final_yaml[:200]}..."
     )
 
+
 @requires_ado_creds
 async def test_preview_pipeline_yaml_override_complex(mcp_client: Client):
-    parameterized_pipeline_name = "preview-test-parameterized"
     yaml_override = """
 name: Complex Override Test Pipeline
 trigger: none
@@ -103,7 +105,7 @@ stages:
     )
 
     preview_data = result.data
-    assert preview_data is not None, f"Expected preview data with complex override but got None"
+    assert preview_data is not None, "Expected preview data with complex override but got None"
     assert "finalYaml" in preview_data, (
         f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
     )
@@ -119,9 +121,9 @@ stages:
         f"Expected 'overrideParam' in finalYaml but not found. Got: {final_yaml[:200]}..."
     )
 
+
 @requires_ado_creds
 async def test_preview_pipeline_yaml_override_with_resources(mcp_client: Client):
-    github_resources_pipeline_name = "github-resources-test-stable"
     yaml_override = """
 name: GitHub Resources Override Test
 trigger: none
@@ -158,7 +160,7 @@ steps:
 
     preview_data = result.data
     assert preview_data is not None, (
-        f"Expected preview data with YAML override and resources but got None"
+        "Expected preview data with YAML override and resources but got None"
     )
     assert "finalYaml" in preview_data, (
         f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
@@ -171,6 +173,7 @@ steps:
     assert "tooling" in final_yaml, (
         f"Expected 'tooling' repository reference in finalYaml but not found. Got: {final_yaml[:200]}..."
     )
+
 
 @requires_ado_creds
 async def test_preview_pipeline_invalid_yaml_override(mcp_client: Client):
@@ -207,6 +210,7 @@ steps:
             f"Expected proper exception type for invalid YAML but got {type(e)}"
         )
 
+
 @requires_ado_creds
 async def test_preview_pipeline_with_yaml_override_tool_integration(mcp_client: Client):
     yaml_override = """
@@ -232,7 +236,7 @@ steps:
     )
 
     preview_data = result.data
-    assert preview_data is not None, f"Expected preview data for tool integration test but got None"
+    assert preview_data is not None, "Expected preview data for tool integration test but got None"
     assert "finalYaml" in preview_data, (
         f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
     )

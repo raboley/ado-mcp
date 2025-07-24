@@ -2,16 +2,17 @@
 
 import logging
 import os
+
 import pytest
 from fastmcp.client import Client
 
 from server import mcp
 from src.test_config import get_project_id
-from tests.ado.test_client import requires_ado_creds
 
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 async def mcp_client():
@@ -22,9 +23,11 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @pytest.fixture
 def project_id():
     return get_project_id()  # ado-mcp project
+
 
 class TestProcessDiscovery:
     """Test process discovery functionality."""
@@ -169,6 +172,7 @@ class TestProcessDiscovery:
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
 
+
 class TestWorkItemTemplates:
     """Test work item template functionality."""
 
@@ -237,6 +241,7 @@ class TestWorkItemTemplates:
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
 
+
 class TestProcessIntegration:
     """Test integration scenarios for processes."""
 
@@ -290,10 +295,7 @@ class TestProcessIntegration:
         project_process_id = project_process_id_result.data
 
         # Step 3: Get comprehensive project process info
-        project_process_info_result = await mcp_client.call_tool(
-            "get_project_process_info", {"project_id": project_id}
-        )
-        project_process_info = project_process_info_result.data
+        await mcp_client.call_tool("get_project_process_info", {"project_id": project_id})
 
         # Step 4: Try to find the project's process in the list
         project_process_found = False

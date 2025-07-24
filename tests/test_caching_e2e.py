@@ -1,25 +1,26 @@
 import os
-from fastmcp.client import Client
 import time
+from typing import Any
+
 import pytest
-from typing import List, Dict, Any
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from ado.client import AdoClient
 from ado.cache import ado_cache
+from ado.client import AdoClient
 from tests.ado.test_client import requires_ado_creds
 
+
 class SpanAnalyzer:
-    def __init__(self, spans: List[Any]):
+    def __init__(self, spans: list[Any]):
         self.spans = spans
 
-    def find_spans_by_name(self, name: str) -> List[Any]:
+    def find_spans_by_name(self, name: str) -> list[Any]:
         return [span for span in self.spans if span.name == name]
 
-    def get_span_attributes(self, span: Any) -> Dict[str, Any]:
+    def get_span_attributes(self, span: Any) -> dict[str, Any]:
         return dict(span.attributes or {})
 
     def count_cache_hits(self) -> int:
@@ -56,6 +57,7 @@ class SpanAnalyzer:
             return attrs.get("cache.source") == "api"
         return False
 
+
 @pytest.fixture
 def telemetry_setup():
     memory_exporter = InMemorySpanExporter()
@@ -73,11 +75,13 @@ def telemetry_setup():
 
     memory_exporter.clear()
 
+
 @pytest.fixture
 def fresh_cache():
     ado_cache.clear_all()
     yield
     ado_cache.clear_all()
+
 
 @requires_ado_creds
 class TestCachingE2E:
@@ -145,7 +149,7 @@ class TestCachingE2E:
         pipelines1 = client.list_available_pipelines(project_name)
 
         spans_after_first = memory_exporter.get_finished_spans()
-        analyzer1 = SpanAnalyzer(spans_after_first)
+        SpanAnalyzer(spans_after_first)
 
         api_calls = len(
             [s for s in spans_after_first if "ado_" in s.name and "pipelines" in str(s.attributes)]
@@ -159,7 +163,7 @@ class TestCachingE2E:
         pipelines2 = client.list_available_pipelines(project_name)
 
         spans_after_second = memory_exporter.get_finished_spans()
-        analyzer2 = SpanAnalyzer(spans_after_second)
+        SpanAnalyzer(spans_after_second)
 
         api_calls_second = len(
             [s for s in spans_after_second if "ado_" in s.name and "pipelines" in str(s.attributes)]
@@ -187,7 +191,7 @@ class TestCachingE2E:
             projects1 = client.list_available_projects()
             memory_exporter.clear()
 
-            projects2 = client.list_available_projects()
+            client.list_available_projects()
             analyzer_cached = SpanAnalyzer(memory_exporter.get_finished_spans())
             assert analyzer_cached.was_data_fetched_from_cache("projects"), (
                 "Second call should use cache, but data was fetched from API"
@@ -232,7 +236,7 @@ class TestCachingE2E:
 
         for test_name in test_names:
             if len(project_name) > 3 or test_name != project_name[:3]:
-                project = client.find_project_by_name(test_name)
+                client.find_project_by_name(test_name)
 
                 current_spans = memory_exporter.get_finished_spans()
                 api_calls = len([s for s in current_spans if "ado_list_projects" in s.name])
@@ -290,7 +294,7 @@ class TestCachingE2E:
         )
 
         projects = client.list_available_projects()
-        projects_again = client.list_available_projects()
+        client.list_available_projects()
 
         if projects:
             client.find_project_by_name(projects[0])

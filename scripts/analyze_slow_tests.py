@@ -13,7 +13,7 @@ def main():
         print("No test duration cache found. Run tests first to generate duration data.")
         return
 
-    with open(cache_file, "r") as f:
+    with open(cache_file) as f:
         durations = json.load(f)
 
     # Sort by duration (slowest first)
@@ -21,7 +21,7 @@ def main():
 
     # Print summary
     print(f"Total tests with duration data: {len(durations)}")
-    print(f"\nTop 20 slowest tests:")
+    print("\nTop 20 slowest tests:")
     print("-" * 80)
 
     total_time = sum(durations.values())
@@ -51,7 +51,7 @@ def main():
                 bucket_counts[i] += 1
                 break
 
-    for name, count in zip(bucket_names, bucket_counts):
+    for name, count in zip(bucket_names, bucket_counts, strict=False):
         print(f"  {name:10s}: {count:4d} tests")
 
 

@@ -1,4 +1,5 @@
 import os
+
 import pytest
 from fastmcp.client import Client
 
@@ -7,6 +8,7 @@ from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 async def mcp_client():
@@ -17,13 +19,14 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @requires_ado_creds
 async def test_list_pipelines_returns_valid_list(mcp_client: Client):
     project_id = get_project_id()
     result = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
 
     pipelines = result.data
-    assert pipelines is not None, f"Expected pipelines list but got None"
+    assert pipelines is not None, "Expected pipelines list but got None"
     assert isinstance(pipelines, list), f"Expected list but got {type(pipelines).__name__}"
 
     if len(pipelines) > 0:
@@ -48,6 +51,7 @@ async def test_list_pipelines_returns_valid_list(mcp_client: Client):
             f"Pipeline folder should be str but got {type(pipeline['folder']).__name__}: {pipeline['folder']}"
         )
 
+
 @requires_ado_creds
 async def test_list_pipelines_finds_expected_pipelines(mcp_client: Client):
     project_id = get_project_id()
@@ -66,6 +70,7 @@ async def test_list_pipelines_finds_expected_pipelines(mcp_client: Client):
     assert len(preview_pipelines) > 0, (
         f"Expected to find preview test pipelines but found none. All pipelines: {pipeline_names}"
     )
+
 
 @requires_ado_creds
 async def test_list_pipelines_specific_pipeline_details(mcp_client: Client):
@@ -92,6 +97,7 @@ async def test_list_pipelines_specific_pipeline_details(mcp_client: Client):
         f"Expected name to contain 'github-resources-test-stable' but got: {github_pipeline['name']}"
     )
 
+
 @requires_ado_creds
 async def test_list_pipelines_invalid_project(mcp_client: Client):
     try:
@@ -103,8 +109,9 @@ async def test_list_pipelines_invalid_project(mcp_client: Client):
         assert pipelines == [], f"Expected empty list for invalid project but got: {pipelines}"
     except Exception as e:
         assert isinstance(e, Exception), (
-            f"Expected an exception for invalid project ID but handling failed unexpectedly"
+            "Expected an exception for invalid project ID but handling failed unexpectedly"
         )
+
 
 async def test_list_pipelines_tool_registration():
     async with Client(mcp) as client:
