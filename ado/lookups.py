@@ -6,20 +6,19 @@ automatically handling name-to-ID mapping with intelligent caching.
 """
 
 import logging
-from typing import Optional, Tuple, List
 
 from opentelemetry import trace
 
 from .cache import ado_cache
-from .utils.fuzzy_matching import FuzzyMatcher, create_suggestion_error_message
 from .models import (
-    Project,
-    Pipeline,
     FailureSummary,
-    PipelineRun,
+    Pipeline,
     PipelineOutcome,
+    PipelineRun,
     PipelineRunRequest,
+    Project,
 )
+from .utils.fuzzy_matching import FuzzyMatcher, create_suggestion_error_message
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -40,7 +39,7 @@ class AdoLookups:
         self.client = client
 
     # Project lookups
-    def ensure_projects_cached(self) -> List[Project]:
+    def ensure_projects_cached(self) -> list[Project]:
         """Ensure projects are cached, fetching if needed."""
         with tracer.start_as_current_span("ensure_projects_cached") as span:
             projects = ado_cache.get_projects()
@@ -56,7 +55,7 @@ class AdoLookups:
             span.set_attribute("projects.count", len(projects))
             return projects
 
-    def find_project(self, name: str) -> Optional[Project]:
+    def find_project(self, name: str) -> Project | None:
         """
         Find a project by name with intelligent caching and fuzzy matching.
 
@@ -69,13 +68,13 @@ class AdoLookups:
         self.ensure_projects_cached()
         return ado_cache.find_project_by_name(name)
 
-    def get_project_id(self, name: str) -> Optional[str]:
+    def get_project_id(self, name: str) -> str | None:
         """Get project ID by name."""
         project = self.find_project(name)
         return project.id if project else None
 
     # Pipeline lookups
-    def ensure_pipelines_cached(self, project_id: str) -> List[Pipeline]:
+    def ensure_pipelines_cached(self, project_id: str) -> list[Pipeline]:
         """Ensure pipelines are cached for a project, fetching if needed."""
         with tracer.start_as_current_span("ensure_pipelines_cached") as span:
             span.set_attribute("project_id", project_id)
@@ -94,7 +93,7 @@ class AdoLookups:
 
     def find_pipeline(
         self, project_name: str, pipeline_name: str
-    ) -> Optional[Tuple[Project, Pipeline]]:
+    ) -> tuple[Project, Pipeline] | None:
         """
         Find a pipeline by project name and pipeline name.
 
@@ -114,11 +113,7 @@ class AdoLookups:
             matches = matcher.find_matches(
                 project_name, projects or [], name_extractor=lambda p: p.name
             )
-            error_msg = create_suggestion_error_message(
-                project_name,
-                "Project",
-                matches
-            )
+            error_msg = create_suggestion_error_message(project_name, "Project", matches)
             raise ValueError(error_msg)
 
         # Ensure pipelines are cached for this project
@@ -133,16 +128,12 @@ class AdoLookups:
             matches = matcher.find_matches(
                 pipeline_name, pipelines or [], name_extractor=lambda p: p.name
             )
-            error_msg = create_suggestion_error_message(
-                pipeline_name,
-                "Pipeline",
-                matches
-            )
+            error_msg = create_suggestion_error_message(pipeline_name, "Pipeline", matches)
             raise ValueError(error_msg)
 
         return (project, pipeline)
 
-    def get_pipeline_ids(self, project_name: str, pipeline_name: str) -> Optional[Tuple[str, int]]:
+    def get_pipeline_ids(self, project_name: str, pipeline_name: str) -> tuple[str, int] | None:
         """
         Get project ID and pipeline ID by names.
 
@@ -155,8 +146,8 @@ class AdoLookups:
 
     # High-level operations using names
     def run_pipeline_by_name(
-        self, project_name: str, pipeline_name: str, request: Optional[PipelineRunRequest] = None
-    ) -> Optional[PipelineRun]:
+        self, project_name: str, pipeline_name: str, request: PipelineRunRequest | None = None
+    ) -> PipelineRun | None:
         """
         Run a pipeline by project and pipeline names.
 
@@ -175,7 +166,7 @@ class AdoLookups:
 
     def get_pipeline_failure_summary_by_name(
         self, project_name: str, pipeline_name: str, run_id: int, max_lines: int = 100
-    ) -> Optional[FailureSummary]:
+    ) -> FailureSummary | None:
         """
         Get pipeline failure summary by names.
 
@@ -199,10 +190,10 @@ class AdoLookups:
         self,
         project_name: str,
         pipeline_name: str,
-        request: Optional[PipelineRunRequest] = None,
+        request: PipelineRunRequest | None = None,
         timeout_seconds: int = 300,
         max_lines: int = 100,
-    ) -> Optional[PipelineOutcome]:
+    ) -> PipelineOutcome | None:
         """
         Run a pipeline by name and wait for outcome.
 
@@ -229,12 +220,12 @@ class AdoLookups:
         )
 
     # Utility functions
-    def list_available_projects(self) -> List[str]:
+    def list_available_projects(self) -> list[str]:
         """Get list of available project names."""
         projects = self.ensure_projects_cached()
         return [project.name for project in projects]
 
-    def list_available_pipelines(self, project_name: str) -> List[str]:
+    def list_available_pipelines(self, project_name: str) -> list[str]:
         """Get list of available pipeline names for a project."""
         project = self.find_project(project_name)
         if not project:
@@ -243,7 +234,7 @@ class AdoLookups:
         pipelines = self.ensure_pipelines_cached(project.id)
         return [pipeline.name for pipeline in pipelines]
 
-    def suggest_similar_projects(self, name: str, limit: int = 3) -> List[str]:
+    def suggest_similar_projects(self, name: str, limit: int = 3) -> list[str]:
         """Get similar project names for typo suggestions."""
         from difflib import get_close_matches
 
@@ -253,7 +244,7 @@ class AdoLookups:
 
     def suggest_similar_pipelines(
         self, project_name: str, pipeline_name: str, limit: int = 3
-    ) -> List[str]:
+    ) -> list[str]:
         """Get similar pipeline names for typo suggestions."""
         from difflib import get_close_matches
 

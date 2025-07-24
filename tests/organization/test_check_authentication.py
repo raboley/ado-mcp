@@ -1,4 +1,5 @@
 import os
+
 import pytest
 from fastmcp.client import Client
 
@@ -6,6 +7,7 @@ from server import mcp
 from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 async def mcp_client():
@@ -16,6 +18,7 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @requires_ado_creds
 async def test_check_authentication_success(mcp_client: Client):
     result = await mcp_client.call_tool("check_ado_authentication")
@@ -24,6 +27,7 @@ async def test_check_authentication_success(mcp_client: Client):
     assert auth_result is True, (
         f"Expected authentication to succeed with valid credentials but got: {auth_result}"
     )
+
 
 @requires_ado_creds
 async def test_check_authentication_after_org_change(mcp_client: Client):
@@ -37,6 +41,7 @@ async def test_check_authentication_after_org_change(mcp_client: Client):
     assert result.data is True, (
         f"Expected authentication to still work after organization change but got: {result.data}"
     )
+
 
 async def test_check_authentication_tool_registration():
     async with Client(mcp) as client:

@@ -1,19 +1,14 @@
 """Client methods for Azure DevOps Work Items API operations."""
 
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
+
+from opentelemetry import trace
 
 from ado.client import AdoClient
-from ado.errors import (
-    AdoError,
-    AdoRateLimitError,
-    AdoNetworkError,
-    AdoTimeoutError,
-    AdoAuthenticationError,
-)
-from ado.cache import ado_cache
-from ado.retry import RetryManager
-from opentelemetry import trace
+from ado.work_items.batch_client import BatchClient
+from ado.work_items.comments_client import CommentsClient
+from ado.work_items.crud_client import CrudClient
 from ado.work_items.models import (
     ClassificationNode,
     JsonPatchOperation,
@@ -25,11 +20,8 @@ from ado.work_items.models import (
     WorkItemRevision,
     WorkItemType,
 )
-from ado.work_items.crud_client import CrudClient
-from ado.work_items.batch_client import BatchClient
 from ado.work_items.query_client import QueryClient
 from ado.work_items.type_client import TypeClient
-from ado.work_items.comments_client import CommentsClient
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -58,7 +50,7 @@ class WorkItemsClient:
         self,
         project_id: str,
         work_item_type: str,
-        fields: Dict[str, Any],
+        fields: dict[str, Any],
         validate_only: bool = False,
         bypass_rules: bool = False,
         suppress_notifications: bool = False,
@@ -93,9 +85,9 @@ class WorkItemsClient:
         self,
         project_id: str,
         work_item_id: int,
-        fields: Optional[List[str]] = None,
-        as_of: Optional[str] = None,
-        expand: Optional[str] = None,
+        fields: list[str] | None = None,
+        as_of: str | None = None,
+        expand: str | None = None,
     ) -> WorkItem:
         """
         Get a single work item by ID.
@@ -125,7 +117,7 @@ class WorkItemsClient:
         self,
         project_id: str,
         work_item_id: int,
-        operations: List[JsonPatchOperation],
+        operations: list[JsonPatchOperation],
         validate_only: bool = False,
         bypass_rules: bool = False,
         suppress_notifications: bool = False,
@@ -185,7 +177,7 @@ class WorkItemsClient:
     def list_work_item_types(
         self,
         project_id: str,
-    ) -> List[WorkItemType]:
+    ) -> list[WorkItemType]:
         """
         Get all work item types for a project.
 
@@ -229,7 +221,7 @@ class WorkItemsClient:
         self,
         project_id: str,
         work_item_type: str,
-    ) -> List[WorkItemField]:
+    ) -> list[WorkItemField]:
         """
         Get all fields for a specific work item type.
 
@@ -279,8 +271,8 @@ class WorkItemsClient:
     def list_area_paths(
         self,
         project_id: str,
-        depth: Optional[int] = None,
-    ) -> List[ClassificationNode]:
+        depth: int | None = None,
+    ) -> list[ClassificationNode]:
         """
         Get area paths (classification nodes) for a project.
 
@@ -299,8 +291,8 @@ class WorkItemsClient:
     def list_iteration_paths(
         self,
         project_id: str,
-        depth: Optional[int] = None,
-    ) -> List[ClassificationNode]:
+        depth: int | None = None,
+    ) -> list[ClassificationNode]:
         """
         Get iteration paths (classification nodes) for a project.
 
@@ -319,9 +311,9 @@ class WorkItemsClient:
     def query_work_items(
         self,
         project_id: str,
-        wiql_query: Optional[str] = None,
-        top: Optional[int] = None,
-        skip: Optional[int] = None,
+        wiql_query: str | None = None,
+        top: int | None = None,
+        skip: int | None = None,
     ) -> WorkItemQueryResult:
         """
         Query work items using WIQL (Work Item Query Language).
@@ -348,12 +340,12 @@ class WorkItemsClient:
     def get_work_items_batch(
         self,
         project_id: str,
-        work_item_ids: List[int],
-        fields: Optional[List[str]] = None,
+        work_item_ids: list[int],
+        fields: list[str] | None = None,
         expand_relations: bool = False,
-        as_of: Optional[str] = None,
+        as_of: str | None = None,
         error_policy: str = "omit",
-    ) -> List[WorkItem]:
+    ) -> list[WorkItem]:
         """
         Get multiple work items by their IDs in a single API call.
 
@@ -386,12 +378,12 @@ class WorkItemsClient:
     def update_work_items_batch(
         self,
         project_id: str,
-        work_item_updates: List[Dict[str, Any]],
+        work_item_updates: list[dict[str, Any]],
         validate_only: bool = False,
         bypass_rules: bool = False,
         suppress_notifications: bool = False,
         error_policy: str = "fail",
-    ) -> List[WorkItem]:
+    ) -> list[WorkItem]:
         """
         Update multiple work items in a batch operation using individual API calls.
 
@@ -429,10 +421,10 @@ class WorkItemsClient:
     def delete_work_items_batch(
         self,
         project_id: str,
-        work_item_ids: List[int],
+        work_item_ids: list[int],
         destroy: bool = False,
         error_policy: str = "fail",
-    ) -> List[bool]:
+    ) -> list[bool]:
         """
         Delete multiple work items in a batch operation using individual API calls.
 
@@ -490,10 +482,10 @@ class WorkItemsClient:
         self,
         project_id: str,
         work_item_id: int,
-        top: Optional[int] = None,
-        skip: Optional[int] = None,
+        top: int | None = None,
+        skip: int | None = None,
         include_deleted: bool = False,
-    ) -> List[WorkItemComment]:
+    ) -> list[WorkItemComment]:
         """
         Get comments for a work item.
 
@@ -522,12 +514,12 @@ class WorkItemsClient:
         self,
         project_id: str,
         work_item_id: int,
-        top: Optional[int] = None,
-        skip: Optional[int] = None,
-        expand: Optional[str] = None,
-        from_date: Optional[str] = None,
-        to_date: Optional[str] = None,
-    ) -> List[WorkItemRevision]:
+        top: int | None = None,
+        skip: int | None = None,
+        expand: str | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+    ) -> list[WorkItemRevision]:
         """
         Get revision history for a work item with optional date filtering.
 
@@ -562,7 +554,7 @@ class WorkItemsClient:
         source_work_item_id: int,
         target_work_item_id: int,
         relationship_type: str,
-        comment: Optional[str] = None,
+        comment: str | None = None,
     ) -> WorkItem:
         """
         Create a link between two work items.
@@ -591,7 +583,7 @@ class WorkItemsClient:
 
     def get_work_item_relations(
         self, project_id: str, work_item_id: int, depth: int = 1
-    ) -> List[WorkItemRelation]:
+    ) -> list[WorkItemRelation]:
         """
         Get relationships for a work item.
 

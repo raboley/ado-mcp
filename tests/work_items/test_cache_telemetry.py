@@ -1,16 +1,18 @@
 """Tests for cache telemetry and metrics."""
 
 import os
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 from fastmcp.client import Client
 
+from ado.cache import ado_cache
 from server import mcp
 from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
-from ado.cache import ado_cache
 
 pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 async def mcp_client():
@@ -21,9 +23,11 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @pytest.fixture
 def project_id():
     return get_project_id()  # ado-mcp project
+
 
 @pytest.fixture(autouse=True)
 def clear_cache():
@@ -31,6 +35,7 @@ def clear_cache():
     ado_cache.clear_all()
     yield
     ado_cache.clear_all()
+
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -65,6 +70,7 @@ async def test_cache_hit_miss_telemetry(mcp_client, project_id):
         mock_hit_counter.assert_called_with(1, {"cache_type": "work_item_types"})
         assert mock_miss_counter.call_count == 0, "Should not have any cache misses for second call"
 
+
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_cache_size_telemetry(mcp_client, project_id):
@@ -83,11 +89,12 @@ async def test_cache_size_telemetry(mcp_client, project_id):
         # Verify positive increments
         for call in mock_size_gauge.call_args_list:
             args = call[0]
-            kwargs = call[1] if len(call) > 1 else {}
+            call[1] if len(call) > 1 else {}
             assert args[0] == 1, "Should increment by 1 for each new cache entry"
             assert len(args) > 1 and isinstance(args[1], dict) and "cache_type" in args[1], (
                 "Should include cache_type in metrics"
             )
+
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -95,6 +102,7 @@ async def test_cache_eviction_telemetry():
     """Test that cache evictions are tracked correctly."""
     # Create a mock expired entry directly in the cache
     import time
+
     from ado.cache import CacheEntry
 
     # Add an already-expired entry
@@ -118,6 +126,7 @@ async def test_cache_eviction_telemetry():
             1, {"cache_type": "test_type", "reason": "expired"}
         )
         mock_size_gauge.assert_called_with(-1, {"cache_type": "test_type"})
+
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -149,6 +158,7 @@ async def test_cache_clear_all_telemetry():
                 f"Unexpected cache type: {cache_type}"
             )
 
+
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_cache_stats_includes_type_breakdown():
@@ -172,12 +182,13 @@ async def test_cache_stats_includes_type_breakdown():
 
     assert "metrics_info" in stats, "Should include info about metrics"
 
+
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_different_cache_types_tracked_separately(mcp_client, project_id):
     """Test that different cache types are tracked separately in telemetry."""
     with (
-        patch.object(ado_cache._cache_hit_counter, "add") as mock_hit_counter,
+        patch.object(ado_cache._cache_hit_counter, "add"),
         patch.object(ado_cache._cache_miss_counter, "add") as mock_miss_counter,
     ):
         # Call different cache types

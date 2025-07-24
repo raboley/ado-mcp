@@ -2,26 +2,23 @@
 
 import json
 import logging
-import os
 import subprocess
 import uuid
 from base64 import b64encode
-from typing import Any, Optional
+from typing import Any
 
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 from opentelemetry import trace
-from opentelemetry.trace import Status, StatusCode
+from requests.adapters import HTTPAdapter
 
+from .auth import AuthManager
 from .config import AdoMcpConfig
-from .errors import AdoAuthenticationError, AdoRateLimitError, AdoNetworkError, AdoTimeoutError
+from .errors import AdoAuthenticationError, AdoNetworkError, AdoRateLimitError, AdoTimeoutError
+from .lookups import AdoLookups
 from .models import Project
 from .pipelines import BuildOperations, LogOperations, PipelineOperations
-from .lookups import AdoLookups
 from .retry import RetryManager
 from .telemetry import get_telemetry_manager, initialize_telemetry
-from .auth import AuthManager
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -430,15 +427,15 @@ class AdoClient:
                 if e.response is not None:
                     try:
                         # Try to get response text
-                        if hasattr(e.response, 'text') and e.response.text:
+                        if hasattr(e.response, "text") and e.response.text:
                             response_body = e.response.text
-                        elif hasattr(e.response, 'content') and e.response.content:
-                            response_body = e.response.content.decode('utf-8')
+                        elif hasattr(e.response, "content") and e.response.content:
+                            response_body = e.response.content.decode("utf-8")
                         else:
                             response_body = f"Status: {e.response.status_code}, Headers: {dict(e.response.headers)}"
                     except Exception as decode_error:
                         response_body = f"Could not decode response: {decode_error}"
-                
+
                 logger.error(
                     f"HTTP Error: {e} - Status: {e.response.status_code if e.response else 'Unknown'} - Response Body: {response_body}"
                 )
@@ -455,7 +452,7 @@ class AdoClient:
                         "url": url,
                     },
                     original_exception=e,
-                )
+                ) from e
             except requests.exceptions.RequestException as e:
                 if hasattr(e, "response") and e.response is not None:
                     # Log response details for debugging
@@ -477,7 +474,7 @@ class AdoClient:
                         "error_type": type(e).__name__,
                     },
                     original_exception=e,
-                )
+                ) from e
 
         return make_request()
 

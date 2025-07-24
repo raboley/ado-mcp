@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from ado.models import (
     ConfigurationType,
@@ -16,11 +16,9 @@ from ado.models import (
     Project,
     Repository,
     RunResourcesParameters,
-    RepositoryResourceParameters,
     ServiceConnection,
     StepFailure,
     TimelineResponse,
-    Variable,
 )
 from ado.work_items.tools import register_work_item_tools
 
@@ -51,7 +49,7 @@ def register_ado_tools(mcp_instance, client_container):
         client, error_return = get_client_or_error()
         if client is None:
             return None, None, None
-        
+
         try:
             project_id, pipeline_id = client._lookups.get_pipeline_ids(project_name, pipeline_name)
             return client, project_id, pipeline_id
@@ -73,7 +71,7 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.check_authentication()
 
     @mcp_instance.tool
-    def list_projects() -> List[Project]:
+    def list_projects() -> list[Project]:
         """
         Lists all projects in the Azure DevOps organization.
 
@@ -86,7 +84,7 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.list_projects()
 
     @mcp_instance.tool
-    def list_pipelines(project_id: str) -> List[Pipeline]:
+    def list_pipelines(project_id: str) -> list[Pipeline]:
         """
         Lists all pipelines in a given Azure DevOps project.
 
@@ -197,11 +195,14 @@ def register_ado_tools(mcp_instance, client_container):
 
         try:
             # Get project and pipeline IDs using name lookup
-            project_id, pipeline_id = ado_client_instance._lookups.get_pipeline_ids(project_name, pipeline_name)
+            project_id, pipeline_id = ado_client_instance._lookups.get_pipeline_ids(
+                project_name, pipeline_name
+            )
             result = ado_client_instance.delete_pipeline(project_id, pipeline_id)
             if result:
                 # Invalidate pipeline cache after successful deletion
                 from .cache import ado_cache
+
                 ado_cache.invalidate_pipelines(project_id)
                 logger.info(
                     f"Successfully deleted pipeline {pipeline_id} from project {project_id}"
@@ -225,7 +226,9 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             dict: A dictionary representing the pipeline details.
         """
-        ado_client_instance, project_id, pipeline_id = get_pipeline_ids_with_client_check(project_name, pipeline_name)
+        ado_client_instance, project_id, pipeline_id = get_pipeline_ids_with_client_check(
+            project_name, pipeline_name
+        )
         if ado_client_instance is None:
             return {}
         return ado_client_instance.get_pipeline(project_id, pipeline_id)
@@ -260,17 +263,17 @@ def register_ado_tools(mcp_instance, client_container):
     def run_pipeline(
         project_name: str,
         pipeline_name: str,
-        variables: Optional[Dict[str, Any]] = None,
-        template_parameters: Optional[Dict[str, Any]] = None,
-        branch: Optional[str] = None,
-        stages_to_skip: Optional[List[str]] = None,
-        resources: Optional[RunResourcesParameters] = None,
-    ) -> Optional[PipelineRun]:
+        variables: dict[str, Any] | None = None,
+        template_parameters: dict[str, Any] | None = None,
+        branch: str | None = None,
+        stages_to_skip: list[str] | None = None,
+        resources: RunResourcesParameters | None = None,
+    ) -> PipelineRun | None:
         """
         Start a pipeline run by name and return immediately with run details.
 
-        NOTE: Most users want run_pipeline_and_get_outcome instead, which waits for 
-        completion and returns the full results. Only use this tool if you specifically 
+        NOTE: Most users want run_pipeline_and_get_outcome instead, which waits for
+        completion and returns the full results. Only use this tool if you specifically
         need to start a pipeline without waiting for it to finish.
 
         This tool starts a pipeline and returns the run information immediately without
@@ -299,11 +302,11 @@ def register_ado_tools(mcp_instance, client_container):
         Examples:
             # Start a simple pipeline
             run_pipeline("MyProject", "CI Pipeline")
-            
+
             # Start with variables
             run_pipeline(
-                "MyProject", 
-                "Deploy Pipeline", 
+                "MyProject",
+                "Deploy Pipeline",
                 variables={"environment": "staging"}
             )
         """
@@ -328,7 +331,7 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.run_pipeline_by_name(project_name, pipeline_name, request)
 
     @mcp_instance.tool
-    def get_pipeline_run(project_name: str, pipeline_name: str, run_id: int) -> Optional[PipelineRun]:
+    def get_pipeline_run(project_name: str, pipeline_name: str, run_id: int) -> PipelineRun | None:
         """
         Retrieves details for a specific pipeline run in an Azure DevOps project.
 
@@ -340,14 +343,16 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             Optional[PipelineRun]: A PipelineRun object representing the pipeline run details, or None if client unavailable.
         """
-        ado_client_instance, project_id, pipeline_id = get_pipeline_ids_with_client_check(project_name, pipeline_name)
+        ado_client_instance, project_id, pipeline_id = get_pipeline_ids_with_client_check(
+            project_name, pipeline_name
+        )
         if ado_client_instance is None:
             return None
         return ado_client_instance.get_pipeline_run(project_id, pipeline_id, run_id)
 
     def _inject_github_tokens_if_needed(
-        ado_client_instance, project_id: str, pipeline_id: int, resources_dict: Optional[dict]
-    ) -> Optional[dict]:
+        ado_client_instance, project_id: str, pipeline_id: int, resources_dict: dict | None
+    ) -> dict | None:
         """
         Inject GitHub tokens for repository resources that explicitly specify RepositoryType: "gitHub".
 
@@ -410,12 +415,12 @@ def register_ado_tools(mcp_instance, client_container):
     def preview_pipeline(
         project_name: str,
         pipeline_name: str,
-        yaml_override: Optional[str] = None,
-        variables: Optional[Dict[str, Any]] = None,
-        template_parameters: Optional[Dict[str, Any]] = None,
-        stages_to_skip: Optional[List[str]] = None,
-        resources: Optional[RunResourcesParameters] = None,
-    ) -> Optional[PreviewRun]:
+        yaml_override: str | None = None,
+        variables: dict[str, Any] | None = None,
+        template_parameters: dict[str, Any] | None = None,
+        stages_to_skip: list[str] | None = None,
+        resources: RunResourcesParameters | None = None,
+    ) -> PreviewRun | None:
         """
         Previews a pipeline without executing it, returning the final YAML and other preview information.
 
@@ -473,7 +478,9 @@ def register_ado_tools(mcp_instance, client_container):
             return None
 
         # Get project and pipeline IDs using name lookup
-        project_id, pipeline_id = ado_client_instance._lookups.get_pipeline_ids(project_name, pipeline_name)
+        project_id, pipeline_id = ado_client_instance._lookups.get_pipeline_ids(
+            project_name, pipeline_name
+        )
 
         # Build the preview request - convert resources to dict if provided
         resources_dict = None
@@ -501,7 +508,7 @@ def register_ado_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def get_pipeline_failure_summary(
         project_name: str, pipeline_name: str, run_id: int, max_lines: int = 100
-    ) -> Optional[FailureSummary]:
+    ) -> FailureSummary | None:
         """
         🔥 ANALYZE FAILED BUILDS: Get comprehensive failure analysis with root causes.
 
@@ -529,9 +536,11 @@ def register_ado_tools(mcp_instance, client_container):
         if not ado_client_instance:
             logger.error("ADO client is not available.")
             return None
-        
+
         # Get project and pipeline IDs using name lookup
-        project_id, pipeline_id = ado_client_instance._lookups.get_pipeline_ids(project_name, pipeline_name)
+        project_id, pipeline_id = ado_client_instance._lookups.get_pipeline_ids(
+            project_name, pipeline_name
+        )
 
         return ado_client_instance.get_pipeline_failure_summary(
             project_id, pipeline_id, run_id, max_lines
@@ -542,9 +551,9 @@ def register_ado_tools(mcp_instance, client_container):
         project_id: str,
         pipeline_id: int,
         run_id: int,
-        step_name: Optional[str] = None,
+        step_name: str | None = None,
         max_lines: int = 100,
-    ) -> Optional[List[StepFailure]]:
+    ) -> list[StepFailure] | None:
         """
         Gets detailed log information for failed steps, optionally filtered by step name.
 
@@ -571,7 +580,7 @@ def register_ado_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def get_pipeline_timeline(
         project_id: str, pipeline_id: int, run_id: int
-    ) -> Optional[TimelineResponse]:
+    ) -> TimelineResponse | None:
         """
         Gets the build timeline for a pipeline run, showing status of all stages, jobs, and tasks.
 
@@ -591,9 +600,7 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.get_pipeline_timeline(project_id, pipeline_id, run_id)
 
     @mcp_instance.tool
-    def list_pipeline_logs(
-        project_id: str, pipeline_id: int, run_id: int
-    ) -> Optional[LogCollection]:
+    def list_pipeline_logs(project_id: str, pipeline_id: int, run_id: int) -> LogCollection | None:
         """
         Lists all logs for a specific pipeline run.
 
@@ -615,7 +622,7 @@ def register_ado_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def get_log_content_by_id(
         project_id: str, pipeline_id: int, run_id: int, log_id: int, max_lines: int = 100
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Gets the content of a specific log from a pipeline run.
 
@@ -645,21 +652,21 @@ def register_ado_tools(mcp_instance, client_container):
         pipeline_name: str,
         timeout_seconds: int = 300,
         max_lines: int = 100,
-        variables: Optional[Dict[str, Any]] = None,
-        template_parameters: Optional[Dict[str, Any]] = None,
-        branch: Optional[str] = None,
-        stages_to_skip: Optional[List[str]] = None,
-        resources: Optional[RunResourcesParameters] = None,
-    ) -> Optional[PipelineOutcome]:
+        variables: dict[str, Any] | None = None,
+        template_parameters: dict[str, Any] | None = None,
+        branch: str | None = None,
+        stages_to_skip: list[str] | None = None,
+        resources: RunResourcesParameters | None = None,
+    ) -> PipelineOutcome | None:
         """
         Execute a pipeline by name and wait for completion with full result analysis.
 
-        This is the preferred tool for running pipelines. It runs a pipeline and waits 
-        for it to complete, returning comprehensive results including success/failure 
+        This is the preferred tool for running pipelines. It runs a pipeline and waits
+        for it to complete, returning comprehensive results including success/failure
         status, execution time, and detailed failure analysis with logs if the pipeline fails.
 
-        Use this when you want to run a pipeline and see what happens - which is almost 
-        always what you want. Only use run_pipeline if you specifically need to start 
+        Use this when you want to run a pipeline and see what happens - which is almost
+        always what you want. Only use run_pipeline if you specifically need to start
         a pipeline without waiting for results.
 
         Args:
@@ -687,14 +694,14 @@ def register_ado_tools(mcp_instance, client_container):
         Examples:
             # Run a simple pipeline
             run_pipeline_and_get_outcome("MyProject", "CI Pipeline")
-            
+
             # Run with variables
             run_pipeline_and_get_outcome(
-                "MyProject", 
-                "Deploy Pipeline", 
+                "MyProject",
+                "Deploy Pipeline",
                 variables={"environment": "staging"}
             )
-            
+
             # Run with timeout and custom branch
             run_pipeline_and_get_outcome(
                 "MyProject",
@@ -728,7 +735,7 @@ def register_ado_tools(mcp_instance, client_container):
     # 🚀 NAME-BASED TOOLS - USER-FRIENDLY INTERFACES
 
     @mcp_instance.tool
-    def find_project_by_name(name: str) -> Optional[Project]:
+    def find_project_by_name(name: str) -> Project | None:
         """
         🔍 FIND PROJECT BY NAME: Find a project using its name with fuzzy matching.
 
@@ -756,7 +763,7 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.find_project_by_name(name)
 
     @mcp_instance.tool
-    def find_pipeline_by_name(project_name: str, pipeline_name: str) -> Optional[Dict]:
+    def find_pipeline_by_name(project_name: str, pipeline_name: str) -> dict | None:
         """
         🔍 FIND PIPELINE BY NAME: Find a pipeline using project and pipeline names.
 
@@ -796,12 +803,12 @@ def register_ado_tools(mcp_instance, client_container):
     def run_pipeline_by_name(
         project_name: str,
         pipeline_name: str,
-        variables: Optional[Dict[str, Any]] = None,
-        template_parameters: Optional[Dict[str, Any]] = None,
-        branch: Optional[str] = None,
-        stages_to_skip: Optional[List[str]] = None,
-        resources: Optional[RunResourcesParameters] = None,
-    ) -> Optional[PipelineRun]:
+        variables: dict[str, Any] | None = None,
+        template_parameters: dict[str, Any] | None = None,
+        branch: str | None = None,
+        stages_to_skip: list[str] | None = None,
+        resources: RunResourcesParameters | None = None,
+    ) -> PipelineRun | None:
         """
         🚀 RUN PIPELINE BY NAME: Execute a pipeline using natural names.
 
@@ -862,7 +869,7 @@ def register_ado_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def get_pipeline_failure_summary_by_name(
         project_name: str, pipeline_name: str, run_id: int, max_lines: int = 100
-    ) -> Optional[FailureSummary]:
+    ) -> FailureSummary | None:
         """
         🔥 ANALYZE FAILURES BY NAME: Get failure analysis using natural names.
 
@@ -900,12 +907,12 @@ def register_ado_tools(mcp_instance, client_container):
         pipeline_name: str,
         timeout_seconds: int = 300,
         max_lines: int = 100,
-        variables: Optional[Dict[str, Any]] = None,
-        template_parameters: Optional[Dict[str, Any]] = None,
-        branch: Optional[str] = None,
-        stages_to_skip: Optional[List[str]] = None,
-        resources: Optional[RunResourcesParameters] = None,
-    ) -> Optional[PipelineOutcome]:
+        variables: dict[str, Any] | None = None,
+        template_parameters: dict[str, Any] | None = None,
+        branch: str | None = None,
+        stages_to_skip: list[str] | None = None,
+        resources: RunResourcesParameters | None = None,
+    ) -> PipelineOutcome | None:
         """
         🚀 RUN & ANALYZE BY NAME: Execute pipeline by name and get complete results.
 
@@ -969,7 +976,7 @@ def register_ado_tools(mcp_instance, client_container):
         )
 
     @mcp_instance.tool
-    def list_available_projects() -> List[str]:
+    def list_available_projects() -> list[str]:
         """
         📋 LIST PROJECT NAMES: Get all available project names for easy reference.
 
@@ -991,7 +998,7 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.list_available_projects()
 
     @mcp_instance.tool
-    def list_available_pipelines(project_name: str) -> List[str]:
+    def list_available_pipelines(project_name: str) -> list[str]:
         """
         📋 LIST PIPELINE NAMES: Get all pipeline names for a project.
 

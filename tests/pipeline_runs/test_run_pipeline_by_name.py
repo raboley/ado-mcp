@@ -1,4 +1,5 @@
 import os
+
 import pytest
 from fastmcp.client import Client
 
@@ -13,6 +14,7 @@ GITHUB_RESOURCES_PIPELINE_NAME = "github-resources-test-stable"
 PREVIEW_PARAMETERIZED_PIPELINE_NAME = "preview-test-parameterized"
 COMPLEX_PIPELINE_NAME = "log-test-complex"
 
+
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -22,12 +24,14 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @pytest.fixture
 async def mcp_client_no_auth(monkeypatch):
     monkeypatch.delenv("AZURE_DEVOPS_EXT_PAT", raising=False)
     monkeypatch.delenv("ADO_ORGANIZATION_URL", raising=False)
     async with Client(mcp) as client:
         yield client
+
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_basic(mcp_client: Client):
@@ -37,9 +41,9 @@ async def test_run_pipeline_by_name_basic(mcp_client: Client):
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
     assert isinstance(pipeline_run, dict), f"Expected dict but got {type(pipeline_run)}"
-    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run ID but got None"
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
@@ -51,6 +55,7 @@ async def test_run_pipeline_by_name_basic(mcp_client: Client):
     assert pipeline_info["name"] == BASIC_PIPELINE_NAME, (
         f"Expected pipeline name '{BASIC_PIPELINE_NAME}' but got '{pipeline_info['name']}'"
     )
+
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_with_template_parameters(mcp_client: Client):
@@ -66,8 +71,9 @@ async def test_run_pipeline_by_name_with_template_parameters(mcp_client: Client)
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
-    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run ID but got None"
+
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_with_resources(mcp_client: Client):
@@ -89,8 +95,9 @@ async def test_run_pipeline_by_name_with_resources(mcp_client: Client):
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
-    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run ID but got None"
+
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_with_template_parameters_preview(mcp_client: Client):
@@ -106,8 +113,9 @@ async def test_run_pipeline_by_name_with_template_parameters_preview(mcp_client:
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
-    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run ID but got None"
+
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_with_branch(mcp_client: Client):
@@ -121,8 +129,9 @@ async def test_run_pipeline_by_name_with_branch(mcp_client: Client):
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
-    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run ID but got None"
+
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_with_stages_to_skip(mcp_client: Client):
@@ -138,8 +147,9 @@ async def test_run_pipeline_by_name_with_stages_to_skip(mcp_client: Client):
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run data but got None"
-    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
+    assert pipeline_run is not None, "Expected pipeline run data but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run ID but got None"
+
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_fuzzy_matching(mcp_client: Client):
@@ -149,8 +159,9 @@ async def test_run_pipeline_by_name_fuzzy_matching(mcp_client: Client):
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run with fuzzy matching but got None"
-    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
+    assert pipeline_run is not None, "Expected pipeline run with fuzzy matching but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run ID but got None"
+
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_with_authentication(mcp_client: Client):
@@ -160,8 +171,9 @@ async def test_run_pipeline_by_name_with_authentication(mcp_client: Client):
     )
 
     pipeline_run = result.data
-    assert pipeline_run is not None, f"Expected pipeline run with authentication but got None"
-    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
+    assert pipeline_run is not None, "Expected pipeline run with authentication but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run ID but got None"
+
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_nonexistent_project(mcp_client: Client):
@@ -174,9 +186,10 @@ async def test_run_pipeline_by_name_nonexistent_project(mcp_client: Client):
         if result.data is None:
             assert True, "Non-existent project correctly returned None"
         else:
-            assert False, f"Expected None for non-existent project but got {result.data}"
+            raise AssertionError(f"Expected None for non-existent project but got {result.data}")
     except Exception:
         assert True, "Non-existent project correctly raised exception"
+
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_nonexistent_pipeline(mcp_client: Client):
@@ -189,9 +202,10 @@ async def test_run_pipeline_by_name_nonexistent_pipeline(mcp_client: Client):
         if result.data is None:
             assert True, "Non-existent pipeline correctly returned None"
         else:
-            assert False, f"Expected None for non-existent pipeline but got {result.data}"
+            raise AssertionError(f"Expected None for non-existent pipeline but got {result.data}")
     except Exception:
         assert True, "Non-existent pipeline correctly raised exception"
+
 
 @requires_ado_creds
 async def test_run_pipeline_by_name_case_insensitive(mcp_client: Client):
@@ -202,9 +216,10 @@ async def test_run_pipeline_by_name_case_insensitive(mcp_client: Client):
 
     pipeline_run = result.data
     assert pipeline_run is not None, (
-        f"Expected pipeline run with case insensitive matching but got None"
+        "Expected pipeline run with case insensitive matching but got None"
     )
-    assert pipeline_run["id"] is not None, f"Expected pipeline run ID but got None"
+    assert pipeline_run["id"] is not None, "Expected pipeline run ID but got None"
+
 
 async def test_run_pipeline_by_name_tool_registration():
     async with Client(mcp) as client:

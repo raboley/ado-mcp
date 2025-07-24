@@ -1,13 +1,15 @@
 import os
+
 import pytest
 from fastmcp.client import Client
 
+from ado.cache import ado_cache
 from server import mcp
 from src.test_config import get_project_id
 from tests.ado.test_client import requires_ado_creds
-from ado.cache import ado_cache
 
 pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 async def mcp_client():
@@ -18,15 +20,18 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @pytest.fixture
 def project_id():
     return get_project_id()
+
 
 @pytest.fixture(autouse=True)
 def clear_cache():
     ado_cache.clear_all()
     yield
     ado_cache.clear_all()
+
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -40,6 +45,7 @@ async def test_query_work_items_default_query(mcp_client, project_id):
     assert "workItems" in query_result, "Should include workItems"
     assert "columns" in query_result, "Should include columns"
     assert isinstance(query_result["workItems"], list), "workItems should be a list"
+
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -61,6 +67,7 @@ async def test_query_work_items_with_wiql(mcp_client, project_id):
     assert query_result["queryType"] == "flat", "Should be flat query type"
     assert isinstance(query_result["workItems"], list), "workItems should be a list"
 
+
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_with_simple_filter(mcp_client, project_id):
@@ -73,6 +80,7 @@ async def test_query_work_items_with_simple_filter(mcp_client, project_id):
     query_result = result.data
 
     assert isinstance(query_result["workItems"], list), "workItems should be a list"
+
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -87,6 +95,7 @@ async def test_query_work_items_with_pagination(mcp_client, project_id):
 
     assert result2.data is not None, "Query with skip and top should return data"
 
+
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_with_page_parameters(mcp_client, project_id):
@@ -98,6 +107,7 @@ async def test_query_work_items_with_page_parameters(mcp_client, project_id):
     query_result = result.data
 
     assert isinstance(query_result["workItems"], list), "workItems should be a list"
+
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -117,6 +127,7 @@ async def test_get_work_items_page_default(mcp_client, project_id):
     assert "has_more" in pagination, "pagination should include has_more"
     assert "has_previous" in pagination, "pagination should include has_previous"
 
+
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_items_page_basic_functionality(mcp_client, project_id):
@@ -130,6 +141,7 @@ async def test_get_work_items_page_basic_functionality(mcp_client, project_id):
     assert isinstance(page_result["work_items"], list), "work_items should be a list"
     assert page_result["pagination"]["page_number"] == 1, "Should return correct page number"
     assert page_result["pagination"]["page_size"] == 20, "Should return correct page size"
+
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -155,6 +167,7 @@ async def test_get_work_items_page_pagination_navigation(mcp_client, project_id)
         assert page2["pagination"]["page_number"] == 2, "Should be page 2"
         assert page2["pagination"]["has_previous"] is True, "Second page should have previous"
 
+
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_invalid_wiql(mcp_client, project_id):
@@ -165,11 +178,12 @@ async def test_query_work_items_invalid_wiql(mcp_client, project_id):
             "query_work_items", {"project_id": project_id, "wiql_query": invalid_wiql}
         )
         if result.data is not None:
-            assert False, "Invalid WIQL should not return valid data"
+            raise AssertionError("Invalid WIQL should not return valid data")
     except Exception as e:
         assert "failed" in str(e).lower() or "error" in str(e).lower(), (
             f"Should get meaningful error for invalid WIQL: {e}"
         )
+
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -188,6 +202,7 @@ async def test_query_work_items_invalid_project(mcp_client):
             f"Should get meaningful error for invalid project: {e}"
         )
 
+
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_large_skip_value(mcp_client, project_id):
@@ -199,6 +214,7 @@ async def test_query_work_items_large_skip_value(mcp_client, project_id):
     query_result = result.data
 
     assert isinstance(query_result["workItems"], list), "workItems should be a list"
+
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -215,6 +231,7 @@ async def test_query_work_items_custom_wiql_simple(mcp_client, project_id):
     assert isinstance(query_result["workItems"], list), "workItems should be a list"
     assert len(query_result["workItems"]) <= 10, "Should respect top parameter"
 
+
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_items_page_parameter_validation(mcp_client, project_id):
@@ -228,6 +245,7 @@ async def test_get_work_items_page_parameter_validation(mcp_client, project_id):
     assert isinstance(page_result["work_items"], list), "work_items should be a list"
     assert page_result["pagination"]["page_size"] == 15, "Should respect page_size parameter"
 
+
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_small_top_parameter(mcp_client, project_id):
@@ -237,6 +255,7 @@ async def test_query_work_items_small_top_parameter(mcp_client, project_id):
     query_result = result.data
 
     assert len(query_result["workItems"]) <= 1, "Should return at most 1 workItem when top=1"
+
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -257,6 +276,7 @@ async def test_get_work_items_page_small_page_size(mcp_client, project_id):
         "Should auto-correct page_size to minimum value"
     )
 
+
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_query_work_items_both_wiql_and_filter(mcp_client, project_id):
@@ -267,9 +287,7 @@ async def test_query_work_items_both_wiql_and_filter(mcp_client, project_id):
         {
             "project_id": project_id,
             "wiql_query": wiql_query,
-            "simple_filter": {
-                "work_item_type": "Bug"
-            },
+            "simple_filter": {"work_item_type": "Bug"},
         },
     )
 
@@ -278,10 +296,11 @@ async def test_query_work_items_both_wiql_and_filter(mcp_client, project_id):
 
     assert isinstance(query_result["workItems"], list), "workItems should be a list"
 
+
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_items_page_high_page_number(mcp_client, project_id):
-    first_page = await mcp_client.call_tool(
+    await mcp_client.call_tool(
         "get_work_items_page", {"project_id": project_id, "page_number": 1, "page_size": 10}
     )
 

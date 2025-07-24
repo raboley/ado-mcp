@@ -1,7 +1,7 @@
 """MCP tool definitions for Azure DevOps Work Items CRUD operations."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ado.work_items.client import WorkItemsClient
 from ado.work_items.models import WorkItem
@@ -24,18 +24,18 @@ def register_crud_tools(mcp_instance, client_container):
         project_id: str,
         work_item_type: str,
         title: str,
-        description: Optional[str] = None,
-        area_path: Optional[str] = None,
-        iteration_path: Optional[str] = None,
-        assigned_to: Optional[str] = None,
-        state: Optional[str] = None,
-        priority: Optional[int] = None,
-        tags: Optional[str] = None,
-        additional_fields: Optional[Dict[str, Any]] = None,
+        description: str | None = None,
+        area_path: str | None = None,
+        iteration_path: str | None = None,
+        assigned_to: str | None = None,
+        state: str | None = None,
+        priority: int | None = None,
+        tags: str | None = None,
+        additional_fields: dict[str, Any] | None = None,
         validate_only: bool = False,
         bypass_rules: bool = False,
         suppress_notifications: bool = False,
-    ) -> Optional[WorkItem]:
+    ) -> WorkItem | None:
         """
         Create a new work item in Azure DevOps.
 
@@ -195,10 +195,10 @@ def register_crud_tools(mcp_instance, client_container):
     def get_work_item(
         project_id: str,
         work_item_id: int,
-        fields: Optional[List[str]] = None,
+        fields: list[str] | None = None,
         expand_relations: bool = False,
-        as_of: Optional[str] = None,
-    ) -> Optional[WorkItem]:
+        as_of: str | None = None,
+    ) -> WorkItem | None:
         """
         Retrieve a single work item by ID.
 
@@ -260,20 +260,20 @@ def register_crud_tools(mcp_instance, client_container):
     def update_work_item(
         project_id: str,
         work_item_id: int,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        state: Optional[str] = None,
-        assigned_to: Optional[str] = None,
-        priority: Optional[int] = None,
-        area_path: Optional[str] = None,
-        iteration_path: Optional[str] = None,
-        tags: Optional[str] = None,
-        fields_to_update: Optional[Dict[str, Any]] = None,
-        fields_to_remove: Optional[List[str]] = None,
+        title: str | None = None,
+        description: str | None = None,
+        state: str | None = None,
+        assigned_to: str | None = None,
+        priority: int | None = None,
+        area_path: str | None = None,
+        iteration_path: str | None = None,
+        tags: str | None = None,
+        fields_to_update: dict[str, Any] | None = None,
+        fields_to_remove: list[str] | None = None,
         validate_only: bool = False,
         bypass_rules: bool = False,
         suppress_notifications: bool = False,
-    ) -> Optional[WorkItem]:
+    ) -> WorkItem | None:
         """
         Update an existing work item.
 

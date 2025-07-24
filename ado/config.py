@@ -1,9 +1,9 @@
 """Configuration management for ADO-MCP with structured settings and validation."""
 
-import os
 import logging
-from typing import Optional
+import os
 from dataclasses import dataclass, field
+
 from dotenv import load_dotenv
 
 from .errors import AdoConfigurationError
@@ -130,8 +130,8 @@ class AdoMcpConfig:
     """
 
     # Core settings
-    organization_url: Optional[str] = None
-    pat: Optional[str] = None
+    organization_url: str | None = None
+    pat: str | None = None
 
     # Sub-configurations
     retry: RetryConfig = field(default_factory=RetryConfig)
@@ -252,7 +252,7 @@ class AdoMcpConfig:
         """
         return cls(**overrides)
 
-    def get_effective_pat(self) -> Optional[str]:
+    def get_effective_pat(self) -> str | None:
         """
         Get the effective PAT considering all authentication methods.
 

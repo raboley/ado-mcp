@@ -1,17 +1,15 @@
 """Integration tests for end-to-end work item workflows."""
 
 import os
-import time
+
 import pytest
-from datetime import datetime
-from typing import Dict, Any, List
 from fastmcp.client import Client
 
 from server import mcp
 from src.test_config import get_project_id
-from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 async def mcp_client():
@@ -22,9 +20,11 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @pytest.fixture
 def project_id():
     return get_project_id()  # ado-mcp project
+
 
 @pytest.fixture
 async def workflow_cleanup(mcp_client, project_id):
@@ -52,6 +52,7 @@ async def workflow_cleanup(mcp_client, project_id):
         except Exception as e:
             # Don't fail the test if cleanup fails
             print(f"Warning: Failed to cleanup work item {work_item_id}: {e}")
+
 
 class TestProjectManagementWorkflow:
     """Test complete project management workflows."""
@@ -106,7 +107,7 @@ class TestProjectManagementWorkflow:
                     "source_work_item_id": main_task_id,
                     "target_work_item_id": sub_task_id,
                     "relationship_type": "System.LinkTypes.Related",
-                    "comment": f"Main task breakdown into sub-task",
+                    "comment": "Main task breakdown into sub-task",
                 },
             )
 
@@ -171,7 +172,7 @@ class TestProjectManagementWorkflow:
         assert bug_result.data["fields"]["System.WorkItemType"] == "Bug"
 
         # Step 2: Update bug with description and priority
-        bug_update = await mcp_client.call_tool(
+        await mcp_client.call_tool(
             "update_work_item",
             {
                 "project_id": project_id,
@@ -511,6 +512,7 @@ class TestProjectManagementWorkflow:
         assert len(batch_query.data["workItems"]) >= len(work_items), (
             "Should find all batch test items with batch tag"
         )
+
 
 class TestDataIntegrityWorkflow:
     """Test data integrity and error handling across workflows."""

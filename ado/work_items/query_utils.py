@@ -1,9 +1,9 @@
 """Query utility functions for Azure DevOps Work Items."""
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
-def build_wiql_from_filter(simple_filter: Dict[str, Any]) -> str:
+def build_wiql_from_filter(simple_filter: dict[str, Any]) -> str:
     """
     Build a WIQL query from simple filter parameters.
 
@@ -88,11 +88,11 @@ def build_wiql_from_filter(simple_filter: Dict[str, Any]) -> str:
 
 
 def analyze_query_complexity(
-    wiql_query: Optional[str],
-    simple_filter: Optional[Dict[str, Any]],
-    top: Optional[int],
-    skip: Optional[int],
-) -> Dict[str, Any]:
+    wiql_query: str | None,
+    simple_filter: dict[str, Any] | None,
+    top: int | None,
+    skip: int | None,
+) -> dict[str, Any]:
     """
     Analyze query complexity for performance metrics.
 

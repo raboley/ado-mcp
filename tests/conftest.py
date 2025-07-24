@@ -1,9 +1,9 @@
 """Pytest configuration with test ordering based on duration."""
 
 import json
-from pathlib import Path
 
 import pytest
+
 
 def pytest_addoption(parser):
     """Add command line options for test ordering."""
@@ -20,6 +20,7 @@ def pytest_addoption(parser):
         help="Threshold in seconds to mark tests as slow (default: 5.0)",
     )
 
+
 def pytest_collection_modifyitems(config, items):
     """Reorder tests based on previous run durations if --slowest-first is used."""
     if not config.getoption("--slowest-first"):
@@ -32,9 +33,9 @@ def pytest_collection_modifyitems(config, items):
     durations = {}
     if duration_file.exists():
         try:
-            with open(duration_file, "r") as f:
+            with open(duration_file) as f:
                 durations = json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             pass
 
     # Sort items by duration (slowest first)
@@ -53,6 +54,7 @@ def pytest_collection_modifyitems(config, items):
         duration = get_duration(item)
         if duration > threshold:
             item.add_marker(pytest.mark.slow)
+
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
     """Save test durations to cache after test run."""
@@ -78,9 +80,9 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         existing_durations = {}
         if duration_file.exists():
             try:
-                with open(duration_file, "r") as f:
+                with open(duration_file) as f:
                     existing_durations = json.load(f)
-            except (json.JSONDecodeError, IOError):
+            except (OSError, json.JSONDecodeError):
                 pass
 
         # Update with new durations
@@ -91,8 +93,9 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             duration_file.parent.mkdir(parents=True, exist_ok=True)
             with open(duration_file, "w") as f:
                 json.dump(existing_durations, f, indent=2)
-        except IOError:
+        except OSError:
             pass
+
 
 @pytest.fixture
 def show_test_info(request):
@@ -104,7 +107,7 @@ def show_test_info(request):
 
     if duration_file.exists():
         try:
-            with open(duration_file, "r") as f:
+            with open(duration_file) as f:
                 durations = json.load(f)
                 cached_duration = durations.get(request.node.nodeid, 0.0)
                 if cached_duration > 0:

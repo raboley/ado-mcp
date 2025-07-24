@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import Optional, List, Any
+from typing import Any
 
 from ado.cache import ado_cache
 
@@ -85,7 +85,7 @@ class PathValidator:
         return True
 
     @staticmethod
-    def _path_exists_in_tree(path: str, nodes: List[Any]) -> bool:
+    def _path_exists_in_tree(path: str, nodes: list[Any]) -> bool:
         """
         Check if a path exists in a classification node tree.
 
@@ -136,7 +136,7 @@ class PathValidator:
     @staticmethod
     def suggest_valid_paths(
         project_id: str, partial_path: str, path_type: str = "area"
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Suggest valid paths based on a partial path.
 
@@ -171,7 +171,7 @@ class PathValidator:
         return suggestions[:5]
 
     @staticmethod
-    def _collect_all_paths(nodes: List[Any], parent_path: str = "") -> List[str]:
+    def _collect_all_paths(nodes: list[Any], parent_path: str = "") -> list[str]:
         """
         Recursively collect all paths from a node tree.
 

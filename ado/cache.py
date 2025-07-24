@@ -10,17 +10,16 @@ This module provides intelligent caching for:
 The cache uses TTL-based expiration and fuzzy name matching for better user experience.
 """
 
-import time
 import logging
-from typing import Dict, List, Optional, Any, Tuple
+import time
 from dataclasses import dataclass
 from difflib import get_close_matches
+from typing import Any
 
-from opentelemetry import trace, metrics
-from opentelemetry.trace import Status, StatusCode
+from opentelemetry import metrics, trace
 
-from .models import Project, Pipeline
-from .work_items.models import WorkItemType, ClassificationNode
+from .models import Pipeline, Project
+from .work_items.models import ClassificationNode, WorkItemType
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -48,8 +47,8 @@ class AdoCache:
     """
 
     def __init__(self, max_size: int = 1000):
-        self._cache: Dict[str, CacheEntry] = {}
-        self._access_order: List[str] = []  # For LRU tracking
+        self._cache: dict[str, CacheEntry] = {}
+        self._access_order: list[str] = []  # For LRU tracking
         self.max_size = max_size
 
         # TTL settings (in seconds)
@@ -114,7 +113,7 @@ class AdoCache:
 
         logger.debug(f"Cached {key} for {ttl_seconds}s")
 
-    def _get(self, key: str) -> Optional[Any]:
+    def _get(self, key: str) -> Any | None:
         """Get a cache entry if it exists and is valid."""
         with tracer.start_as_current_span("cache_get") as span:
             span.set_attribute("cache.key", key)
@@ -125,12 +124,12 @@ class AdoCache:
                 span.set_attribute("cache.hit", True)
                 self._cache_hit_counter.add(1, {"cache_type": cache_type})
                 logger.debug(f"Cache hit for key: {key}")
-                
+
                 # Update LRU order on access
                 if key in self._access_order:
                     self._access_order.remove(key)
                     self._access_order.append(key)
-                
+
                 return self._cache[key].data
             elif key in self._cache:
                 # Remove expired entry
@@ -156,21 +155,23 @@ class AdoCache:
             # Remove least recently used entry
             if not self._access_order:
                 break
-            
+
             lru_key = self._access_order.pop(0)
             if lru_key in self._cache:
                 cache_type = lru_key.split(":")[0] if ":" in lru_key else "unknown"
                 del self._cache[lru_key]
                 self._cache_size_gauge.add(-1, {"cache_type": cache_type})
-                self._cache_eviction_counter.add(1, {"cache_type": cache_type, "reason": "lru_eviction"})
+                self._cache_eviction_counter.add(
+                    1, {"cache_type": cache_type, "reason": "lru_eviction"}
+                )
                 logger.debug(f"Evicted LRU cache entry: {lru_key}")
 
     # Project caching
-    def get_projects(self) -> Optional[List[Project]]:
+    def get_projects(self) -> list[Project] | None:
         """Get cached projects list."""
         return self._get("projects")
 
-    def set_projects(self, projects: List[Project]) -> None:
+    def set_projects(self, projects: list[Project]) -> None:
         """Cache projects list and create name-to-ID mapping."""
         self._set("projects", projects, self.PROJECT_TTL)
 
@@ -180,7 +181,7 @@ class AdoCache:
 
         logger.info(f"Cached {len(projects)} projects")
 
-    def find_project_by_name(self, name: str, fuzzy: bool = True) -> Optional[Project]:
+    def find_project_by_name(self, name: str, fuzzy: bool = True) -> Project | None:
         """
         Find a project by name with optional fuzzy matching.
 
@@ -215,18 +216,18 @@ class AdoCache:
 
         return None
 
-    def get_project_id_by_name(self, name: str) -> Optional[str]:
+    def get_project_id_by_name(self, name: str) -> str | None:
         """Get project ID by name."""
         project = self.find_project_by_name(name)
         return project.id if project else None
 
     # Pipeline caching
-    def get_pipelines(self, project_id: str) -> Optional[List[Pipeline]]:
+    def get_pipelines(self, project_id: str) -> list[Pipeline] | None:
         """Get cached pipelines for a project."""
         key = f"pipelines:{project_id}"
         return self._get(key)
 
-    def set_pipelines(self, project_id: str, pipelines: List[Pipeline]) -> None:
+    def set_pipelines(self, project_id: str, pipelines: list[Pipeline]) -> None:
         """Cache pipelines for a project."""
         key = f"pipelines:{project_id}"
         self._set(key, pipelines, self.PIPELINE_TTL)
@@ -240,7 +241,7 @@ class AdoCache:
 
     def find_pipeline_by_name(
         self, project_id: str, name: str, fuzzy: bool = True
-    ) -> Optional[Pipeline]:
+    ) -> Pipeline | None:
         """
         Find a pipeline by name within a project.
 
@@ -276,14 +277,14 @@ class AdoCache:
 
         return None
 
-    def get_pipeline_id_by_name(self, project_id: str, name: str) -> Optional[int]:
+    def get_pipeline_id_by_name(self, project_id: str, name: str) -> int | None:
         """Get pipeline ID by name within a project."""
         pipeline = self.find_pipeline_by_name(project_id, name)
         return pipeline.id if pipeline else None
 
     def find_pipeline_by_name_and_project(
         self, project_name: str, pipeline_name: str
-    ) -> Optional[Tuple[str, int]]:
+    ) -> tuple[str, int] | None:
         """
         Find pipeline by project name and pipeline name.
 
@@ -301,24 +302,24 @@ class AdoCache:
         return (project.id, pipeline.id)
 
     # Service connections caching
-    def get_service_connections(self, project_id: str) -> Optional[List[Dict[str, Any]]]:
+    def get_service_connections(self, project_id: str) -> list[dict[str, Any]] | None:
         """Get cached service connections for a project."""
         key = f"service_connections:{project_id}"
         return self._get(key)
 
-    def set_service_connections(self, project_id: str, connections: List[Dict[str, Any]]) -> None:
+    def set_service_connections(self, project_id: str, connections: list[dict[str, Any]]) -> None:
         """Cache service connections for a project."""
         key = f"service_connections:{project_id}"
         self._set(key, connections, self.SERVICE_CONN_TTL)
         logger.info(f"Cached {len(connections)} service connections for project {project_id}")
 
     # Work item types caching
-    def get_work_item_types(self, project_id: str) -> Optional[List[WorkItemType]]:
+    def get_work_item_types(self, project_id: str) -> list[WorkItemType] | None:
         """Get cached work item types for a project."""
         key = f"work_item_types:{project_id}"
         return self._get(key)
 
-    def set_work_item_types(self, project_id: str, work_item_types: List[WorkItemType]) -> None:
+    def set_work_item_types(self, project_id: str, work_item_types: list[WorkItemType]) -> None:
         """Cache work item types for a project."""
         key = f"work_item_types:{project_id}"
         self._set(key, work_item_types, self.WORK_ITEM_TYPE_TTL)
@@ -332,7 +333,7 @@ class AdoCache:
 
     def find_work_item_type_by_name(
         self, project_id: str, name: str, fuzzy: bool = True
-    ) -> Optional[WorkItemType]:
+    ) -> WorkItemType | None:
         """
         Find a work item type by name within a project.
 
@@ -369,24 +370,24 @@ class AdoCache:
         return None
 
     # Classification nodes caching (area and iteration paths)
-    def get_area_paths(self, project_id: str) -> Optional[List[ClassificationNode]]:
+    def get_area_paths(self, project_id: str) -> list[ClassificationNode] | None:
         """Get cached area paths for a project."""
         key = f"area_paths:{project_id}"
         return self._get(key)
 
-    def set_area_paths(self, project_id: str, area_paths: List[ClassificationNode]) -> None:
+    def set_area_paths(self, project_id: str, area_paths: list[ClassificationNode]) -> None:
         """Cache area paths for a project."""
         key = f"area_paths:{project_id}"
         self._set(key, area_paths, self.CLASSIFICATION_TTL)
         logger.info(f"Cached area paths for project {project_id}")
 
-    def get_iteration_paths(self, project_id: str) -> Optional[List[ClassificationNode]]:
+    def get_iteration_paths(self, project_id: str) -> list[ClassificationNode] | None:
         """Get cached iteration paths for a project."""
         key = f"iteration_paths:{project_id}"
         return self._get(key)
 
     def set_iteration_paths(
-        self, project_id: str, iteration_paths: List[ClassificationNode]
+        self, project_id: str, iteration_paths: list[ClassificationNode]
     ) -> None:
         """Cache iteration paths for a project."""
         key = f"iteration_paths:{project_id}"
@@ -396,7 +397,7 @@ class AdoCache:
     # Cache management
     def clear_expired(self) -> int:
         """Remove all expired cache entries. Returns number of entries removed."""
-        before_count = len(self._cache)
+        len(self._cache)
         expired_keys = [key for key, entry in self._cache.items() if entry.is_expired()]
 
         for key in expired_keys:
@@ -438,23 +439,27 @@ class AdoCache:
         """Invalidate pipeline cache for a specific project."""
         key = f"pipelines:{project_id}"
         name_map_key = f"pipeline_names:{project_id}"
-        
+
         if key in self._cache:
             del self._cache[key]
             if key in self._access_order:
                 self._access_order.remove(key)
             self._cache_size_gauge.add(-1, {"cache_type": "pipelines"})
-            self._cache_eviction_counter.add(1, {"cache_type": "pipelines", "reason": "manual_invalidate"})
+            self._cache_eviction_counter.add(
+                1, {"cache_type": "pipelines", "reason": "manual_invalidate"}
+            )
             logger.info(f"Invalidated pipeline cache for project {project_id}")
-        
+
         if name_map_key in self._cache:
             del self._cache[name_map_key]
             if name_map_key in self._access_order:
                 self._access_order.remove(name_map_key)
             self._cache_size_gauge.add(-1, {"cache_type": "pipeline_names"})
-            self._cache_eviction_counter.add(1, {"cache_type": "pipeline_names", "reason": "manual_invalidate"})
+            self._cache_eviction_counter.add(
+                1, {"cache_type": "pipeline_names", "reason": "manual_invalidate"}
+            )
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics including hit/miss rates."""
         total_entries = len(self._cache)
         expired_entries = sum(1 for entry in self._cache.values() if entry.is_expired())

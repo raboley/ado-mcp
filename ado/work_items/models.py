@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -12,8 +12,8 @@ class JsonPatchOperation(BaseModel):
 
     op: str = Field(..., description="The operation type: add, remove, replace, move, copy, test")
     path: str = Field(..., description="The JSON path to the target location")
-    value: Optional[Any] = Field(None, description="The value to be used in the operation")
-    from_: Optional[str] = Field(
+    value: Any | None = Field(None, description="The value to be used in the operation")
+    from_: str | None = Field(
         None, alias="from", description="The source path for move/copy operations"
     )
 
@@ -21,7 +21,7 @@ class JsonPatchOperation(BaseModel):
 class JsonPatchDocument(BaseModel):
     """Represents a JSON Patch document containing multiple operations."""
 
-    operations: List[JsonPatchOperation] = Field(..., description="List of patch operations")
+    operations: list[JsonPatchOperation] = Field(..., description="List of patch operations")
 
 
 class WorkItemField(BaseModel):
@@ -29,22 +29,22 @@ class WorkItemField(BaseModel):
 
     referenceName: str
     name: str
-    type: Optional[str] = None
-    readOnly: Optional[bool] = None
-    required: Optional[bool] = None
-    alwaysRequired: Optional[bool] = None
-    allowedValues: Optional[List[Any]] = None
-    defaultValue: Optional[Any] = None
-    helpText: Optional[str] = None
-    url: Optional[str] = None
+    type: str | None = None
+    readOnly: bool | None = None
+    required: bool | None = None
+    alwaysRequired: bool | None = None
+    allowedValues: list[Any] | None = None
+    defaultValue: Any | None = None
+    helpText: str | None = None
+    url: str | None = None
 
 
 class WorkItemTypeState(BaseModel):
     """Represents a state in a work item type."""
 
     name: str = Field(..., description="The name of the state")
-    color: Optional[str] = Field(None, description="Color associated with the state")
-    category: Optional[str] = Field(
+    color: str | None = Field(None, description="Color associated with the state")
+    category: str | None = Field(
         None, description="Category of the state (Proposed, InProgress, Completed)"
     )
 
@@ -53,9 +53,7 @@ class WorkItemTypeTransition(BaseModel):
     """Represents a state transition in a work item type."""
 
     to: str = Field(..., description="The target state name")
-    actions: Optional[List[str]] = Field(
-        None, description="Actions available during this transition"
-    )
+    actions: list[str] | None = Field(None, description="Actions available during this transition")
 
 
 class WorkItemType(BaseModel):
@@ -63,28 +61,28 @@ class WorkItemType(BaseModel):
 
     name: str
     referenceName: str
-    description: Optional[str] = None
-    color: Optional[str] = None
-    icon: Optional[Dict[str, Any]] = None
-    isDisabled: Optional[bool] = None
-    xmlForm: Optional[str] = None
-    url: Optional[str] = None
+    description: str | None = None
+    color: str | None = None
+    icon: dict[str, Any] | None = None
+    isDisabled: bool | None = None
+    xmlForm: str | None = None
+    url: str | None = None
     # Note: fields, states, and transitions are complex nested objects that vary by API call
     # They're not always present in list_work_item_types response
-    fields: Optional[List[Dict[str, Any]]] = None
-    states: Optional[List[Dict[str, Any]]] = None
-    transitions: Optional[Dict[str, List[Dict[str, Any]]]] = None
+    fields: list[dict[str, Any]] | None = None
+    states: list[dict[str, Any]] | None = None
+    transitions: dict[str, list[dict[str, Any]]] | None = None
 
 
 class WorkItem(BaseModel):
     """Represents a work item in Azure DevOps."""
 
-    id: Optional[int] = Field(None, description="The work item ID")
-    rev: Optional[int] = Field(None, description="The revision number")
-    fields: Dict[str, Any] = Field(..., description="Work item fields as key-value pairs")
-    relations: Optional[List["WorkItemRelation"]] = Field(None, description="Related work items")
-    url: Optional[str] = Field(None, description="The REST URL of the work item")
-    links: Optional[Dict[str, Any]] = Field(None, alias="_links", description="Hypermedia links")
+    id: int | None = Field(None, description="The work item ID")
+    rev: int | None = Field(None, description="The revision number")
+    fields: dict[str, Any] = Field(..., description="Work item fields as key-value pairs")
+    relations: list["WorkItemRelation"] | None = Field(None, description="Related work items")
+    url: str | None = Field(None, description="The REST URL of the work item")
+    links: dict[str, Any] | None = Field(None, alias="_links", description="Hypermedia links")
 
 
 class WorkItemRelationType(str, Enum):
@@ -108,7 +106,7 @@ class WorkItemRelation(BaseModel):
 
     rel: str = Field(..., description="The relationship type")
     url: str = Field(..., description="The URL of the related work item")
-    attributes: Optional[Dict[str, Any]] = Field(
+    attributes: dict[str, Any] | None = Field(
         None, description="Additional attributes of the relation"
     )
 
@@ -116,18 +114,16 @@ class WorkItemRelation(BaseModel):
 class WorkItemComment(BaseModel):
     """Represents a comment on a work item."""
 
-    id: Optional[int] = Field(None, description="The comment ID")
+    id: int | None = Field(None, description="The comment ID")
     work_item_id: int = Field(..., description="The ID of the work item")
     text: str = Field(..., description="The comment text (supports HTML/Markdown)")
-    created_by: Optional[Dict[str, Any]] = Field(None, description="User who created the comment")
-    created_date: Optional[datetime] = Field(None, description="When the comment was created")
-    modified_by: Optional[Dict[str, Any]] = Field(
+    created_by: dict[str, Any] | None = Field(None, description="User who created the comment")
+    created_date: datetime | None = Field(None, description="When the comment was created")
+    modified_by: dict[str, Any] | None = Field(
         None, description="User who last modified the comment"
     )
-    modified_date: Optional[datetime] = Field(
-        None, description="When the comment was last modified"
-    )
-    format: Optional[str] = Field("html", description="The format of the comment text")
+    modified_date: datetime | None = Field(None, description="When the comment was last modified")
+    format: str | None = Field("html", description="The format of the comment text")
 
 
 class WorkItemRevision(BaseModel):
@@ -135,10 +131,10 @@ class WorkItemRevision(BaseModel):
 
     id: int = Field(..., description="The work item ID")
     rev: int = Field(..., description="The revision number")
-    fields: Dict[str, Any] = Field(..., description="Fields at this revision")
-    url: Optional[str] = Field(None, description="The REST URL of this revision")
-    revised_by: Optional[Dict[str, Any]] = Field(None, description="User who made this revision")
-    revised_date: Optional[datetime] = Field(None, description="When this revision was made")
+    fields: dict[str, Any] = Field(..., description="Fields at this revision")
+    url: str | None = Field(None, description="The REST URL of this revision")
+    revised_by: dict[str, Any] | None = Field(None, description="User who made this revision")
+    revised_date: datetime | None = Field(None, description="When this revision was made")
 
 
 class WorkItemReference(BaseModel):
@@ -152,28 +148,28 @@ class WorkItemQueryResult(BaseModel):
     """Represents the result of a work item query."""
 
     queryType: str = Field(..., description="The type of query (flat, tree, oneHop)")
-    queryResultType: Optional[str] = Field(
+    queryResultType: str | None = Field(
         None, description="The type of results (workItem, workItemLink)"
     )
-    asOf: Optional[str] = Field(None, description="The date/time the query was run")
-    workItems: List[WorkItemReference] = Field(
+    asOf: str | None = Field(None, description="The date/time the query was run")
+    workItems: list[WorkItemReference] = Field(
         ..., description="The work items returned by the query"
     )
-    columns: Optional[List[Dict[str, Any]]] = Field(None, description="Column information")
-    sortColumns: Optional[List[Dict[str, Any]]] = Field(None, description="Sort column information")
+    columns: list[dict[str, Any]] | None = Field(None, description="Column information")
+    sortColumns: list[dict[str, Any]] | None = Field(None, description="Sort column information")
 
 
 class ClassificationNode(BaseModel):
     """Represents a classification node (area path or iteration path)."""
 
-    id: Optional[int] = None
-    name: Optional[str] = None
-    path: Optional[str] = None
-    url: Optional[str] = None
-    structureType: Optional[str] = None
-    hasChildren: Optional[bool] = None
-    children: Optional[List["ClassificationNode"]] = None
-    attributes: Optional[Dict[str, Any]] = None
+    id: int | None = None
+    name: str | None = None
+    path: str | None = None
+    url: str | None = None
+    structureType: str | None = None
+    hasChildren: bool | None = None
+    children: list["ClassificationNode"] | None = None
+    attributes: dict[str, Any] | None = None
 
 
 # Update forward references

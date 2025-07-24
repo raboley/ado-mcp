@@ -5,7 +5,9 @@ Script to create the GitHub resources test pipeline using the MCP client
 
 import asyncio
 import os
+
 from fastmcp.client import Client
+
 from server import mcp
 
 
@@ -79,6 +81,6 @@ async def create_github_resources_pipeline():
 
 if __name__ == "__main__":
     pipeline = asyncio.run(create_github_resources_pipeline())
-    print(f"\nPipeline created successfully!")
+    print("\nPipeline created successfully!")
     print(f"Pipeline ID: {pipeline['id']}")
     print(f"Pipeline Name: {pipeline['name']}")

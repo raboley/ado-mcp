@@ -1,14 +1,12 @@
 """Validation helpers for work item operations."""
 
 import logging
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Any
 
-from ado.cache import ado_cache
-from ado.errors import AdoError
-from .path_validators import PathValidator
 from .field_validators import FieldValidator
-from .state_validators import StateValidator
+from .path_validators import PathValidator
 from .relationship_validators import RelationshipValidator
+from .state_validators import StateValidator
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +81,7 @@ class WorkItemValidator:
 
     @staticmethod
     def validate_field_value(
-        field_name: str, field_value: Any, field_type: Optional[str] = None
+        field_name: str, field_value: Any, field_type: str | None = None
     ) -> bool:
         """
         Validate a field value based on its type.
@@ -114,7 +112,7 @@ class WorkItemValidator:
     @staticmethod
     def suggest_valid_paths(
         project_id: str, partial_path: str, path_type: str = "area"
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Suggest valid paths based on a partial path.
 
@@ -131,7 +129,7 @@ class WorkItemValidator:
     @staticmethod
     def validate_relationship_constraints(
         source_work_item_type: str, target_work_item_type: str, relationship_type: str
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """
         Validate constraints for work item relationships.
 
@@ -161,7 +159,7 @@ class WorkItemValidator:
         return RelationshipValidator.validate_relationship_type(relationship_type)
 
     @staticmethod
-    def get_valid_relationship_types() -> List[str]:
+    def get_valid_relationship_types() -> list[str]:
         """
         Get list of all valid relationship types.
 
@@ -173,7 +171,7 @@ class WorkItemValidator:
     @staticmethod
     def suggest_relationship_types(
         source_work_item_type: str, target_work_item_type: str
-    ) -> List[Tuple[str, str]]:
+    ) -> list[tuple[str, str]]:
         """
         Suggest appropriate relationship types for two work item types.
 

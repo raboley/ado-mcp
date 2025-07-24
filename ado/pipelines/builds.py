@@ -40,10 +40,12 @@ class BuildOperations:
         # Note: Only validate for 'self' repository overrides and branch parameters
         # External repository overrides (like 'tooling', 'templates', etc.) typically work
         has_self_repo_override = (
-            request and request.resources and request.resources.repositories and 
-            "self" in request.resources.repositories
+            request
+            and request.resources
+            and request.resources.repositories
+            and "self" in request.resources.repositories
         )
-        
+
         if request and (request.branch or has_self_repo_override):
             try:
                 self._validate_pipeline_supports_resources(project_id, pipeline_id, request)
@@ -316,13 +318,14 @@ class BuildOperations:
             if request.branch:
                 if not preview_request.resources:
                     from ..models import RunResourcesParameters
+
                     preview_request.resources = RunResourcesParameters()
                 if not preview_request.resources.repositories:
                     preview_request.resources.repositories = {}
                 preview_request.resources.repositories["self"] = {"refName": request.branch}
 
             pipeline_ops = PipelineOperations(self._client)
-            preview_result = pipeline_ops.preview_pipeline(project_id, pipeline_id, preview_request)
+            pipeline_ops.preview_pipeline(project_id, pipeline_id, preview_request)
 
             logger.info(f"Pipeline preview successful for pipeline {pipeline_id}")
 

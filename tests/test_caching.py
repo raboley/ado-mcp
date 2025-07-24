@@ -1,10 +1,9 @@
-import pytest
-from fastmcp.client import Client
 import time
 
 from ado.cache import AdoCache, ado_cache
-from ado.models import Project, Pipeline
+from ado.models import Pipeline, Project
 from tests.ado.test_client import requires_ado_creds
+
 
 class TestAdoCache:
     def setup_method(self):
@@ -160,11 +159,13 @@ class TestAdoCache:
         final_count = self.cache.get_stats()["total_entries"]
         assert final_count == 1, f"Expected 1 entry after cleanup but got {final_count}"
 
+
 @requires_ado_creds
 class TestCachingIntegration:
     def test_name_based_project_lookup(self):
-        from ado.client import AdoClient
         import os
+
+        from ado.client import AdoClient
 
         client = AdoClient(
             organization_url=os.environ["ADO_ORGANIZATION_URL"],
@@ -192,8 +193,9 @@ class TestCachingIntegration:
             )
 
     def test_name_based_pipeline_lookup(self):
-        from ado.client import AdoClient
         import os
+
+        from ado.client import AdoClient
 
         client = AdoClient(
             organization_url=os.environ["ADO_ORGANIZATION_URL"],
@@ -224,9 +226,10 @@ class TestCachingIntegration:
                     break
 
     def test_cache_performance(self):
-        from ado.client import AdoClient
         import os
         import time
+
+        from ado.client import AdoClient
 
         client = AdoClient(
             organization_url=os.environ["ADO_ORGANIZATION_URL"],
@@ -252,8 +255,9 @@ class TestCachingIntegration:
         )
 
     def test_fuzzy_matching_with_real_data(self):
-        from ado.client import AdoClient
         import os
+
+        from ado.client import AdoClient
 
         client = AdoClient(
             organization_url=os.environ["ADO_ORGANIZATION_URL"],

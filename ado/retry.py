@@ -1,16 +1,17 @@
 """Retry mechanism with exponential backoff for ADO API calls."""
 
-import time
-import random
 import logging
-from typing import Any, Callable, Optional, Type, Tuple
+import random
+import time
+from collections.abc import Callable
 from functools import wraps
+from typing import Any
 
 import requests
 from opentelemetry import trace
 
 from .config import RetryConfig
-from .errors import AdoRateLimitError, AdoTimeoutError, AdoNetworkError
+from .errors import AdoNetworkError, AdoRateLimitError, AdoTimeoutError
 
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -40,7 +41,7 @@ class RetryManager:
         self._last_failure_time = 0
         self._circuit_timeout = 60  # seconds
 
-    def _calculate_delay(self, attempt: int, retry_after: Optional[int] = None) -> float:
+    def _calculate_delay(self, attempt: int, retry_after: int | None = None) -> float:
         """
         Calculate delay for next retry attempt.
 
@@ -95,7 +96,7 @@ class RetryManager:
         if isinstance(exception, AdoRateLimitError):
             return True
 
-        if isinstance(exception, (AdoNetworkError, requests.exceptions.RequestException)):
+        if isinstance(exception, AdoNetworkError | requests.exceptions.RequestException):
             # Don't retry certain HTTP errors
             if hasattr(exception, "response") and exception.response is not None:
                 status_code = exception.response.status_code
@@ -112,7 +113,7 @@ class RetryManager:
                         return False
             return True
 
-        if isinstance(exception, (AdoTimeoutError, requests.exceptions.Timeout)):
+        if isinstance(exception, AdoTimeoutError | requests.exceptions.Timeout):
             return True
 
         return False

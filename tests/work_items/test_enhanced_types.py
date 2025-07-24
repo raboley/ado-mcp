@@ -3,9 +3,9 @@ from fastmcp.client import Client
 
 from server import mcp
 from src.test_config import get_project_id
-from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 async def mcp_client():
@@ -14,12 +14,13 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": org_url})
         yield client
 
+
 @pytest.fixture
 def project_id():
     return get_project_id()
 
-class TestEnhancedWorkItemTypeIntrospection:
 
+class TestEnhancedWorkItemTypeIntrospection:
     async def test_enhanced_type_tools_registered_in_mcp_server(self, mcp_client):
         tools_response = await mcp_client.list_tools()
         if hasattr(tools_response, "tools"):
@@ -91,8 +92,8 @@ class TestEnhancedWorkItemTypeIntrospection:
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
 
-class TestEnhancedFieldIntrospection:
 
+class TestEnhancedFieldIntrospection:
     async def test_get_work_item_type_field_system_title(self, mcp_client, project_id):
         result = await mcp_client.call_tool(
             "get_work_item_type_field",
@@ -194,8 +195,8 @@ class TestEnhancedFieldIntrospection:
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
 
-class TestEnhancedTypeIntegration:
 
+class TestEnhancedTypeIntegration:
     async def test_compare_list_vs_detailed_work_item_type(self, mcp_client, project_id):
         list_result = await mcp_client.call_tool("list_work_item_types", {"project_id": project_id})
 

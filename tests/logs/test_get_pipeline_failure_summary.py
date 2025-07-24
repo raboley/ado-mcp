@@ -1,4 +1,5 @@
 import os
+
 import pytest
 from fastmcp.client import Client
 
@@ -9,6 +10,7 @@ from tests.test_helpers import get_pipeline_id_by_name
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -18,12 +20,16 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @pytest.fixture
 async def completed_run_id(mcp_client):
-    project_name = get_project_name()
-    pipeline_name = "test_run_and_get_pipeline_run_details"
+    get_project_name()
     result = await mcp_client.call_tool(
-        "run_pipeline", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details"}
+        "run_pipeline",
+        {
+            "project_name": get_project_name(),
+            "pipeline_name": "test_run_and_get_pipeline_run_details",
+        },
     )
 
     pipeline_run = result.data
@@ -34,14 +40,18 @@ async def completed_run_id(mcp_client):
 
     return pipeline_run["id"]
 
+
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_basic_structure(
     mcp_client: Client, completed_run_id: int
 ):
-    project_name = get_project_name()
-    pipeline_name = "test_run_and_get_pipeline_run_details"
+    get_project_name()
     result = await mcp_client.call_tool(
-        "get_pipeline_failure_summary", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": completed_run_id,
+        "get_pipeline_failure_summary",
+        {
+            "project_name": get_project_name(),
+            "pipeline_name": "test_run_and_get_pipeline_run_details",
+            "run_id": completed_run_id,
         },
     )
 
@@ -69,14 +79,18 @@ async def test_get_pipeline_failure_summary_basic_structure(
         f"Expected hierarchy_failures to be list, got {type(failure_summary['hierarchy_failures'])}: {failure_summary['hierarchy_failures']}"
     )
 
+
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_with_max_lines(
     mcp_client: Client, completed_run_id: int
 ):
-    project_name = get_project_name()
-    pipeline_name = "test_run_and_get_pipeline_run_details"
+    get_project_name()
     result = await mcp_client.call_tool(
-        "get_pipeline_failure_summary", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": completed_run_id,
+        "get_pipeline_failure_summary",
+        {
+            "project_name": get_project_name(),
+            "pipeline_name": "test_run_and_get_pipeline_run_details",
+            "run_id": completed_run_id,
             "max_lines": 50,
         },
     )
@@ -96,14 +110,18 @@ async def test_get_pipeline_failure_summary_with_max_lines(
                 f"Expected log content to have at most 50 lines for max_lines=50, got {len(lines)} lines in task '{task.get('name', 'unknown')}'"
             )
 
+
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_unlimited_lines(
     mcp_client: Client, completed_run_id: int
 ):
-    project_name = get_project_name()
-    pipeline_name = "test_run_and_get_pipeline_run_details"
+    get_project_name()
     result = await mcp_client.call_tool(
-        "get_pipeline_failure_summary", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": completed_run_id,
+        "get_pipeline_failure_summary",
+        {
+            "project_name": get_project_name(),
+            "pipeline_name": "test_run_and_get_pipeline_run_details",
+            "run_id": completed_run_id,
             "max_lines": 0,
         },
     )
@@ -116,14 +134,18 @@ async def test_get_pipeline_failure_summary_unlimited_lines(
         f"Expected failure summary to be dict, got {type(failure_summary)}: {failure_summary}"
     )
 
+
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_task_structure(
     mcp_client: Client, completed_run_id: int
 ):
-    project_name = get_project_name()
-    pipeline_name = "test_run_and_get_pipeline_run_details"
+    get_project_name()
     result = await mcp_client.call_tool(
-        "get_pipeline_failure_summary", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": completed_run_id,
+        "get_pipeline_failure_summary",
+        {
+            "project_name": get_project_name(),
+            "pipeline_name": "test_run_and_get_pipeline_run_details",
+            "run_id": completed_run_id,
         },
     )
 
@@ -152,20 +174,28 @@ async def test_get_pipeline_failure_summary_task_structure(
                 f"Expected '{field}' field in hierarchy_failure, got fields: {list(failure.keys())}"
             )
 
+
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_nonexistent_run(mcp_client: Client):
     try:
         result = await mcp_client.call_tool(
             "get_pipeline_failure_summary",
-            {"project_id": get_project_id(), "pipeline_id": await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details"), "run_id": 999999999},
+            {
+                "project_id": get_project_id(),
+                "pipeline_id": await get_pipeline_id_by_name(
+                    mcp_client, "test_run_and_get_pipeline_run_details"
+                ),
+                "run_id": 999999999,
+            },
         )
 
         if result.data is not None:
-            assert False, f"Expected None for non-existent run 999999999, got {result.data}"
+            raise AssertionError(f"Expected None for non-existent run 999999999, got {result.data}")
     except Exception as e:
         assert True, (
             f"Expected exception for non-existent run 999999999, got {type(e).__name__}: {e}"
         )
+
 
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_invalid_project(mcp_client: Client):
@@ -174,13 +204,15 @@ async def test_get_pipeline_failure_summary_invalid_project(mcp_client: Client):
             "get_pipeline_failure_summary",
             {
                 "project_id": "00000000-0000-0000-0000-000000000000",
-                "pipeline_id": await get_pipeline_id_by_name(mcp_client, "test_run_and_get_pipeline_run_details"),
+                "pipeline_id": await get_pipeline_id_by_name(
+                    mcp_client, "test_run_and_get_pipeline_run_details"
+                ),
                 "run_id": 123456,
             },
         )
 
         if result.data is not None:
-            assert False, (
+            raise AssertionError(
                 f"Expected None for invalid project 00000000-0000-0000-0000-000000000000, got {result.data}"
             )
     except Exception as e:
@@ -188,17 +220,23 @@ async def test_get_pipeline_failure_summary_invalid_project(mcp_client: Client):
             f"Expected exception for invalid project 00000000-0000-0000-0000-000000000000, got {type(e).__name__}: {e}"
         )
 
+
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_wrong_pipeline_id(
     mcp_client: Client, completed_run_id: int
 ):
     try:
         result = await mcp_client.call_tool(
-            "get_pipeline_failure_summary", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": completed_run_id},
+            "get_pipeline_failure_summary",
+            {
+                "project_name": get_project_name(),
+                "pipeline_name": "test_run_and_get_pipeline_run_details",
+                "run_id": completed_run_id,
+            },
         )
 
         if result.data is not None:
-            assert False, (
+            raise AssertionError(
                 f"Expected None for wrong pipeline ID 999 with run {completed_run_id}, got {result.data}"
             )
     except Exception as e:
@@ -206,14 +244,18 @@ async def test_get_pipeline_failure_summary_wrong_pipeline_id(
             f"Expected exception for wrong pipeline ID 999 with run {completed_run_id}, got {type(e).__name__}: {e}"
         )
 
+
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_successful_run_handling(
     mcp_client: Client, completed_run_id: int
 ):
-    project_name = get_project_name()
-    pipeline_name = "test_run_and_get_pipeline_run_details"
+    get_project_name()
     result = await mcp_client.call_tool(
-        "get_pipeline_failure_summary", {"project_name": get_project_name(), "pipeline_name": "test_run_and_get_pipeline_run_details", "run_id": completed_run_id,
+        "get_pipeline_failure_summary",
+        {
+            "project_name": get_project_name(),
+            "pipeline_name": "test_run_and_get_pipeline_run_details",
+            "run_id": completed_run_id,
         },
     )
 
@@ -233,6 +275,7 @@ async def test_get_pipeline_failure_summary_successful_run_handling(
         assert hierarchy_count == 0, (
             f"Expected 0 hierarchy_failures for successful run with 0 failed steps, got {hierarchy_count}"
         )
+
 
 async def test_get_pipeline_failure_summary_tool_registration():
     async with Client(mcp) as client:

@@ -4,8 +4,8 @@ from .client import ProcessesClient
 from .models import (
     Process,
     ProcessTemplate,
-    WorkItemTemplate,
     ProjectProcessInfo,
+    WorkItemTemplate,
 )
 
 __all__ = [

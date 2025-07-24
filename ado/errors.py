@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Any
 
 
 class AdoError(Exception):
@@ -8,8 +8,8 @@ class AdoError(Exception):
         self,
         message: str,
         error_code: str,
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None,
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None,
     ):
         """
         Initialize structured ADO error.
@@ -32,8 +32,8 @@ class AdoAuthenticationError(AdoError):
     def __init__(
         self,
         message: str = "Authentication failed",
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None,
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None,
     ):
         super().__init__(
             message=message,
@@ -49,9 +49,9 @@ class AdoRateLimitError(AdoError):
     def __init__(
         self,
         message: str = "API rate limit exceeded",
-        retry_after: Optional[int] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None,
+        retry_after: int | None = None,
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None,
     ):
         context = context or {}
         if retry_after:
@@ -72,9 +72,9 @@ class AdoTimeoutError(AdoError):
     def __init__(
         self,
         message: str = "Operation timed out",
-        timeout_seconds: Optional[int] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None,
+        timeout_seconds: int | None = None,
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None,
     ):
         context = context or {}
         if timeout_seconds:
@@ -95,8 +95,8 @@ class AdoNetworkError(AdoError):
     def __init__(
         self,
         message: str = "Network error occurred",
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None,
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None,
     ):
         super().__init__(
             message=message,
@@ -112,8 +112,8 @@ class AdoConfigurationError(AdoError):
     def __init__(
         self,
         message: str = "Configuration error",
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None,
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None,
     ):
         super().__init__(
             message=message,

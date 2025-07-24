@@ -1,14 +1,13 @@
 """MCP tool definitions for Azure DevOps Work Items comments and history operations."""
 
 import logging
-from typing import Any, Dict, List, Optional
 
 from ado.work_items.client import WorkItemsClient
 from ado.work_items.models import (
-    WorkItemComment,
-    WorkItemRevision,
     WorkItem,
+    WorkItemComment,
     WorkItemRelation,
+    WorkItemRevision,
 )
 from ado.work_items.validation import WorkItemValidator
 
@@ -27,7 +26,7 @@ def register_comment_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def add_work_item_comment(
         project_id: str, work_item_id: int, text: str, format_type: str = "html"
-    ) -> Optional[WorkItemComment]:
+    ) -> WorkItemComment | None:
         """
         Add a comment to a work item.
 
@@ -85,10 +84,10 @@ def register_comment_tools(mcp_instance, client_container):
     def get_work_item_comments(
         project_id: str,
         work_item_id: int,
-        top: Optional[int] = None,
-        skip: Optional[int] = None,
+        top: int | None = None,
+        skip: int | None = None,
         include_deleted: bool = False,
-    ) -> Optional[List[WorkItemComment]]:
+    ) -> list[WorkItemComment] | None:
         """
         Get comments for a work item.
 
@@ -158,12 +157,12 @@ def register_comment_tools(mcp_instance, client_container):
     def get_work_item_history(
         project_id: str,
         work_item_id: int,
-        top: Optional[int] = None,
-        skip: Optional[int] = None,
-        expand: Optional[str] = None,
-        from_date: Optional[str] = None,
-        to_date: Optional[str] = None,
-    ) -> Optional[List[WorkItemRevision]]:
+        top: int | None = None,
+        skip: int | None = None,
+        expand: str | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+    ) -> list[WorkItemRevision] | None:
         """
         Get revision history for a work item with optional date filtering.
 
@@ -246,8 +245,8 @@ def register_comment_tools(mcp_instance, client_container):
         source_work_item_id: int,
         target_work_item_id: int,
         relationship_type: str,
-        comment: Optional[str] = None,
-    ) -> Optional[WorkItem]:
+        comment: str | None = None,
+    ) -> WorkItem | None:
         """
         Create a link between two work items.
 
@@ -367,7 +366,7 @@ def register_comment_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def get_work_item_relations(
         project_id: str, work_item_id: int, depth: int = 1
-    ) -> Optional[List[WorkItemRelation]]:
+    ) -> list[WorkItemRelation] | None:
         """
         Get relationships for a work item.
 

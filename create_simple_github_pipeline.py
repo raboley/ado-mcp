@@ -4,9 +4,11 @@ Create a simple GitHub resources pipeline
 """
 
 import asyncio
-from fastmcp.client import Client
-from server import mcp
 import os
+
+from fastmcp.client import Client
+
+from server import mcp
 
 
 async def create_simple_github_pipeline():
@@ -76,6 +78,6 @@ async def create_simple_github_pipeline():
 
 if __name__ == "__main__":
     pipeline = asyncio.run(create_simple_github_pipeline())
-    print(f"\nPipeline created successfully!")
+    print("\nPipeline created successfully!")
     print(f"Pipeline ID: {pipeline.id if hasattr(pipeline, 'id') else pipeline['id']}")
     print(f"Pipeline Name: {pipeline.name if hasattr(pipeline, 'name') else pipeline['name']}")

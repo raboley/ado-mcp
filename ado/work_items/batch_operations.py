@@ -1,7 +1,7 @@
 """MCP tool definitions for Azure DevOps Work Items batch operations."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ado.work_items.client import WorkItemsClient
 from ado.work_items.models import WorkItem
@@ -21,12 +21,12 @@ def register_batch_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def get_work_items_batch(
         project_id: str,
-        work_item_ids: List[int],
-        fields: Optional[List[str]] = None,
+        work_item_ids: list[int],
+        fields: list[str] | None = None,
         expand_relations: bool = False,
-        as_of: Optional[str] = None,
+        as_of: str | None = None,
         error_policy: str = "omit",
-    ) -> Optional[List[WorkItem]]:
+    ) -> list[WorkItem] | None:
         """
         Get multiple work items by their IDs in a single API call.
 
@@ -186,12 +186,12 @@ def register_batch_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def update_work_items_batch(
         project_id: str,
-        work_item_updates: List[Dict[str, Any]],
+        work_item_updates: list[dict[str, Any]],
         validate_only: bool = False,
         bypass_rules: bool = False,
         suppress_notifications: bool = False,
         error_policy: str = "fail",
-    ) -> Optional[List[WorkItem]]:
+    ) -> list[WorkItem] | None:
         """
         Update multiple work items in a single batch operation with transaction-like behavior.
 
@@ -363,8 +363,8 @@ def register_batch_tools(mcp_instance, client_container):
 
     @mcp_instance.tool
     def delete_work_items_batch(
-        project_id: str, work_item_ids: List[int], destroy: bool = False, error_policy: str = "fail"
-    ) -> Optional[List[bool]]:
+        project_id: str, work_item_ids: list[int], destroy: bool = False, error_policy: str = "fail"
+    ) -> list[bool] | None:
         """
         Delete multiple work items in a single batch operation with transaction-like behavior.
 

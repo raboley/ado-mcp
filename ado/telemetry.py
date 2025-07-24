@@ -3,19 +3,18 @@
 import logging
 import os
 import time
-from typing import Optional, Dict, Any
 from contextlib import contextmanager
 
-from opentelemetry import trace, metrics
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
 from opentelemetry.semconv.resource import ResourceAttributes
 
 from .config import TelemetryConfig
@@ -42,8 +41,8 @@ class TelemetryManager:
             config: Telemetry configuration
         """
         self.config = config
-        self.tracer: Optional[trace.Tracer] = None
-        self.meter: Optional[metrics.Meter] = None
+        self.tracer: trace.Tracer | None = None
+        self.meter: metrics.Meter | None = None
         self._initialized = False
 
         # Metrics
@@ -277,7 +276,7 @@ class TelemetryManager:
 
 
 # Global telemetry manager instance
-_telemetry_manager: Optional[TelemetryManager] = None
+_telemetry_manager: TelemetryManager | None = None
 
 
 def initialize_telemetry(config: TelemetryConfig) -> TelemetryManager:
@@ -295,7 +294,7 @@ def initialize_telemetry(config: TelemetryConfig) -> TelemetryManager:
     return _telemetry_manager
 
 
-def get_telemetry_manager() -> Optional[TelemetryManager]:
+def get_telemetry_manager() -> TelemetryManager | None:
     """
     Get the global telemetry manager.
 

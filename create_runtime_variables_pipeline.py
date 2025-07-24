@@ -4,9 +4,11 @@ Create a pipeline that supports runtime variables for testing
 """
 
 import asyncio
-from fastmcp.client import Client
-from server import mcp
 import os
+
+from fastmcp.client import Client
+
+from server import mcp
 
 
 async def create_runtime_variables_pipeline():
@@ -82,10 +84,10 @@ async def create_runtime_variables_pipeline():
 
 if __name__ == "__main__":
     pipeline = asyncio.run(create_runtime_variables_pipeline())
-    print(f"\nPipeline created successfully!")
+    print("\nPipeline created successfully!")
     print(f"Pipeline ID: {pipeline.id if hasattr(pipeline, 'id') else pipeline['id']}")
     print(f"Pipeline Name: {pipeline.name if hasattr(pipeline, 'name') else pipeline['name']}")
-    print(f"\nNext steps:")
-    print(f"1. Commit and push the YAML file: tests/ado/fixtures/runtime-variables-test.yml")
-    print(f"2. Update the YAML file to include the pipeline URL comment")
-    print(f"3. Configure runtime variables in Azure DevOps UI (Variables tab)")
+    print("\nNext steps:")
+    print("1. Commit and push the YAML file: tests/ado/fixtures/runtime-variables-test.yml")
+    print("2. Update the YAML file to include the pipeline URL comment")
+    print("3. Configure runtime variables in Azure DevOps UI (Variables tab)")

@@ -3,10 +3,10 @@
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ado.work_items.client import WorkItemsClient
-from ado.work_items.models import WorkItemReference, WorkItemQueryResult
+from ado.work_items.models import WorkItemQueryResult, WorkItemReference
 from ado.work_items.query_utils import analyze_query_complexity, build_wiql_from_filter
 
 logger = logging.getLogger(__name__)
@@ -18,12 +18,12 @@ def register_query_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def list_work_items(
         project_id: str,
-        wiql_query: Optional[str] = None,
-        top: Optional[int] = None,
-    ) -> List[WorkItemReference]:
+        wiql_query: str | None = None,
+        top: int | None = None,
+    ) -> list[WorkItemReference]:
         """
         List work items in a project using WIQL (Work Item Query Language).
-        
+
         Returns a list of work item references. Use get_work_item for full details.
         """
         ado_client_instance = client_container.get("client")
@@ -50,16 +50,16 @@ def register_query_tools(mcp_instance, client_container):
     @mcp_instance.tool
     def query_work_items(
         project_id: str,
-        wiql_query: Optional[str] = None,
-        top: Optional[int] = None,
-        skip: Optional[int] = None,
-        simple_filter: Optional[Dict[str, Any]] = None,
-        page_size: Optional[int] = None,
-        page_number: Optional[int] = None,
-    ) -> Optional[WorkItemQueryResult]:
+        wiql_query: str | None = None,
+        top: int | None = None,
+        skip: int | None = None,
+        simple_filter: dict[str, Any] | None = None,
+        page_size: int | None = None,
+        page_number: int | None = None,
+    ) -> WorkItemQueryResult | None:
         """
         Query work items using WIQL or simple filtering with pagination support.
-        
+
         Supports both custom WIQL queries and simple field-based filtering.
         Returns complete query results including metadata and column information.
         """
@@ -142,15 +142,15 @@ def register_query_tools(mcp_instance, client_container):
         project_id: str,
         page_number: int = 1,
         page_size: int = 50,
-        work_item_type: Optional[str] = None,
-        state: Optional[str] = None,
-        assigned_to: Optional[str] = None,
-        area_path: Optional[str] = None,
+        work_item_type: str | None = None,
+        state: str | None = None,
+        assigned_to: str | None = None,
+        area_path: str | None = None,
         order_by: str = "System.Id",
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Get a paginated list of work items with metadata about pagination.
-        
+
         Simplified interface for paginated work items with common filtering options.
         Returns both work items and pagination metadata.
         """
@@ -273,14 +273,14 @@ def register_query_tools(mcp_instance, client_container):
     def get_my_work_items(
         project_id: str,
         assigned_to: str,
-        state: Optional[str] = None,
-        work_item_type: Optional[str] = None,
+        state: str | None = None,
+        work_item_type: str | None = None,
         page_size: int = 50,
         page_number: int = 1,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Get work items assigned to a specific user.
-        
+
         Convenience tool for getting work items assigned to a specific user with filtering.
         """
         ado_client_instance = client_container.get("client")
@@ -357,14 +357,14 @@ def register_query_tools(mcp_instance, client_container):
     def get_recent_work_items(
         project_id: str,
         days: int = 7,
-        work_item_type: Optional[str] = None,
-        state: Optional[str] = None,
+        work_item_type: str | None = None,
+        state: str | None = None,
         page_size: int = 50,
         page_number: int = 1,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Get work items created or modified recently.
-        
+
         Convenience tool for getting recently created or modified work items with filtering.
         """
         ado_client_instance = client_container.get("client")
