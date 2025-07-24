@@ -33,9 +33,9 @@ tasks:
       - .venv/pyvenv.cfg
 
   test:
-    desc: Run project tests in parallel
+    desc: Run project tests in parallel with slowest tests first
     cmds:
-      - uv run pytest -v -n auto --junitxml=pytest-results.xml --timeout=300
+      - uv run pytest -v -n auto --junitxml=pytest-results.xml --timeout=300 --slowest-first --durations=20
 
   test-sequential:
     desc: Run project tests sequentially (for debugging)
@@ -47,10 +47,6 @@ tasks:
     cmds:
       - uv run pytest {{.TEST_NAME}} -v -s
 
-  test-slowest-first:
-    desc: Run tests with slowest tests first based on previous run times
-    cmds:
-      - uv run pytest -v -n auto --slowest-first --durations=20
 
   coverage:
     desc: Generate code coverage report

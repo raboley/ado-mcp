@@ -12,8 +12,7 @@ from typing import Dict, Any
 
 from src.test_config import (
     get_test_config, 
-    TestConfigError,
-    TestResourceNotFoundError,
+    ConfigError,
     get_project_id,
     get_project_name,
     get_basic_pipeline_id,
@@ -38,7 +37,7 @@ def test_config():
     """
     try:
         return get_test_config()
-    except TestConfigError as e:
+    except ConfigError as e:
         pytest.skip(f"Test configuration not available: {e}. Run 'task ado-up' to provision test environment.")
 
 @pytest.fixture(scope="session")
@@ -62,7 +61,7 @@ def basic_pipeline_id(test_config) -> int:
     """Get the basic test pipeline ID (test_run_and_get_pipeline_run_details)."""
     try:
         return test_config.get_pipeline_id("test_run_and_get_pipeline_run_details")
-    except TestResourceNotFoundError:
+    except ConfigError:
         pytest.skip("Basic test pipeline not found. Ensure pipelines are set up in Azure DevOps.")
 
 @pytest.fixture(scope="session") 
@@ -70,7 +69,7 @@ def complex_pipeline_id(test_config) -> int:
     """Get the complex test pipeline ID (slow.log-test-complex)."""
     try:
         return test_config.get_pipeline_id("slow.log-test-complex")
-    except TestResourceNotFoundError:
+    except ConfigError:
         pytest.skip("Complex test pipeline not found. Ensure pipelines are set up in Azure DevOps.")
 
 @pytest.fixture(scope="session")
@@ -78,7 +77,7 @@ def failing_pipeline_id(test_config) -> int:
     """Get the failing test pipeline ID (log-test-failing)."""
     try:
         return test_config.get_pipeline_id("log-test-failing")
-    except TestResourceNotFoundError:
+    except ConfigError:
         pytest.skip("Failing test pipeline not found. Ensure pipelines are set up in Azure DevOps.")
 
 @pytest.fixture(scope="session")
@@ -86,7 +85,7 @@ def parameterized_pipeline_id(test_config) -> int:
     """Get the parameterized preview test pipeline ID (preview-test-parameterized)."""
     try:
         return test_config.get_pipeline_id("preview-test-parameterized")
-    except TestResourceNotFoundError:
+    except ConfigError:
         pytest.skip("Parameterized test pipeline not found. Ensure pipelines are set up in Azure DevOps.")
 
 @pytest.fixture(scope="session")
@@ -94,7 +93,7 @@ def preview_pipeline_id(test_config) -> int:
     """Get the basic preview test pipeline ID (preview-test-valid)."""
     try:
         return test_config.get_pipeline_id("preview-test-valid")
-    except TestResourceNotFoundError:
+    except ConfigError:
         pytest.skip("Preview test pipeline not found. Ensure pipelines are set up in Azure DevOps.")
 
 @pytest.fixture(scope="session")
@@ -102,7 +101,7 @@ def github_resources_pipeline_id(test_config) -> int:
     """Get the GitHub resources test pipeline ID (github-resources-test-stable)."""
     try:
         return test_config.get_pipeline_id("github-resources-test-stable")
-    except TestResourceNotFoundError:
+    except ConfigError:
         pytest.skip("GitHub resources test pipeline not found. Ensure pipelines are set up in Azure DevOps.")
 
 @pytest.fixture(scope="session")
@@ -110,7 +109,7 @@ def runtime_variables_pipeline_id(test_config) -> int:
     """Get the runtime variables test pipeline ID (runtime-variables-test)."""
     try:
         return test_config.get_pipeline_id("runtime-variables-test")
-    except TestResourceNotFoundError:
+    except ConfigError:
         pytest.skip("Runtime variables test pipeline not found. Ensure pipelines are set up in Azure DevOps.")
 
 # Legacy constant replacements for backward compatibility
@@ -139,7 +138,7 @@ def pipeline_ids(test_config) -> Dict[str, int]:
     for name in pipeline_names:
         try:
             pipeline_ids[name] = test_config.get_pipeline_id(name)
-        except TestResourceNotFoundError:
+        except ConfigError:
             # Skip pipelines that aren't properly configured
             continue
     
@@ -214,11 +213,11 @@ def pytest_configure():
             try:
                 pipeline_id = config.get_pipeline_id(pipeline_name)
                 setattr(current_module, const_name, pipeline_id)
-            except TestResourceNotFoundError:
+            except ConfigError:
                 # Set placeholder value - tests will skip if they need this pipeline
                 setattr(current_module, const_name, 999)
         
-    except TestConfigError:
+    except ConfigError:
         # If config is not available, set placeholder values
         # Tests will be skipped by the fixtures above
         pass

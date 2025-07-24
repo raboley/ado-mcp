@@ -20,12 +20,11 @@ async def mcp_client():
 
 @requires_ado_creds
 async def test_preview_pipeline_basic(mcp_client: Client):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "preview-test-valid")
-    
+    project_name = get_project_name()
+    pipeline_name = "preview-test-valid"
     result = await mcp_client.call_tool(
         "preview_pipeline",
-        {"project_id": project_id, "pipeline_id": pipeline_id},
+        {"project_name": project_name, "pipeline_name": pipeline_name},
     )
 
     preview_data = result.data
@@ -42,16 +41,15 @@ async def test_preview_pipeline_basic(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_with_variables(mcp_client: Client):
-    project_id = get_project_id()
+    project_name = get_project_name()
     # Use a simple pipeline that doesn't have external dependencies
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "preview-test-valid")
-
+    pipeline_name = "preview-test-valid"
     # Test basic preview without parameters since this pipeline doesn't have any
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
+            "project_name": project_name,
+            "pipeline_name": pipeline_name,
         },
     )
 
@@ -67,15 +65,15 @@ async def test_preview_pipeline_with_variables(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_with_empty_resources(mcp_client: Client):
-    project_id = get_project_id()
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "preview-test-valid")
+    project_name = get_project_name()
+    pipeline_name = "preview-test-valid"
     resources = {}
 
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
+            "project_name": project_name,
+            "pipeline_name": pipeline_name,
             "resources": resources,
         },
     )
@@ -88,16 +86,15 @@ async def test_preview_pipeline_with_empty_resources(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_with_stages_to_skip(mcp_client: Client):
-    project_id = get_project_id()
+    project_name = get_project_name()
     # Use preview-test-valid instead since preview-test-parameterized doesn't have stages
-    pipeline_id = await get_pipeline_id_by_name(mcp_client, "preview-test-valid")
-
+    pipeline_name = "preview-test-valid"
     # Test without stages_to_skip since most of our test pipelines are job-based, not stage-based
     result = await mcp_client.call_tool(
         "preview_pipeline",
         {
-            "project_id": project_id,
-            "pipeline_id": pipeline_id,
+            "project_name": project_name,
+            "pipeline_name": pipeline_name,
         },
     )
 
@@ -109,12 +106,12 @@ async def test_preview_pipeline_with_stages_to_skip(mcp_client: Client):
 
 @requires_ado_creds
 async def test_preview_pipeline_nonexistent_pipeline(mcp_client: Client):
-    project_id = get_project_id()
+    project_name = get_project_name()
     pipeline_id = 99999  # Non-existent pipeline for testing
 
     try:
         result = await mcp_client.call_tool(
-            "preview_pipeline", {"project_id": project_id, "pipeline_id": pipeline_id}
+            "preview_pipeline", {"project_name": project_name, "pipeline_name": pipeline_name}
         )
 
         if result.data is None:
