@@ -17,11 +17,22 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 # Constants for weighted scoring
-EXACT_SUBSTRING_WEIGHT = 1.0
-CASE_INSENSITIVE_WEIGHT = 0.9
-CHARACTER_DISTANCE_WEIGHT = 0.7
-COMMON_WORD_WEIGHT = 0.8
-DEFAULT_SIMILARITY_THRESHOLD = 0.5
+# These weights are optimized for Azure DevOps resource name matching patterns:
+
+EXACT_SUBSTRING_WEIGHT = 1.0        # Perfect match - user typed exact substring
+                                    # E.g., "build" matches "CI-Build-Pipeline"
+
+CASE_INSENSITIVE_WEIGHT = 0.9       # Very high confidence - only case differs
+                                    # E.g., "Build" matches "build" in "ci-build-test"
+
+COMMON_WORD_WEIGHT = 0.8            # High confidence - shared meaningful words
+                                    # E.g., "test deploy" matches "Deploy-Test-Pipeline" 
+
+CHARACTER_DISTANCE_WEIGHT = 0.7     # Medium confidence - based on edit distance
+                                    # E.g., "buld" matches "build" (1 char typo)
+
+DEFAULT_SIMILARITY_THRESHOLD = 0.5  # Minimum confidence for suggestions
+                                    # Tuned to balance helpful suggestions vs noise
 
 
 @dataclass
@@ -55,7 +66,11 @@ class FuzzyMatcher:
         self,
         similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
         max_suggestions: int = 10,
-        performance_threshold_ms: int = 200
+        performance_threshold_ms: int = 200,
+        exact_substring_weight: float = EXACT_SUBSTRING_WEIGHT,
+        case_insensitive_weight: float = CASE_INSENSITIVE_WEIGHT,
+        character_distance_weight: float = CHARACTER_DISTANCE_WEIGHT,
+        common_word_weight: float = COMMON_WORD_WEIGHT
     ):
         """
         Initialize the fuzzy matcher.
@@ -64,10 +79,20 @@ class FuzzyMatcher:
             similarity_threshold: Minimum similarity score to include in results (0.0-1.0)
             max_suggestions: Maximum number of suggestions to return
             performance_threshold_ms: Maximum time allowed for matching operation
+            exact_substring_weight: Weight for exact substring matches (default 1.0)
+            case_insensitive_weight: Weight for case-insensitive matches (default 0.9)
+            character_distance_weight: Weight for character distance-based matches (default 0.7)
+            common_word_weight: Weight for common word matches (default 0.8)
         """
         self.similarity_threshold = similarity_threshold
         self.max_suggestions = max_suggestions
         self.performance_threshold_ms = performance_threshold_ms
+        
+        # Configurable matching weights
+        self.exact_substring_weight = exact_substring_weight
+        self.case_insensitive_weight = case_insensitive_weight
+        self.character_distance_weight = character_distance_weight
+        self.common_word_weight = common_word_weight
 
     def find_matches(
         self,
@@ -155,13 +180,13 @@ class FuzzyMatcher:
         """
         # Exact substring match (highest priority)
         if query in candidate:
-            return EXACT_SUBSTRING_WEIGHT
+            return self.exact_substring_weight
             
         # Case-insensitive exact substring match (high priority)
         query_lower = query.lower()
         candidate_lower = candidate.lower()
         if query_lower in candidate_lower:
-            return CASE_INSENSITIVE_WEIGHT
+            return self.case_insensitive_weight
             
         # Levenshtein distance-based similarity (medium priority)
         max_length = max(len(query), len(candidate))
@@ -170,7 +195,7 @@ class FuzzyMatcher:
             
         distance = levenshtein_distance(query_lower, candidate_lower)
         char_similarity = (max_length - distance) / max_length
-        char_score = char_similarity * CHARACTER_DISTANCE_WEIGHT
+        char_score = char_similarity * self.character_distance_weight
         
         # Common word detection (medium priority)
         word_score = self._calculate_word_similarity(query_lower, candidate_lower)
@@ -204,7 +229,7 @@ class FuzzyMatcher:
             return 0.0
             
         jaccard_similarity = intersection / union
-        return jaccard_similarity * COMMON_WORD_WEIGHT
+        return jaccard_similarity * self.common_word_weight
 
     def _tokenize(self, text: str) -> List[str]:
         """

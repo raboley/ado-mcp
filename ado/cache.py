@@ -47,8 +47,10 @@ class AdoCache:
     Designed to minimize API calls while keeping data reasonably fresh.
     """
 
-    def __init__(self):
+    def __init__(self, max_size: int = 1000):
         self._cache: Dict[str, CacheEntry] = {}
+        self._access_order: List[str] = []  # For LRU tracking
+        self.max_size = max_size
 
         # TTL settings (in seconds)
         self.PROJECT_TTL = 15 * 60  # 15 minutes - projects rarely change
@@ -87,19 +89,28 @@ class AdoCache:
         return entry is not None and not entry.is_expired()
 
     def _set(self, key: str, data: Any, ttl_seconds: int) -> None:
-        """Set a cache entry with TTL."""
+        """Set a cache entry with TTL and LRU eviction."""
         # Extract cache type from key for metrics labeling
         cache_type = key.split(":")[0] if ":" in key else "unknown"
 
         # Check if we're replacing an existing entry
         is_new = key not in self._cache
 
+        # Update access order for LRU
+        if key in self._access_order:
+            self._access_order.remove(key)
+        self._access_order.append(key)
+
+        # Set the cache entry
         expires_at = time.time() + ttl_seconds
         self._cache[key] = CacheEntry(data=data, expires_at=expires_at)
 
         # Update cache size metric only for new entries
         if is_new:
             self._cache_size_gauge.add(1, {"cache_type": cache_type})
+
+        # Enforce size limit with LRU eviction
+        self._enforce_size_limit()
 
         logger.debug(f"Cached {key} for {ttl_seconds}s")
 
@@ -114,10 +125,18 @@ class AdoCache:
                 span.set_attribute("cache.hit", True)
                 self._cache_hit_counter.add(1, {"cache_type": cache_type})
                 logger.debug(f"Cache hit for key: {key}")
+                
+                # Update LRU order on access
+                if key in self._access_order:
+                    self._access_order.remove(key)
+                    self._access_order.append(key)
+                
                 return self._cache[key].data
             elif key in self._cache:
                 # Remove expired entry
                 del self._cache[key]
+                if key in self._access_order:
+                    self._access_order.remove(key)
                 self._cache_size_gauge.add(-1, {"cache_type": cache_type})
                 self._cache_eviction_counter.add(1, {"cache_type": cache_type, "reason": "expired"})
                 logger.debug(f"Removed expired cache entry: {key}")
@@ -130,6 +149,21 @@ class AdoCache:
                 self._cache_miss_counter.add(1, {"cache_type": cache_type, "reason": "not_found"})
                 logger.debug(f"Cache miss for key: {key}")
             return None
+
+    def _enforce_size_limit(self) -> None:
+        """Enforce cache size limit using LRU eviction."""
+        while len(self._cache) > self.max_size:
+            # Remove least recently used entry
+            if not self._access_order:
+                break
+            
+            lru_key = self._access_order.pop(0)
+            if lru_key in self._cache:
+                cache_type = lru_key.split(":")[0] if ":" in lru_key else "unknown"
+                del self._cache[lru_key]
+                self._cache_size_gauge.add(-1, {"cache_type": cache_type})
+                self._cache_eviction_counter.add(1, {"cache_type": cache_type, "reason": "lru_eviction"})
+                logger.debug(f"Evicted LRU cache entry: {lru_key}")
 
     # Project caching
     def get_projects(self) -> Optional[List[Project]]:
@@ -368,6 +402,8 @@ class AdoCache:
         for key in expired_keys:
             cache_type = key.split(":")[0] if ":" in key else "unknown"
             del self._cache[key]
+            if key in self._access_order:
+                self._access_order.remove(key)
             self._cache_size_gauge.add(-1, {"cache_type": cache_type})
             self._cache_eviction_counter.add(
                 1, {"cache_type": cache_type, "reason": "manual_clear"}
@@ -395,6 +431,7 @@ class AdoCache:
             )
 
         self._cache.clear()
+        self._access_order.clear()
         logger.info("Cleared all cache entries")
 
     def invalidate_pipelines(self, project_id: str) -> None:
@@ -404,12 +441,16 @@ class AdoCache:
         
         if key in self._cache:
             del self._cache[key]
+            if key in self._access_order:
+                self._access_order.remove(key)
             self._cache_size_gauge.add(-1, {"cache_type": "pipelines"})
             self._cache_eviction_counter.add(1, {"cache_type": "pipelines", "reason": "manual_invalidate"})
             logger.info(f"Invalidated pipeline cache for project {project_id}")
         
         if name_map_key in self._cache:
             del self._cache[name_map_key]
+            if name_map_key in self._access_order:
+                self._access_order.remove(name_map_key)
             self._cache_size_gauge.add(-1, {"cache_type": "pipeline_names"})
             self._cache_eviction_counter.add(1, {"cache_type": "pipeline_names", "reason": "manual_invalidate"})
 

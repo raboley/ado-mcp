@@ -16,8 +16,14 @@ async def mcp_client():
         yield client
 
 
-async def test_run_pipeline_tool_registered(mcp_client: Client):
-    """Test that run_pipeline tool is registered with name-based parameters."""
+@pytest.mark.parametrize("tool_name", [
+    "run_pipeline",
+    "run_pipeline_and_get_outcome",
+    "get_pipeline",
+    "get_pipeline_run",
+])
+async def test_name_based_pipeline_tools_registered(mcp_client: Client, tool_name: str):
+    """Test that name-based pipeline tools are registered with correct parameters."""
     tools_response = await mcp_client.list_tools()
     if hasattr(tools_response, "tools"):
         tools = tools_response.tools
@@ -25,53 +31,24 @@ async def test_run_pipeline_tool_registered(mcp_client: Client):
         tools = tools_response
     
     tool_names = [tool.name for tool in tools]
-    assert "run_pipeline" in tool_names, "run_pipeline tool should be registered"
-    
-    # Find the run_pipeline tool
-    run_pipeline_tool = next(tool for tool in tools if tool.name == "run_pipeline")
-    
-    # Check that it has name-based parameters
-    input_schema = run_pipeline_tool.inputSchema
-    required_fields = input_schema.get("required", [])
-    properties = input_schema.get("properties", {})
-    
-    assert "project_name" in required_fields, "project_name should be required parameter"
-    assert "pipeline_name" in required_fields, "pipeline_name should be required parameter"
-    assert "project_name" in properties, "project_name should be in properties"
-    assert "pipeline_name" in properties, "pipeline_name should be in properties"
-    
-    # Check parameter types
-    assert properties["project_name"]["type"] == "string", "project_name should be string type"
-    assert properties["pipeline_name"]["type"] == "string", "pipeline_name should be string type"
-
-
-async def test_run_pipeline_and_get_outcome_tool_registered(mcp_client: Client):
-    """Test that run_pipeline_and_get_outcome tool is registered with name-based parameters."""
-    tools_response = await mcp_client.list_tools()
-    if hasattr(tools_response, "tools"):
-        tools = tools_response.tools
-    else:
-        tools = tools_response
-    
-    tool_names = [tool.name for tool in tools]
-    assert "run_pipeline_and_get_outcome" in tool_names, "run_pipeline_and_get_outcome tool should be registered"
+    assert tool_name in tool_names, f"{tool_name} tool should be registered"
     
     # Find the tool
-    outcome_tool = next(tool for tool in tools if tool.name == "run_pipeline_and_get_outcome")
+    tool = next(t for t in tools if t.name == tool_name)
     
     # Check that it has name-based parameters
-    input_schema = outcome_tool.inputSchema
+    input_schema = tool.inputSchema
     required_fields = input_schema.get("required", [])
     properties = input_schema.get("properties", {})
     
-    assert "project_name" in required_fields, "project_name should be required parameter"
-    assert "pipeline_name" in required_fields, "pipeline_name should be required parameter"
-    assert "project_name" in properties, "project_name should be in properties"
-    assert "pipeline_name" in properties, "pipeline_name should be in properties"
+    assert "project_name" in required_fields, f"{tool_name} should have project_name as required parameter"
+    assert "pipeline_name" in required_fields, f"{tool_name} should have pipeline_name as required parameter"
+    assert "project_name" in properties, f"{tool_name} should have project_name in properties"
+    assert "pipeline_name" in properties, f"{tool_name} should have pipeline_name in properties"
     
     # Check parameter types
-    assert properties["project_name"]["type"] == "string", "project_name should be string type"
-    assert properties["pipeline_name"]["type"] == "string", "pipeline_name should be string type"
+    assert properties["project_name"]["type"] == "string", f"{tool_name} project_name should be string type"
+    assert properties["pipeline_name"]["type"] == "string", f"{tool_name} pipeline_name should be string type"
 
 
 async def test_pipeline_tool_descriptions_updated(mcp_client: Client):

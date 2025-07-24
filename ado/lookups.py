@@ -110,19 +110,16 @@ class AdoLookups:
         if not project:
             # Get all projects for fuzzy matching suggestions
             projects = ado_cache.get_projects()
-            if projects:
-                matcher = FuzzyMatcher()
-                matches = matcher.find_matches(
-                    project_name, projects, name_extractor=lambda p: p.name
-                )
-                error_msg = create_suggestion_error_message(
-                    project_name,
-                    "Project",
-                    matches
-                )
-                raise ValueError(error_msg)
-            else:
-                raise ValueError(f"Project '{project_name}' not found and no projects available")
+            matcher = FuzzyMatcher()
+            matches = matcher.find_matches(
+                project_name, projects or [], name_extractor=lambda p: p.name
+            )
+            error_msg = create_suggestion_error_message(
+                project_name,
+                "Project",
+                matches
+            )
+            raise ValueError(error_msg)
 
         # Ensure pipelines are cached for this project
         self.ensure_pipelines_cached(project.id)
@@ -132,19 +129,16 @@ class AdoLookups:
         if not pipeline:
             # Get all pipelines for fuzzy matching suggestions
             pipelines = ado_cache.get_pipelines(project.id)
-            if pipelines:
-                matcher = FuzzyMatcher()
-                matches = matcher.find_matches(
-                    pipeline_name, pipelines, name_extractor=lambda p: p.name
-                )
-                error_msg = create_suggestion_error_message(
-                    pipeline_name,
-                    "Pipeline",
-                    matches
-                )
-                raise ValueError(error_msg)
-            else:
-                raise ValueError(f"Pipeline '{pipeline_name}' not found in project '{project.name}' and no pipelines available")
+            matcher = FuzzyMatcher()
+            matches = matcher.find_matches(
+                pipeline_name, pipelines or [], name_extractor=lambda p: p.name
+            )
+            error_msg = create_suggestion_error_message(
+                pipeline_name,
+                "Pipeline",
+                matches
+            )
+            raise ValueError(error_msg)
 
         return (project, pipeline)
 

@@ -37,6 +37,28 @@ def register_ado_tools(mcp_instance, client_container):
             allowing the client to be updated dynamically.
     """
 
+    # Helper functions to reduce code duplication
+    def get_client_or_error(error_return=None):
+        """Get ADO client instance or return error value."""
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None, error_return
+        return ado_client_instance, None
+
+    def get_pipeline_ids_with_client_check(project_name: str, pipeline_name: str):
+        """Get client and resolve pipeline IDs from names."""
+        client, error_return = get_client_or_error()
+        if client is None:
+            return None, None, None
+        
+        try:
+            project_id, pipeline_id = client._lookups.get_pipeline_ids(project_name, pipeline_name)
+            return client, project_id, pipeline_id
+        except Exception as e:
+            logger.error(f"Error resolving pipeline IDs: {e}")
+            return None, None, None
+
     @mcp_instance.tool
     def check_ado_authentication() -> bool:
         """
@@ -45,10 +67,9 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             bool: True if authentication is successful, False otherwise.
         """
-        ado_client_instance = client_container.get("client")
-        if not ado_client_instance:
-            logger.error("ADO client is not available.")
-            return False
+        ado_client_instance, error_return = get_client_or_error(False)
+        if ado_client_instance is None:
+            return error_return
         return ado_client_instance.check_authentication()
 
     @mcp_instance.tool
@@ -59,10 +80,9 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             List[Project]: A list of Project objects.
         """
-        ado_client_instance = client_container.get("client")
-        if not ado_client_instance:
-            logger.error("ADO client is not available.")
-            return []
+        ado_client_instance, error_return = get_client_or_error([])
+        if ado_client_instance is None:
+            return error_return
         return ado_client_instance.list_projects()
 
     @mcp_instance.tool
@@ -205,13 +225,9 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             dict: A dictionary representing the pipeline details.
         """
-        ado_client_instance = client_container.get("client")
-        if not ado_client_instance:
-            logger.error("ADO client is not available.")
+        ado_client_instance, project_id, pipeline_id = get_pipeline_ids_with_client_check(project_name, pipeline_name)
+        if ado_client_instance is None:
             return {}
-        
-        # Get project and pipeline IDs using name lookup
-        project_id, pipeline_id = ado_client_instance._lookups.get_pipeline_ids(project_name, pipeline_name)
         return ado_client_instance.get_pipeline(project_id, pipeline_id)
 
     @mcp_instance.tool
@@ -324,14 +340,9 @@ def register_ado_tools(mcp_instance, client_container):
         Returns:
             Optional[PipelineRun]: A PipelineRun object representing the pipeline run details, or None if client unavailable.
         """
-        ado_client_instance = client_container.get("client")
-        if not ado_client_instance:
-            logger.error("ADO client is not available.")
+        ado_client_instance, project_id, pipeline_id = get_pipeline_ids_with_client_check(project_name, pipeline_name)
+        if ado_client_instance is None:
             return None
-        
-        # Get project and pipeline IDs using name lookup
-        project_id, pipeline_id = ado_client_instance._lookups.get_pipeline_ids(project_name, pipeline_name)
-        
         return ado_client_instance.get_pipeline_run(project_id, pipeline_id, run_id)
 
     def _inject_github_tokens_if_needed(

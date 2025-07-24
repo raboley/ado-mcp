@@ -17,6 +17,7 @@ CHARS_PER_TOKEN_ESTIMATE = 4  # Rough estimate for English text
 MAX_RESPONSE_TOKENS = 1000    # Maximum tokens to allow in suggestion responses
 SUGGESTION_BASE_TOKENS = 50   # Base tokens per suggestion (name, id, similarity)
 ERROR_MESSAGE_BASE_TOKENS = 20  # Base tokens for error message text
+ESTIMATION_FAILED = -1        # Sentinel value to indicate token estimation failure
 
 
 class TokenEstimator:
@@ -69,14 +70,17 @@ class TokenEstimator:
             data: Data structure to be serialized to JSON
             
         Returns:
-            Estimated number of tokens
+            Estimated number of tokens, or ESTIMATION_FAILED (-1) if serialization fails
         """
+        if data is None:
+            return 0
+            
         try:
             json_text = json.dumps(data, separators=(',', ':'))
             return self.estimate_text_tokens(json_text)
         except (TypeError, ValueError) as e:
-            logger.warning(f"Error estimating JSON tokens: {e}")
-            return 0
+            logger.error(f"Failed to serialize data for token estimation: {e}. Data type: {type(data)}")
+            return ESTIMATION_FAILED
 
     def estimate_suggestion_tokens(self, suggestions: List[Dict[str, Any]]) -> int:
         """
@@ -86,14 +90,25 @@ class TokenEstimator:
             suggestions: List of suggestion dictionaries
             
         Returns:
-            Estimated total tokens for all suggestions
+            Estimated total tokens for all suggestions, or ESTIMATION_FAILED (-1) if input is invalid
         """
+        if suggestions is None:
+            logger.error("Cannot estimate tokens for None suggestions list")
+            return ESTIMATION_FAILED
+            
         if not suggestions:
             return 0
             
+        if not isinstance(suggestions, list):
+            logger.error(f"Expected list of suggestions, got {type(suggestions)}")
+            return ESTIMATION_FAILED
+            
         total_tokens = 0
         
-        for suggestion in suggestions:
+        for i, suggestion in enumerate(suggestions):
+            if not isinstance(suggestion, dict):
+                logger.error(f"Suggestion at index {i} is not a dictionary: {type(suggestion)}")
+                return ESTIMATION_FAILED
             # Base tokens for structure (name, id, similarity fields)
             suggestion_tokens = SUGGESTION_BASE_TOKENS
             
