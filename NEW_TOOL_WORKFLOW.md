@@ -4,6 +4,7 @@ When Creating a new tool, follow this basic workflow for the most consistent tas
 1. setup
 2. investigation
 3. implementation
+6. run `task pre-commit`
 4. testing ensuring all tests pass and have no warnings when running `task test`
 5. documentation
 6. restart the ado-mcp server

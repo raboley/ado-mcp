@@ -70,6 +70,13 @@ tasks:
     cmds:
       - uv run mypy .
 
+  pre-commit:
+    desc: Run all pre-commit checks (format, typecheck, tests)
+    deps:
+      - task: format
+      - task: typecheck
+      - task: test
+
   run:
     desc: Run the FastAPI application
     cmds:
