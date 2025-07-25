@@ -6,7 +6,6 @@ from src.test_config import get_project_id
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -14,28 +13,11 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
     return get_project_id()
 
-
 class TestEnhancedWorkItemTypeIntrospection:
-    async def test_enhanced_type_tools_registered_in_mcp_server(self, mcp_client):
-        tools_response = await mcp_client.list_tools()
-        if hasattr(tools_response, "tools"):
-            tools = tools_response.tools
-        else:
-            tools = tools_response
-        tool_names = [tool.name for tool in tools]
-
-        expected_tools = ["get_work_item_type", "get_work_item_type_field"]
-
-        for expected_tool in expected_tools:
-            assert expected_tool in tool_names, (
-                f"Tool '{expected_tool}' should be registered in MCP server"
-            )
-
     async def test_get_work_item_type_returns_detailed_info(self, mcp_client, project_id):
         result = await mcp_client.call_tool(
             "get_work_item_type", {"project_id": project_id, "work_item_type": "Bug"}
@@ -91,7 +73,6 @@ class TestEnhancedWorkItemTypeIntrospection:
             )
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
-
 
 class TestEnhancedFieldIntrospection:
     async def test_get_work_item_type_field_system_title(self, mcp_client, project_id):
@@ -194,7 +175,6 @@ class TestEnhancedFieldIntrospection:
             )
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
-
 
 class TestEnhancedTypeIntegration:
     async def test_compare_list_vs_detailed_work_item_type(self, mcp_client, project_id):

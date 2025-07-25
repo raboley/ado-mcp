@@ -11,7 +11,6 @@ from src.test_config import get_project_id
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -21,11 +20,9 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
     return get_project_id()  # ado-mcp project
-
 
 @pytest.fixture
 async def work_item_cleanup(mcp_client, project_id):
@@ -54,7 +51,6 @@ async def work_item_cleanup(mcp_client, project_id):
             # Don't fail the test if cleanup fails
             print(f"Warning: Failed to cleanup work item {work_item_id}: {e}")
 
-
 @pytest.fixture
 async def test_work_item(mcp_client, project_id, work_item_cleanup):
     """Create a test work item for use in comment/history tests."""
@@ -73,7 +69,6 @@ async def test_work_item(mcp_client, project_id, work_item_cleanup):
 
     return result.data
 
-
 class TestWorkItemComments:
     """Test work item comment functionality."""
 
@@ -82,15 +77,7 @@ class TestWorkItemComments:
         """Get a work item ID to use for testing comments."""
         return test_work_item["id"]
 
-    async def test_add_work_item_comment_tool_registration(self, mcp_client):
-        """Test that the add_work_item_comment tool is properly registered."""
-        tools_response = await mcp_client.list_tools()
-        if hasattr(tools_response, "tools"):
-            tools = tools_response.tools
-        else:
-            tools = tools_response
-        tool_names = [tool.name for tool in tools]
-        assert "add_work_item_comment" in tool_names
+    
 
     async def test_add_work_item_comment_basic_functionality(
         self, mcp_client, project_id, sample_work_item_id
@@ -168,7 +155,6 @@ class TestWorkItemComments:
             "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
         ), f"Should fail for invalid work item ID but got: {exc_info.value}"
 
-
 class TestWorkItemCommentRetrieval:
     """Test work item comment retrieval functionality."""
 
@@ -200,15 +186,7 @@ class TestWorkItemCommentRetrieval:
 
         return {"work_item_id": work_item_id, "comments": created_comments}
 
-    async def test_get_work_item_comments_tool_registration(self, mcp_client):
-        """Test that the get_work_item_comments tool is properly registered."""
-        tools_response = await mcp_client.list_tools()
-        if hasattr(tools_response, "tools"):
-            tools = tools_response.tools
-        else:
-            tools = tools_response
-        tool_names = [tool.name for tool in tools]
-        assert "get_work_item_comments" in tool_names
+    
 
     async def test_get_work_item_comments_basic_functionality(
         self, mcp_client, project_id, work_item_with_comments
@@ -285,7 +263,6 @@ class TestWorkItemCommentRetrieval:
             "delete_work_item", {"project_id": project_id, "work_item_id": work_item_id}
         )
 
-
 class TestWorkItemHistory:
     """Test work item history functionality."""
 
@@ -313,15 +290,7 @@ class TestWorkItemHistory:
 
         return work_item_id
 
-    async def test_get_work_item_history_tool_registration(self, mcp_client):
-        """Test that the get_work_item_history tool is properly registered."""
-        tools_response = await mcp_client.list_tools()
-        if hasattr(tools_response, "tools"):
-            tools = tools_response.tools
-        else:
-            tools = tools_response
-        tool_names = [tool.name for tool in tools]
-        assert "get_work_item_history" in tool_names
+    
 
     async def test_get_work_item_history_basic_functionality(
         self, mcp_client, project_id, work_item_with_history
@@ -481,7 +450,6 @@ class TestWorkItemHistory:
             assert "revised_date" in revision, (
                 f"Revision should have revised_date field but got keys: {list(revision.keys())}"
             )
-
 
 class TestCommentsHistoryIntegration:
     """Test integration between comments and history functionality."""

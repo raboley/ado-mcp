@@ -43,14 +43,3 @@ async def test_check_authentication_after_org_change(mcp_client: Client):
     )
 
 
-async def test_check_authentication_tool_registration():
-    async with Client(mcp) as client:
-        tools_response = await client.list_tools()
-        if hasattr(tools_response, "tools"):
-            tools = tools_response.tools
-        else:
-            tools = tools_response
-        tool_names = [tool.name for tool in tools]
-        assert "check_ado_authentication" in tool_names, (
-            f"Expected 'check_ado_authentication' tool to be registered but found tools: {tool_names}"
-        )

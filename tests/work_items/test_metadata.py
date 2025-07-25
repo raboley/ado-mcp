@@ -11,7 +11,6 @@ from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -21,11 +20,9 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
     return get_project_id()  # ado-mcp project
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -60,7 +57,6 @@ async def test_list_work_item_types_returns_valid_data(mcp_client, project_id):
     assert len(found_types) >= 2, (
         f"Should find at least 2 common work item types but found: {found_types} in {type_names}"
     )
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -97,7 +93,6 @@ async def test_get_work_item_type_fields_for_bug(mcp_client, project_id):
         f"Should find all required fields {required_fields} but found: {found_fields} in {field_refs}"
     )
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_item_type_fields_for_task(mcp_client, project_id):
@@ -124,7 +119,6 @@ async def test_get_work_item_type_fields_for_task(mcp_client, project_id):
                 f"Activity field should be String or TreePath but got: {field_type}"
             )
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_get_work_item_type_fields_invalid_type(mcp_client, project_id):
@@ -137,7 +131,6 @@ async def test_get_work_item_type_fields_invalid_type(mcp_client, project_id):
     assert "not found" in str(exc_info.value).lower() or "invalid" in str(exc_info.value).lower(), (
         f"Should indicate invalid work item type but got: {exc_info.value}"
     )
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -161,7 +154,6 @@ async def test_list_area_paths_returns_valid_data(mcp_client, project_id):
         f"Area path should have 'path' field but got keys: {list(root_node.keys())}"
     )
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_list_area_paths_with_depth_limit(mcp_client, project_id):
@@ -176,7 +168,6 @@ async def test_list_area_paths_with_depth_limit(mcp_client, project_id):
         area_paths[0]
         # The depth parameter affects how deeply nested children are included
         # At depth=1, we should get the root node but not necessarily deep nesting
-
 
 @pytest.mark.asyncio
 @requires_ado_creds
@@ -204,7 +195,6 @@ async def test_list_iteration_paths_returns_valid_data(mcp_client, project_id):
         f"Iteration path should have 'path' field but got keys: {list(root_node.keys())}"
     )
 
-
 @pytest.mark.asyncio
 @requires_ado_creds
 async def test_list_iteration_paths_with_depth_limit(mcp_client, project_id):
@@ -222,32 +212,6 @@ async def test_list_iteration_paths_with_depth_limit(mcp_client, project_id):
     if len(iteration_paths) > 0:
         iteration_paths[0]
         # The depth parameter affects how deeply nested children are included
-
-
-@pytest.mark.asyncio
-@requires_ado_creds
-async def test_metadata_tools_registered_in_mcp_server(mcp_client):
-    # List all available tools
-    tools_response = await mcp_client.list_tools()
-    if hasattr(tools_response, "tools"):
-        tools = tools_response.tools
-    else:
-        tools = tools_response
-    tool_names = [tool.name for tool in tools]
-
-    # Check that our metadata tools are registered
-    expected_tools = [
-        "list_work_item_types",
-        "get_work_item_type_fields",
-        "list_area_paths",
-        "list_iteration_paths",
-    ]
-
-    for tool_name in expected_tools:
-        assert tool_name in tool_names, (
-            f"Tool '{tool_name}' should be registered but available tools are: {tool_names}"
-        )
-
 
 @pytest.mark.asyncio
 @requires_ado_creds

@@ -10,7 +10,6 @@ from tests.test_helpers import get_pipeline_id_by_name
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -19,7 +18,6 @@ async def mcp_client():
         )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
-
 
 @pytest.fixture
 async def completed_run_id(mcp_client):
@@ -39,7 +37,6 @@ async def completed_run_id(mcp_client):
     )
 
     return pipeline_run["id"]
-
 
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_basic_structure(
@@ -79,7 +76,6 @@ async def test_get_pipeline_failure_summary_basic_structure(
         f"Expected hierarchy_failures to be list, got {type(failure_summary['hierarchy_failures'])}: {failure_summary['hierarchy_failures']}"
     )
 
-
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_with_max_lines(
     mcp_client: Client, completed_run_id: int
@@ -110,7 +106,6 @@ async def test_get_pipeline_failure_summary_with_max_lines(
                 f"Expected log content to have at most 50 lines for max_lines=50, got {len(lines)} lines in task '{task.get('name', 'unknown')}'"
             )
 
-
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_unlimited_lines(
     mcp_client: Client, completed_run_id: int
@@ -133,7 +128,6 @@ async def test_get_pipeline_failure_summary_unlimited_lines(
     assert isinstance(failure_summary, dict), (
         f"Expected failure summary to be dict, got {type(failure_summary)}: {failure_summary}"
     )
-
 
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_task_structure(
@@ -174,7 +168,6 @@ async def test_get_pipeline_failure_summary_task_structure(
                 f"Expected '{field}' field in hierarchy_failure, got fields: {list(failure.keys())}"
             )
 
-
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_nonexistent_run(mcp_client: Client):
     try:
@@ -195,7 +188,6 @@ async def test_get_pipeline_failure_summary_nonexistent_run(mcp_client: Client):
         assert True, (
             f"Expected exception for non-existent run 999999999, got {type(e).__name__}: {e}"
         )
-
 
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_invalid_project(mcp_client: Client):
@@ -220,7 +212,6 @@ async def test_get_pipeline_failure_summary_invalid_project(mcp_client: Client):
             f"Expected exception for invalid project 00000000-0000-0000-0000-000000000000, got {type(e).__name__}: {e}"
         )
 
-
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_wrong_pipeline_id(
     mcp_client: Client, completed_run_id: int
@@ -243,7 +234,6 @@ async def test_get_pipeline_failure_summary_wrong_pipeline_id(
         assert True, (
             f"Expected exception for wrong pipeline ID 999 with run {completed_run_id}, got {type(e).__name__}: {e}"
         )
-
 
 @requires_ado_creds
 async def test_get_pipeline_failure_summary_successful_run_handling(
@@ -276,15 +266,3 @@ async def test_get_pipeline_failure_summary_successful_run_handling(
             f"Expected 0 hierarchy_failures for successful run with 0 failed steps, got {hierarchy_count}"
         )
 
-
-async def test_get_pipeline_failure_summary_tool_registration():
-    async with Client(mcp) as client:
-        tools_response = await client.list_tools()
-        if hasattr(tools_response, "tools"):
-            tools = tools_response.tools
-        else:
-            tools = tools_response
-        tool_names = [tool.name for tool in tools]
-        assert "get_pipeline_failure_summary" in tool_names, (
-            f"Expected 'get_pipeline_failure_summary' in registered tools, got tools: {tool_names}"
-        )

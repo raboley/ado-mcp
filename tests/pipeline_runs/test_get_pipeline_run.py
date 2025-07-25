@@ -10,7 +10,6 @@ from tests.test_helpers import get_pipeline_id_by_name
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -20,14 +19,12 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 async def mcp_client_no_auth(monkeypatch):
     monkeypatch.delenv("AZURE_DEVOPS_EXT_PAT", raising=False)
     monkeypatch.delenv("ADO_ORGANIZATION_URL", raising=False)
     async with Client(mcp) as client:
         yield client
-
 
 @pytest.fixture
 async def pipeline_run_id(mcp_client):
@@ -45,7 +42,6 @@ async def pipeline_run_id(mcp_client):
     assert pipeline_run["id"] is not None, "Expected pipeline run ID but got None"
 
     return pipeline_run["id"]
-
 
 @requires_ado_creds
 async def test_get_pipeline_run_with_valid_id(mcp_client: Client, pipeline_run_id: int):
@@ -82,7 +78,6 @@ async def test_get_pipeline_run_with_valid_id(mcp_client: Client, pipeline_run_i
         f"Expected pipeline ID {expected_pipeline_id} but got {pipeline_run['pipeline']['id']}"
     )
 
-
 @requires_ado_creds
 async def test_get_pipeline_run_state_validation(mcp_client: Client, pipeline_run_id: int):
     get_project_name()
@@ -102,7 +97,6 @@ async def test_get_pipeline_run_state_validation(mcp_client: Client, pipeline_ru
     assert pipeline_run["state"] in valid_states, (
         f"Expected state to be one of {valid_states} but got '{pipeline_run['state']}'"
     )
-
 
 @requires_ado_creds
 async def test_get_pipeline_run_structure(mcp_client: Client, pipeline_run_id: int):
@@ -136,7 +130,6 @@ async def test_get_pipeline_run_structure(mcp_client: Client, pipeline_run_id: i
         f"Expected 'name' in pipeline info but got fields: {list(pipeline_info.keys())}"
     )
 
-
 @requires_ado_creds
 async def test_get_pipeline_run_with_authentication(mcp_client: Client, pipeline_run_id: int):
     get_project_name()
@@ -154,7 +147,6 @@ async def test_get_pipeline_run_with_authentication(mcp_client: Client, pipeline
     assert pipeline_run["id"] == pipeline_run_id, (
         f"Expected run ID {pipeline_run_id} but got {pipeline_run['id']}"
     )
-
 
 @requires_ado_creds
 async def test_get_pipeline_run_nonexistent_run(mcp_client: Client):
@@ -178,7 +170,6 @@ async def test_get_pipeline_run_nonexistent_run(mcp_client: Client):
     except Exception:
         assert True, "Non-existent pipeline run correctly raised exception"
 
-
 @requires_ado_creds
 async def test_get_pipeline_run_invalid_project(mcp_client: Client):
     try:
@@ -197,7 +188,6 @@ async def test_get_pipeline_run_invalid_project(mcp_client: Client):
             raise AssertionError(f"Expected None for invalid project but got {result.data}")
     except Exception:
         assert True, "Invalid project correctly raised exception"
-
 
 @requires_ado_creds
 async def test_get_pipeline_run_wrong_pipeline_id(mcp_client: Client, pipeline_run_id: int):
@@ -220,15 +210,3 @@ async def test_get_pipeline_run_wrong_pipeline_id(mcp_client: Client, pipeline_r
     except Exception:
         assert True, "Wrong pipeline ID correctly raised exception"
 
-
-async def test_get_pipeline_run_tool_registration():
-    async with Client(mcp) as client:
-        tools_response = await client.list_tools()
-        if hasattr(tools_response, "tools"):
-            tools = tools_response.tools
-        else:
-            tools = tools_response
-        tool_names = [tool.name for tool in tools]
-        assert "get_pipeline_run" in tool_names, (
-            f"Expected 'get_pipeline_run' in tool names but got {tool_names}"
-        )

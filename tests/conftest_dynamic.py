@@ -194,14 +194,14 @@ def validate_test_environment_setup(test_config):
             f"Test environment not configured: {validation.get('error')}. {validation.get('suggestion', '')}"
         )
 
-    # Warn about placeholder pipeline IDs but don't fail
+    # Log about placeholder pipeline IDs but don't fail
     if validation.get("needs_manual_setup", False):
-        import warnings
-
-        warnings.warn(
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        logger.info(
             f"Some pipelines need manual setup: {validation.get('errors', [])}. "
-            "Tests using these pipelines will be skipped.",
-            stacklevel=2,
+            "Tests using these pipelines will be skipped."
         )
 
 

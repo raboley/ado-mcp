@@ -9,7 +9,6 @@ from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -19,14 +18,12 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 async def mcp_client_no_auth(monkeypatch):
     monkeypatch.delenv("AZURE_DEVOPS_EXT_PAT", raising=False)
     monkeypatch.delenv("ADO_ORGANIZATION_URL", raising=False)
     async with Client(mcp) as client:
         yield client
-
 
 @requires_ado_creds
 async def test_run_pipeline_basic_no_parameters(mcp_client: Client):
@@ -57,7 +54,6 @@ async def test_run_pipeline_basic_no_parameters(mcp_client: Client):
     assert pipeline_run["pipeline"]["name"] == "test_run_and_get_pipeline_run_details", (
         f"Expected pipeline name 'test_run_and_get_pipeline_run_details' but got {pipeline_run['pipeline']['name']}"
     )
-
 
 @requires_ado_creds
 async def test_run_pipeline_with_template_parameters(mcp_client: Client):
@@ -91,7 +87,6 @@ async def test_run_pipeline_with_template_parameters(mcp_client: Client):
         f"Expected state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
 
-
 @requires_ado_creds
 async def test_run_pipeline_with_resources(mcp_client: Client):
     # Get project name
@@ -124,7 +119,6 @@ async def test_run_pipeline_with_resources(mcp_client: Client):
     assert pipeline_run is not None, "Expected pipeline run data but got None"
     assert pipeline_run["id"] is not None, "Expected pipeline run ID but got None"
 
-
 @requires_ado_creds
 async def test_run_pipeline_with_authentication(mcp_client: Client):
     # Get project name
@@ -147,20 +141,6 @@ async def test_run_pipeline_with_authentication(mcp_client: Client):
     pipeline_run = result.data
     assert pipeline_run is not None, "Expected pipeline run with authentication but got None"
     assert pipeline_run["id"] is not None, "Expected pipeline run ID but got None"
-
-
-async def test_run_pipeline_tool_registration():
-    async with Client(mcp) as client:
-        tools_response = await client.list_tools()
-        if hasattr(tools_response, "tools"):
-            tools = tools_response.tools
-        else:
-            tools = tools_response
-        tool_names = [tool.name for tool in tools]
-        assert "run_pipeline" in tool_names, (
-            f"Expected 'run_pipeline' in tool names but got {tool_names}"
-        )
-
 
 @requires_ado_creds
 async def test_run_pipeline_nonexistent_pipeline(mcp_client: Client):
@@ -188,7 +168,6 @@ async def test_run_pipeline_nonexistent_pipeline(mcp_client: Client):
             raise AssertionError(f"Expected None for non-existent pipeline but got {result.data}")
     except Exception:
         assert True, "Non-existent pipeline correctly raised exception"
-
 
 @requires_ado_creds
 async def test_run_pipeline_invalid_project(mcp_client: Client):

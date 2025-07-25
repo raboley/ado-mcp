@@ -82,7 +82,25 @@ def register_ado_tools(mcp_instance, client_container):
         ado_client_instance, error_return = get_client_or_error([])
         if ado_client_instance is None:
             return error_return
-        return ado_client_instance.list_projects()
+        
+        # Check cache first, fetch from API only if needed (with telemetry)
+        from opentelemetry import trace
+        from .cache import ado_cache
+        
+        tracer = trace.get_tracer(__name__)
+        with tracer.start_as_current_span("ensure_projects_cached") as span:
+            projects = ado_cache.get_projects()
+            if projects is None:
+                span.set_attribute("cache.source", "api")
+                logger.info("Projects not cached, fetching from API...")
+                projects = ado_client_instance.list_projects()
+                ado_cache.set_projects(projects)
+            else:
+                span.set_attribute("cache.source", "cache")
+                logger.info("Projects loaded from cache")
+            
+            span.set_attribute("projects.count", len(projects))
+            return projects
 
     @mcp_instance.tool
     def list_pipelines(project_id: str) -> list[Pipeline]:
@@ -858,33 +876,6 @@ def register_ado_tools(mcp_instance, client_container):
 
     # 🚀 NAME-BASED TOOLS - USER-FRIENDLY INTERFACES
 
-    @mcp_instance.tool
-    def find_project_by_name(name: str) -> Project | None:
-        """
-        🔍 FIND PROJECT BY NAME: Find a project using its name with fuzzy matching.
-
-        ⚡ USE THIS WHEN: User provides a project name instead of project ID
-
-        This tool provides intelligent name matching:
-        - Exact name matching first
-        - Fuzzy matching for typos (e.g., "MyProj" matches "MyProject")
-        - Case-insensitive search
-        - Cached results for fast repeated lookups
-
-        Perfect for: "Find the Learning project" or "Get info about my main project"
-
-        Args:
-            name (str): Project name to search for (fuzzy matching enabled)
-
-        Returns:
-            Project: Project object if found, None if not found
-        """
-        ado_client_instance = client_container.get("client")
-        if not ado_client_instance:
-            logger.error("ADO client is not available.")
-            return None
-
-        return ado_client_instance.find_project_by_name(name)
 
     @mcp_instance.tool
     def find_pipeline_by_name(project_name: str, pipeline_name: str) -> dict | None:
@@ -1099,27 +1090,6 @@ def register_ado_tools(mcp_instance, client_container):
             project_name, pipeline_name, request, timeout_seconds, max_lines
         )
 
-    @mcp_instance.tool
-    def list_available_projects() -> list[str]:
-        """
-        📋 LIST PROJECT NAMES: Get all available project names for easy reference.
-
-        ⚡ USE THIS WHEN: User wants to see what projects are available
-
-        Returns a simple list of project names that can be used with other name-based tools.
-        Uses intelligent caching so repeated calls are fast.
-
-        Perfect for: "What projects are available?" or "Show me all projects"
-
-        Returns:
-            List[str]: List of project names available in the organization
-        """
-        ado_client_instance = client_container.get("client")
-        if not ado_client_instance:
-            logger.error("ADO client is not available.")
-            return []
-
-        return ado_client_instance.list_available_projects()
 
     @mcp_instance.tool
     def list_available_pipelines(project_name: str) -> list[str]:

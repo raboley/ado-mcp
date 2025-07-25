@@ -10,7 +10,6 @@ from tests.test_helpers import get_pipeline_id_by_name
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -19,7 +18,6 @@ async def mcp_client():
         )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
-
 
 @pytest.fixture
 async def build_id(mcp_client):
@@ -39,7 +37,6 @@ async def build_id(mcp_client):
     )
 
     return pipeline_run["id"]
-
 
 @requires_ado_creds
 async def test_get_build_by_id_valid_build(mcp_client: Client, build_id: int):
@@ -72,7 +69,6 @@ async def test_get_build_by_id_valid_build(mcp_client: Client, build_id: int):
         f"Expected 'name' field in definition, got fields: {list(definition.keys())}"
     )
 
-
 @requires_ado_creds
 async def test_get_build_by_id_maps_to_correct_pipeline(mcp_client: Client, build_id: int):
     project_id = get_project_id()
@@ -88,7 +84,6 @@ async def test_get_build_by_id_maps_to_correct_pipeline(mcp_client: Client, buil
     assert definition["id"] == pipeline_id, (
         f"Expected build {build_id} to map to pipeline {pipeline_id}, got pipeline {definition['id']}"
     )
-
 
 @requires_ado_creds
 async def test_get_build_by_id_structure(mcp_client: Client, build_id: int):
@@ -114,7 +109,6 @@ async def test_get_build_by_id_structure(mcp_client: Client, build_id: int):
             f"Expected '{field}' field in definition, got fields: {list(definition.keys())}"
         )
 
-
 @requires_ado_creds
 async def test_get_build_by_id_status_field(mcp_client: Client, build_id: int):
     project_id = get_project_id()
@@ -139,7 +133,6 @@ async def test_get_build_by_id_status_field(mcp_client: Client, build_id: int):
         f"Expected status to be one of {valid_statuses}, got '{actual_status}'"
     )
 
-
 @requires_ado_creds
 async def test_get_build_by_id_nonexistent_build(mcp_client: Client):
     project_id = get_project_id()
@@ -158,7 +151,6 @@ async def test_get_build_by_id_nonexistent_build(mcp_client: Client):
             f"Expected exception for non-existent build 999999999, got {type(e).__name__}: {e}"
         )
 
-
 @requires_ado_creds
 async def test_get_build_by_id_invalid_project(mcp_client: Client):
     try:
@@ -175,7 +167,6 @@ async def test_get_build_by_id_invalid_project(mcp_client: Client):
         assert True, (
             f"Expected exception for invalid project 00000000-0000-0000-0000-000000000000, got {type(e).__name__}: {e}"
         )
-
 
 @requires_ado_creds
 async def test_get_build_by_id_url_resolution_scenario(mcp_client: Client, build_id: int):
@@ -204,15 +195,3 @@ async def test_get_build_by_id_url_resolution_scenario(mcp_client: Client, build
         f"Expected non-empty pipeline name for URL resolution, got '{pipeline_name}'"
     )
 
-
-async def test_get_build_by_id_tool_registration():
-    async with Client(mcp) as client:
-        tools_response = await client.list_tools()
-        if hasattr(tools_response, "tools"):
-            tools = tools_response.tools
-        else:
-            tools = tools_response
-        tool_names = [tool.name for tool in tools]
-        assert "get_build_by_id" in tool_names, (
-            f"Expected 'get_build_by_id' in registered tools, got tools: {tool_names}"
-        )

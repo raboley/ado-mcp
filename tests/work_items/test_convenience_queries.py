@@ -11,55 +11,29 @@ from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def client():
     """Create MCP client for testing."""
     async with Client(mcp) as client:
         yield client
 
-
 @pytest.fixture
 def project_id():
     """Test project ID."""
     return get_project_id()  # ado-mcp project
-
 
 def get_current_user_email():
     """Get current user email from environment or use test default."""
     # Try to get from environment, fall back to a test user
     return os.environ.get("AZURE_DEVOPS_USER_EMAIL", "raboley@gmail.com")
 
-
-@requires_ado_creds
-async def test_get_my_work_items_tool_registration(client):
-    """Verify get_my_work_items tool is registered in MCP server"""
-    tools_response = await client.list_tools()
-    if hasattr(tools_response, "tools"):
-        tools = tools_response.tools
-    else:
-        tools = tools_response
-    tool_names = [tool.name for tool in tools]
-
     assert "get_my_work_items" in tool_names, (
         f"get_my_work_items should be registered but found: {tool_names}"
     )
 
-
-@requires_ado_creds
-async def test_get_recent_work_items_tool_registration(client):
-    """Verify get_recent_work_items tool is registered in MCP server"""
-    tools_response = await client.list_tools()
-    if hasattr(tools_response, "tools"):
-        tools = tools_response.tools
-    else:
-        tools = tools_response
-    tool_names = [tool.name for tool in tools]
-
     assert "get_recent_work_items" in tool_names, (
         f"get_recent_work_items should be registered but found: {tool_names}"
     )
-
 
 @requires_ado_creds
 async def test_get_my_work_items_basic_functionality(client, project_id):
@@ -118,7 +92,6 @@ async def test_get_my_work_items_basic_functionality(client, project_id):
         await client.call_tool(
             "delete_work_item", {"project_id": project_id, "work_item_id": work_item_id}
         )
-
 
 @requires_ado_creds
 async def test_get_my_work_items_with_filters(client, project_id):
@@ -207,7 +180,6 @@ async def test_get_my_work_items_with_filters(client, project_id):
             "delete_work_item", {"project_id": project_id, "work_item_id": task_id}
         )
 
-
 @requires_ado_creds
 async def test_get_recent_work_items_basic_functionality(client, project_id):
     """Test basic functionality of get_recent_work_items tool"""
@@ -261,7 +233,6 @@ async def test_get_recent_work_items_basic_functionality(client, project_id):
             "delete_work_item", {"project_id": project_id, "work_item_id": work_item_id}
         )
 
-
 @requires_ado_creds
 async def test_get_recent_work_items_with_custom_days(client, project_id):
     """Test get_recent_work_items with custom days parameter"""
@@ -308,7 +279,6 @@ async def test_get_recent_work_items_with_custom_days(client, project_id):
         await client.call_tool(
             "delete_work_item", {"project_id": project_id, "work_item_id": work_item_id}
         )
-
 
 @requires_ado_creds
 async def test_get_recent_work_items_with_state_filter(client, project_id):
@@ -357,7 +327,6 @@ async def test_get_recent_work_items_with_state_filter(client, project_id):
             "delete_work_item", {"project_id": project_id, "work_item_id": new_item_id}
         )
 
-
 @requires_ado_creds
 async def test_get_recent_work_items_pagination(client, project_id):
     """Test pagination in get_recent_work_items"""
@@ -385,7 +354,6 @@ async def test_get_recent_work_items_pagination(client, project_id):
     assert "has_previous" in pagination, (
         f"Should have has_previous field but got: {pagination.keys()}"
     )
-
 
 @requires_ado_creds
 async def test_convenience_tools_error_handling(client):

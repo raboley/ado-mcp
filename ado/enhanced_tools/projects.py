@@ -101,6 +101,8 @@ class EnhancedProjectTools:
             enhanced_projects.sort(key=lambda x: x["name"].lower())
 
             logger.info(f"Enhanced metadata for {len(enhanced_projects)} projects")
+            if enhanced_projects:
+                logger.info(f"First project sample: {enhanced_projects[0]}")
             return enhanced_projects
 
         except Exception as e:

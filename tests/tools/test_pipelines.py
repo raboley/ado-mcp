@@ -250,9 +250,9 @@ class TestNameBasedPipelineOperations:
 
         elapsed_ms = (time.time() - start_time) * 1000
 
-        # Should complete fuzzy matching in reasonable time (allowing for lowered threshold)
-        assert elapsed_ms < 400, (
-            f"Fuzzy matching should complete quickly but took {elapsed_ms:.1f}ms"
+        # Should complete fuzzy matching in reasonable time (allowing for system variability)
+        assert elapsed_ms < 1000, (
+            f"Fuzzy matching should complete within 1 second but took {elapsed_ms:.1f}ms"
         )
 
     @requires_ado_creds

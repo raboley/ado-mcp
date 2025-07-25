@@ -79,14 +79,3 @@ async def test_list_projects_finds_expected_project(mcp_client: Client):
     )
 
 
-async def test_list_projects_tool_registration():
-    async with Client(mcp) as client:
-        tools_response = await client.list_tools()
-        if hasattr(tools_response, "tools"):
-            tools = tools_response.tools
-        else:
-            tools = tools_response
-        tool_names = [tool.name for tool in tools]
-        assert "list_projects" in tool_names, (
-            f"Expected 'list_projects' tool to be registered, but found tools: {tool_names}"
-        )

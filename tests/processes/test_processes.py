@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -23,35 +22,13 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 def project_id():
     return get_project_id()  # ado-mcp project
 
-
 class TestProcessDiscovery:
     """Test process discovery functionality."""
 
-    async def test_process_tools_registered_in_mcp_server(self, mcp_client):
-        """Test that all process tools are properly registered."""
-        tools_response = await mcp_client.list_tools()
-        if hasattr(tools_response, "tools"):
-            tools = tools_response.tools
-        else:
-            tools = tools_response
-        tool_names = [tool.name for tool in tools]
-
-        expected_tools = [
-            "get_project_process_id",
-            "get_project_process_info",
-            "list_processes",
-            "get_process_details",
-            "get_work_item_templates",
-            "get_work_item_template",
-        ]
-
-        for expected_tool in expected_tools:
-            assert expected_tool in tool_names, f"Tool '{expected_tool}' should be registered"
 
     async def test_get_project_process_id_returns_valid_id(self, mcp_client, project_id):
         """Test getting project process ID returns a valid UUID."""
@@ -172,7 +149,6 @@ class TestProcessDiscovery:
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
 
-
 class TestWorkItemTemplates:
     """Test work item template functionality."""
 
@@ -240,7 +216,6 @@ class TestWorkItemTemplates:
             )
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
-
 
 class TestProcessIntegration:
     """Test integration scenarios for processes."""

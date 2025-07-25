@@ -8,7 +8,7 @@ and weighted scoring to help LLMs find resources even with typos or slight namin
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, TypeVar
+from typing import Any, Callable, TypeVar
 
 from Levenshtein import distance as levenshtein_distance
 
@@ -99,8 +99,8 @@ class FuzzyMatcher:
         self,
         query: str,
         candidates: list[T],
-        name_extractor: callable = lambda x: str(x),
-        id_extractor: callable = lambda x: getattr(x, "id", None),
+        name_extractor: Callable[[T], str] = lambda x: str(x),
+        id_extractor: Callable[[T], Any] = lambda x: getattr(x, "id", None),
     ) -> list[MatchResult]:
         """
         Find fuzzy matches for a query string against a list of candidates.

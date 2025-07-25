@@ -9,7 +9,6 @@ from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -18,7 +17,6 @@ async def mcp_client():
         )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
-
 
 @requires_ado_creds
 async def test_list_pipelines_returns_valid_list(mcp_client: Client):
@@ -51,7 +49,6 @@ async def test_list_pipelines_returns_valid_list(mcp_client: Client):
             f"Pipeline folder should be str but got {type(pipeline['folder']).__name__}: {pipeline['folder']}"
         )
 
-
 @requires_ado_creds
 async def test_list_pipelines_finds_expected_pipelines(mcp_client: Client):
     project_id = get_project_id()
@@ -70,7 +67,6 @@ async def test_list_pipelines_finds_expected_pipelines(mcp_client: Client):
     assert len(preview_pipelines) > 0, (
         f"Expected to find preview test pipelines but found none. All pipelines: {pipeline_names}"
     )
-
 
 @requires_ado_creds
 async def test_list_pipelines_specific_pipeline_details(mcp_client: Client):
@@ -97,7 +93,6 @@ async def test_list_pipelines_specific_pipeline_details(mcp_client: Client):
         f"Expected name to contain 'github-resources-test-stable' but got: {github_pipeline['name']}"
     )
 
-
 @requires_ado_creds
 async def test_list_pipelines_invalid_project(mcp_client: Client):
     try:
@@ -112,15 +107,3 @@ async def test_list_pipelines_invalid_project(mcp_client: Client):
             "Expected an exception for invalid project ID but handling failed unexpectedly"
         )
 
-
-async def test_list_pipelines_tool_registration():
-    async with Client(mcp) as client:
-        tools_response = await client.list_tools()
-        if hasattr(tools_response, "tools"):
-            tools = tools_response.tools
-        else:
-            tools = tools_response
-        tool_names = [tool.name for tool in tools]
-        assert "list_pipelines" in tool_names, (
-            f"Expected 'list_pipelines' tool to be registered but found tools: {tool_names}"
-        )

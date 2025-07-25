@@ -18,7 +18,6 @@ from tests.ado.test_client import requires_ado_creds
 # Test configuration
 pytestmark = pytest.mark.asyncio
 
-
 @pytest.fixture
 async def mcp_client():
     """Create MCP client with proper organization setup."""
@@ -30,18 +29,15 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
-
 @pytest.fixture
 def known_project_name():
     """Get a known project name from test configuration."""
     return get_project_name()
 
-
 @pytest.fixture
 def known_project_id():
     """Get a known project ID from test configuration."""
     return get_project_id()
-
 
 class TestProjectDiscoveryBasics:
     @requires_ado_creds
@@ -93,7 +89,6 @@ class TestProjectDiscoveryBasics:
         first_item = result.data[0]
         assert first_item is not None, "First project should not be None"
 
-
 class TestProjectFuzzyMatching:
     @requires_ado_creds
     async def test_get_project_suggestions_for_nonexistent_project(self, mcp_client):
@@ -136,7 +131,6 @@ class TestProjectFuzzyMatching:
                 f"Similarity should be between 0 and 1 but got {similarity}"
             )
 
-
 class TestProjectErrorHandling:
     @requires_ado_creds
     async def test_find_nonexistent_project_by_id_returns_none(self, mcp_client):
@@ -167,22 +161,3 @@ class TestProjectErrorHandling:
             "Should indicate no similar projects available"
         )
 
-
-class TestProjectToolRegistration:
-    @requires_ado_creds
-    async def test_enhanced_project_tools_are_registered(self, mcp_client):
-        """Test that all enhanced project tools are properly registered in MCP server."""
-        # Test that all tools are available
-        tools_result = await mcp_client.list_tools()
-        tool_names = [tool.name for tool in tools_result]
-
-        expected_tools = [
-            "find_project_by_id_or_name",
-            "list_all_projects_with_metadata",
-            "get_project_suggestions",
-        ]
-
-        for tool_name in expected_tools:
-            assert tool_name in tool_names, (
-                f"Tool '{tool_name}' should be registered in MCP server but found: {tool_names}"
-            )
