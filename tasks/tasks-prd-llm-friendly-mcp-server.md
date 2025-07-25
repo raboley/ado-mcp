@@ -39,25 +39,25 @@
   - [x] 1.7 Add logging for fuzzy match operations with performance metrics
   - [x] 1.8 Create documentation in `docs/FUZZY_MATCHING.md` explaining algorithm, usage, and examples
 
-- [ ] 2.0 Smart Pipeline Operations Enhancement (Complete Vertical Slice)
-  - [ ] 2.1 Enhance `run_pipeline` tool in `ado/tools/pipelines.py` to accept both IDs and names
-  - [ ] 2.2 Implement auto-detection logic to distinguish between pipeline IDs and names
-  - [ ] 2.3 Integrate fuzzy matching for failed pipeline name lookups with intelligent error responses
-  - [ ] 2.4 Add suggestion limiting based on token estimation to prevent context overflow
-  - [ ] 2.5 Create comprehensive end-to-end tests in `tests/tools/test_pipelines.py` for both success and failure scenarios
-  - [ ] 2.6 Add performance tests for fuzzy matching response times (must be <200ms for 100 items)
-  - [ ] 2.7 Implement logging for pipeline operation attempts, fuzzy matches, and success rates
-  - [ ] 2.8 Update tool documentation with new unified pipeline operation examples
+- [x] 2.0 Smart Pipeline Operations Enhancement (Complete Vertical Slice)
+  - [x] 2.1 Enhance `run_pipeline` tool in `ado/tools/pipelines.py` to accept both IDs and names
+  - [x] 2.2 Implement auto-detection logic to distinguish between pipeline IDs and names
+  - [x] 2.3 Integrate fuzzy matching for failed pipeline name lookups with intelligent error responses
+  - [x] 2.4 Add suggestion limiting based on token estimation to prevent context overflow
+  - [x] 2.5 Create comprehensive end-to-end tests in `tests/tools/test_pipelines.py` for both success and failure scenarios
+  - [x] 2.6 Add performance tests for fuzzy matching response times (must be <200ms for 100 items)
+  - [x] 2.7 Implement logging for pipeline operation attempts, fuzzy matches, and success rates
+  - [x] 2.8 Update tool documentation with new unified pipeline operation examples
 
-- [ ] 3.0 Smart Project Discovery Enhancement (Complete Vertical Slice)
-  - [ ] 3.1 Enhance project-related tools in `ado/tools/projects.py` to accept both IDs and names
-  - [ ] 3.2 Implement fuzzy matching for project name resolution with top 10 suggestion limiting
-  - [ ] 3.3 Add project description inclusion in suggestions when available
-  - [ ] 3.4 Implement intelligent error responses with "Did you mean..." suggestions for project operations
-  - [ ] 3.5 Create end-to-end tests in `tests/tools/test_projects.py` covering fuzzy matching scenarios
-  - [ ] 3.6 Add tests for project suggestion limiting and token management
-  - [ ] 3.7 Implement observability for project discovery success rates and fuzzy match effectiveness
-  - [ ] 3.8 Document enhanced project discovery functionality with usage examples
+- [x] 3.0 Smart Project Discovery Enhancement (Complete Vertical Slice)
+  - [x] 3.1 Enhance project-related tools in `ado/enhanced_tools/projects.py` to accept both IDs and names
+  - [x] 3.2 Implement fuzzy matching for project name resolution with top 10 suggestion limiting
+  - [x] 3.3 Add project description inclusion in suggestions when available
+  - [x] 3.4 Implement intelligent error responses with "Did you mean..." suggestions for project operations
+  - [x] 3.5 Create end-to-end tests in `tests/tools/test_projects.py` covering fuzzy matching scenarios
+  - [x] 3.6 Add tests for project suggestion limiting and token management
+  - [x] 3.7 Implement observability for project discovery success rates and fuzzy match effectiveness
+  - [x] 3.8 Document enhanced project discovery functionality with usage examples
 
 - [ ] 4.0 Tool Consolidation and Backward Compatibility (Complete Vertical Slice)
   - [ ] 4.1 Create error enhancement middleware in `ado/middleware/error_enhancement.py` for consistent suggestion formatting

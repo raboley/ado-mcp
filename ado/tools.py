@@ -2,6 +2,7 @@ import logging
 import os
 from typing import Any
 
+from ado.enhanced_tools.projects import EnhancedProjectTools
 from ado.models import (
     ConfigurationType,
     CreatePipelineRequest,
@@ -731,6 +732,129 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.run_pipeline_and_get_outcome_by_name(
             project_name, pipeline_name, request, timeout_seconds, max_lines
         )
+
+    # 🔍 ENHANCED PROJECT DISCOVERY TOOLS
+
+    @mcp_instance.tool
+    def find_project_by_id_or_name(
+        identifier: str, include_suggestions: bool = True
+    ) -> Project | None:
+        """
+        Find a project by either ID or name with fuzzy matching support.
+
+        This tool provides unified project discovery that accepts both project IDs (UUID format)
+        and project names, with intelligent fuzzy matching and helpful error suggestions.
+
+        Args:
+            identifier (str): Project ID (UUID format) or project name to search for
+            include_suggestions (bool): Whether to include fuzzy match suggestions on failure (default: True)
+
+        Returns:
+            Project: Project object if found, None if not found
+
+        Examples:
+            # Find by exact name
+            find_project_by_id_or_name("MyProject")
+
+            # Find by UUID
+            find_project_by_id_or_name("12345678-1234-1234-1234-123456789abc")
+
+            # Find with typos (fuzzy matching)
+            find_project_by_id_or_name("MyProj")  # Might match "MyProject"
+        """
+        ado_client_instance, error_return = get_client_or_error()
+        if ado_client_instance is None:
+            return error_return
+
+        try:
+            enhanced_tools = EnhancedProjectTools(ado_client_instance)
+            return enhanced_tools.find_project_by_id_or_name(identifier, include_suggestions)
+        except Exception as e:
+            logger.error(f"Error in find_project_by_id_or_name: {e}")
+            return None
+
+    @mcp_instance.tool
+    def list_all_projects_with_metadata() -> list[dict[str, Any]]:
+        """
+        List all projects with enhanced metadata for better LLM understanding.
+
+        Returns comprehensive project information including descriptions, URLs, states,
+        and visibility settings to help LLMs make better decisions about project selection.
+
+        Returns:
+            List[dict]: List of project dictionaries with enhanced metadata including:
+                - id: Project UUID
+                - name: Project name
+                - description: Project description
+                - url: Project URL
+                - state: Project state (e.g., wellFormed, createPending)
+                - visibility: Project visibility (private, public, etc.)
+
+        Examples:
+            # Get all projects with full metadata
+            projects = list_all_projects_with_metadata()
+            for project in projects:
+                print(f"{project['name']}: {project['description']}")
+        """
+        ado_client_instance, error_return = get_client_or_error([])
+        if ado_client_instance is None:
+            return error_return
+
+        try:
+            enhanced_tools = EnhancedProjectTools(ado_client_instance)
+            return enhanced_tools.list_all_projects_with_metadata()
+        except Exception as e:
+            logger.error(f"Error in list_all_projects_with_metadata: {e}")
+            return []
+
+    @mcp_instance.tool
+    def get_project_suggestions(
+        query: str, max_suggestions: int = 10, max_tokens: int = 1000
+    ) -> dict[str, Any]:
+        """
+        Get fuzzy match suggestions for a project query that didn't find exact matches.
+
+        This tool is useful when a project lookup fails and you want to provide helpful
+        suggestions to the user based on similar project names.
+
+        Args:
+            query (str): The project name query that failed to find exact matches
+            max_suggestions (int): Maximum number of suggestions to return (default: 10)
+            max_tokens (int): Maximum tokens allowed in response to prevent context overflow (default: 1000)
+
+        Returns:
+            dict: Dictionary containing:
+                - query: The original search query
+                - found: Boolean indicating if exact match was found (always False for this tool)
+                - suggestions: List of similar projects with similarity scores
+                - message: User-friendly error message with suggestions
+                - total_matches: Total number of matches found before limiting
+                - limited_by_tokens: Whether results were limited due to token constraints
+
+        Examples:
+            # Get suggestions for a typo
+            suggestions = get_project_suggestions("MyProj")
+            # Might return suggestions like "MyProject", "MyProjectTest", etc.
+
+            # Limit suggestions
+            suggestions = get_project_suggestions("Test", max_suggestions=5)
+        """
+        ado_client_instance, error_return = get_client_or_error({})
+        if ado_client_instance is None:
+            return error_return
+
+        try:
+            enhanced_tools = EnhancedProjectTools(ado_client_instance)
+            return enhanced_tools.get_project_suggestions(query, max_suggestions, max_tokens)
+        except Exception as e:
+            logger.error(f"Error in get_project_suggestions: {e}")
+            return {
+                "query": query,
+                "found": False,
+                "suggestions": [],
+                "message": f"Error getting suggestions for '{query}': {str(e)}",
+                "error": True,
+            }
 
     # 🚀 NAME-BASED TOOLS - USER-FRIENDLY INTERFACES
 

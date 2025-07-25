@@ -11,6 +11,7 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from ado.cache import ado_cache
 from ado.client import AdoClient
 from tests.ado.test_client import requires_ado_creds
+from tests.utils.telemetry import telemetry_setup
 
 
 class SpanAnalyzer:
@@ -57,23 +58,6 @@ class SpanAnalyzer:
             return attrs.get("cache.source") == "api"
         return False
 
-
-@pytest.fixture
-def telemetry_setup():
-    memory_exporter = InMemorySpanExporter()
-
-    current_provider = trace.get_tracer_provider()
-    if not hasattr(current_provider, "add_span_processor"):
-        provider = TracerProvider()
-        trace.set_tracer_provider(provider)
-        current_provider = provider
-
-    processor = SimpleSpanProcessor(memory_exporter)
-    current_provider.add_span_processor(processor)
-
-    yield memory_exporter
-
-    memory_exporter.clear()
 
 
 @pytest.fixture

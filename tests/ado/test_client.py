@@ -11,7 +11,7 @@ import requests
 from ado.cache import ado_cache
 from ado.client import AdoClient
 from ado.errors import AdoAuthenticationError
-from tests.utils.telemetry import analyze_spans, clear_spans
+from tests.utils.telemetry import analyze_spans, clear_spans, telemetry_setup
 
 ADO_ORGANIZATION_URL = os.environ.get("ADO_ORGANIZATION_URL")
 ADO_PAT = os.environ.get("AZURE_DEVOPS_EXT_PAT")

@@ -9,7 +9,7 @@ from ado.cache import ado_cache
 from server import mcp
 from src.test_config import get_organization_url, get_project_id, get_project_name
 from tests.ado.test_client import requires_ado_creds
-from tests.utils.telemetry import analyze_spans, clear_spans
+from tests.utils.telemetry import analyze_spans, clear_spans, telemetry_setup
 
 pytestmark = pytest.mark.asyncio
 

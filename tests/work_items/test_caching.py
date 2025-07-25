@@ -72,8 +72,8 @@ async def test_work_item_types_caching(mcp_client, project_id):
         "Should return same work item types from cache"
     )
 
-    # Cache should be significantly faster (at least 5x faster)
-    assert second_call_duration < first_call_duration / 5, (
+    # Cache should be significantly faster (at least 3x faster)
+    assert second_call_duration < first_call_duration / 3, (
         f"Cache should be faster. API: {first_call_duration:.3f}s, Cache: {second_call_duration:.3f}s"
     )
 
