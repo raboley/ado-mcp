@@ -98,6 +98,7 @@ async def test_run_pipeline_with_variables_substitution(client):
 ### ✅ Task Completion
 - **Always Run tests** ensuring they all pass using `task test` before marking something complete
 - **Track tasks using the TodoWrite tool** during active work to maintain progress visibility.
+- **ALWAYS run `task pre-commit`** before asking the human for feedback
 - Request Feedback from the human before moving on to the next feature task.
 
 ### 📎 Style & Conventions
