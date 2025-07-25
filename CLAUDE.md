@@ -1,8 +1,7 @@
 ### 🔄 Project Awareness & Context
-- **Always read `PLANNING.md`** at the start of a new conversation to understand the project's architecture, goals, style, and constraints.
-- **Check `TASK.md`** before starting a new task. If the task isn’t listed, add it with a brief description and today's date.
+- **Check the `tasks/` folder** at the start of a new conversation to understand current project requirements, PRDs, and active tasks.
 - **Check CONTRIBUTING.md** when working on tasks.
-- **Use consistent naming conventions, file structure, and architecture patterns** as described in `PLANNING.md`.
+- **Use consistent naming conventions, file structure, and architecture patterns** as established in the codebase.
 - **Use venv_linux** (the virtual environment) whenever executing Python commands, including for tests.
 - **Read [NEW_TOOL_WORKFLOW.md](NEW_TOOL_WORKFLOW.md)** when asked to create a new tool
 
@@ -98,8 +97,7 @@ async def test_run_pipeline_with_variables_substitution(client):
 
 ### ✅ Task Completion
 - **Always Run tests** ensuring they all pass using `task test` before marking something complete
-- **Mark completed tasks in `TASK.md`** immediately after finishing them.
-- Add new sub-tasks or TODOs discovered during development to `TASK.md` under a “Discovered During Work” section.
+- **Track tasks using the TodoWrite tool** during active work to maintain progress visibility.
 - Request Feedback from the human before moving on to the next feature task.
 
 ### 📎 Style & Conventions
@@ -133,7 +131,7 @@ async def test_run_pipeline_with_variables_substitution(client):
 - **Never assume missing context. Ask questions if uncertain.**
 - **Never hallucinate libraries or functions** – only use known, verified Python packages.
 - **Always confirm file paths and module names** exist before referencing them in code or tests.
-- **Never delete or overwrite existing code** unless explicitly instructed to or if part of a task from `TASK.md`.
+- **Never delete or overwrite existing code** unless explicitly instructed to by the user.
 
 ### 📝 AI Planning
 - **Always Plan Features Vertically** A new feature should include:
