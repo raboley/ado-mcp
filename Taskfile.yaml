@@ -347,25 +347,7 @@ tasks:
   disable-notifications:
     desc: "Disable Azure DevOps pipeline email notifications"
     cmds:
-      - |
-        echo "🔕 Disabling pipeline email notifications..."
-        
-        # Extract organization name from URL and run notification script
-        ORG_NAME=$(echo "{{.ADO_ORGANIZATION_URL}}" | sed 's|.*dev.azure.com/||' | sed 's|/.*||')
-        
-        # Prefer shell script with jq, fallback to PowerShell
-        if command -v jq &> /dev/null; then
-          ./scripts/disable-notifications.sh "$ORG_NAME" "{{.ADO_PROJECT_NAME}}"
-        elif command -v pwsh &> /dev/null; then
-          pwsh -File scripts/disable-notifications.ps1 -Organization "$ORG_NAME" -ProjectName "{{.ADO_PROJECT_NAME}}"
-        elif command -v powershell &> /dev/null; then
-          powershell -File scripts/disable-notifications.ps1 -Organization "$ORG_NAME" -ProjectName "{{.ADO_PROJECT_NAME}}"
-        else
-          echo "❌ jq or PowerShell required. Installing jq..."
-          brew install jq
-          echo "✅ jq installed. Running notification script..."
-          ./scripts/disable-notifications.sh "$ORG_NAME" "{{.ADO_PROJECT_NAME}}"
-        fi
+      - ./scripts/disable-notifications.sh $(echo "{{.ADO_ORGANIZATION_URL}}" | sed 's|.*dev.azure.com/||' | sed 's|/.*||') "{{.ADO_PROJECT_NAME}}"
 
   install-terraform:
     desc: "Install Terraform if not present"
