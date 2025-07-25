@@ -307,6 +307,8 @@ tasks:
         terraform plan
         terraform apply -auto-approve
         echo "✅ Test environment provisioned successfully!"
+      - task: disable-notifications
+      - |
         echo ""
         echo "📁 Generated files:"
         echo "   - tests/terraform_config.json (test configuration with real pipeline IDs)"
@@ -341,6 +343,29 @@ tasks:
         echo "  - Local Terraform state files"
         echo "  - Generated configuration: tests/terraform_config.json"
         echo "  - Generated configuration files"
+
+  disable-notifications:
+    desc: "Disable Azure DevOps pipeline email notifications"
+    cmds:
+      - |
+        echo "🔕 Disabling pipeline email notifications..."
+        
+        # Extract organization name from URL and run notification script
+        ORG_NAME=$(echo "{{.ADO_ORGANIZATION_URL}}" | sed 's|.*dev.azure.com/||' | sed 's|/.*||')
+        
+        # Prefer shell script with jq, fallback to PowerShell
+        if command -v jq &> /dev/null; then
+          ./scripts/disable-notifications.sh "$ORG_NAME" "{{.ADO_PROJECT_NAME}}"
+        elif command -v pwsh &> /dev/null; then
+          pwsh -File scripts/disable-notifications.ps1 -Organization "$ORG_NAME" -ProjectName "{{.ADO_PROJECT_NAME}}"
+        elif command -v powershell &> /dev/null; then
+          powershell -File scripts/disable-notifications.ps1 -Organization "$ORG_NAME" -ProjectName "{{.ADO_PROJECT_NAME}}"
+        else
+          echo "❌ jq or PowerShell required. Installing jq..."
+          brew install jq
+          echo "✅ jq installed. Running notification script..."
+          ./scripts/disable-notifications.sh "$ORG_NAME" "{{.ADO_PROJECT_NAME}}"
+        fi
 
   install-terraform:
     desc: "Install Terraform if not present"
