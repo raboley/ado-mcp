@@ -1,5 +1,15 @@
 When Creating a new tool, follow this basic workflow for the most consistent task creation.
 
+<workflow_before_talking_to_human>
+1. setup
+2. investigation
+3. implementation
+4. testing ensuring all tests pass and have no warnings when running `task test`
+5. documentation
+6. restart the ado-mcp server
+7. exercise the new tool using your ado-mcp server tool
+</workflow_before_talking_to_human>
+
 <setup>
 The repository root should have a .env file that contains environment variables for
 * ADO_ORGANIZATION_URL
