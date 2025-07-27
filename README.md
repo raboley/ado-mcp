@@ -36,7 +36,7 @@ You'll need these installed before setting up the MCP server:
 4. **Test the setup**:
    ```bash
    # Test that everything works
-   uvx ado-mcp-raboley --help
+   uvx ado-mcp --help
    ```
 
 ## Installation
@@ -50,7 +50,7 @@ You'll need these installed before setting up the MCP server:
      "mcpServers": {
        "ado-mcp": {
          "command": "uvx",
-         "args": ["ado-mcp-raboley"],
+         "args": ["ado-mcp"],
          "env": {
            "ADO_ORGANIZATION_URL": "https://dev.azure.com/YourOrg"
          }
@@ -65,7 +65,7 @@ You'll need these installed before setting up the MCP server:
      "mcpServers": {
        "ado-mcp": {
          "command": "uvx",
-         "args": ["ado-mcp-raboley"],
+         "args": ["ado-mcp"],
          "env": {
            "ADO_ORGANIZATION_URL": "https://dev.azure.com/YourOrg"
          }
@@ -86,10 +86,10 @@ You'll need these installed before setting up the MCP server:
 1. **Add the MCP server**:
    ```bash
    # Add to local scope (project-specific)
-   claude mcp add ado-mcp uvx ado-mcp-raboley -e ADO_ORGANIZATION_URL=https://dev.azure.com/YourOrg
+   claude mcp add ado-mcp uvx ado-mcp -e ADO_ORGANIZATION_URL=https://dev.azure.com/YourOrg
    
    # Or add to user scope (available across all projects)
-   claude mcp add ado-mcp uvx ado-mcp-raboley -e ADO_ORGANIZATION_URL=https://dev.azure.com/YourOrg -s user
+   claude mcp add ado-mcp uvx ado-mcp -e ADO_ORGANIZATION_URL=https://dev.azure.com/YourOrg -s user
    ```
 
 2. **Verify the installation**:
@@ -141,7 +141,7 @@ You'll need these installed before setting up the MCP server:
        {
          "name": "ado-mcp",
          "command": "uvx",
-         "args": ["ado-mcp-raboley"],
+         "args": ["ado-mcp"],
          "env": {
            "ADO_ORGANIZATION_URL": "https://dev.azure.com/YourOrg"
          }
@@ -166,7 +166,7 @@ You'll need these installed before setting up the MCP server:
        "mcp_servers": {
          "ado-mcp": {
            "command": "uvx",
-           "args": ["ado-mcp-raboley"],
+           "args": ["ado-mcp"],
            "env": {
              "ADO_ORGANIZATION_URL": "https://dev.azure.com/YourOrg"
            }
@@ -185,7 +185,7 @@ You'll need these installed before setting up the MCP server:
 
 The server can be used with any MCP-compatible client:
 
-**Command**: `uvx ado-mcp-raboley`
+**Command**: `uvx ado-mcp`
 
 **Required environment variable**:
 - `ADO_ORGANIZATION_URL`: Your Azure DevOps organization URL (e.g., `https://dev.azure.com/YourOrg`)
@@ -216,7 +216,7 @@ If you prefer not to use Azure CLI, you can set environment variables directly:
      "mcpServers": {
        "ado-mcp": {
          "command": "uvx",
-         "args": ["ado-mcp-raboley"]
+         "args": ["ado-mcp"]
        }
      }
    }
@@ -452,7 +452,7 @@ az devops login --organization https://dev.azure.com/YourOrg
 
 ### Installation Issues
 
-**"uvx ado-mcp-raboley" not working:**
+**"uvx ado-mcp" not working:**
 ```bash
 # Check UV installation
 uvx --version
@@ -461,7 +461,7 @@ uvx --version
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Test the package
-uvx ado-mcp-raboley --help
+uvx ado-mcp --help
 ```
 
 **Azure CLI not found:**

@@ -78,8 +78,6 @@ jobs:
     runs-on: ubuntu-latest
     # Only run on pushes to main branch, not on pull requests
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    # Wait for tests and formatting to pass before publishing
-    needs: [test, formatting]
     steps:
     - uses: actions/checkout@v4
     
