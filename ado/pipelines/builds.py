@@ -208,6 +208,92 @@ class BuildOperations:
             logger.debug(f"Pipeline run {run_id} still in progress (state: {pipeline_run.state})")
             time.sleep(poll_interval_seconds)
 
+    def watch_pipeline(
+        self,
+        project_id: str,
+        pipeline_id: int,
+        run_id: int,
+        timeout_seconds: int = 300,
+        max_lines: int = 100,
+    ) -> PipelineOutcome:
+        """
+        Watch an already running pipeline and return the outcome with failure details if applicable.
+
+        This method monitors an existing pipeline run:
+        1. Waits for the pipeline to complete (or timeout)
+        2. If the pipeline failed, gets failure analysis with logs
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            run_id (int): The ID of the already running pipeline.
+            timeout_seconds (int): Maximum time to wait for completion (default: 300).
+            max_lines (int): Maximum number of lines to return from the end of each log (default: 100).
+                           Set to 0 or negative to return all lines.
+
+        Returns:
+            PipelineOutcome: Complete outcome including run details and failure summary if failed.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+            TimeoutError: If the pipeline doesn't complete within the timeout period.
+        """
+        # Import here to avoid circular imports
+        from ..pipelines.logs import LogOperations
+
+        logs_ops = LogOperations(self._client)
+
+        start_time = time.time()
+        logger.info(f"Watching pipeline run {run_id} for completion...")
+
+        # Step 1: Get the initial status to ensure the run exists
+        initial_run = self.get_pipeline_run(project_id, pipeline_id, run_id)
+
+        if initial_run.is_completed():
+            logger.info(
+                f"Pipeline run {run_id} is already completed with result: {initial_run.result}"
+            )
+            final_run = initial_run
+        else:
+            # Step 2: Wait for completion
+            try:
+                final_run = self.wait_for_pipeline_completion(
+                    project_id, pipeline_id, run_id, timeout_seconds
+                )
+            except TimeoutError:
+                # Get the current status for the timeout response
+                final_run = self.get_pipeline_run(project_id, pipeline_id, run_id)
+                logger.warning(f"Pipeline run {run_id} timed out after {timeout_seconds} seconds")
+
+        # Step 3: Calculate execution time
+        execution_time = time.time() - start_time
+
+        # Step 4: Determine success and get failure details if needed
+        success = final_run.result == "succeeded" if final_run.result else False
+        failure_summary = None
+
+        if not success and final_run.is_completed():
+            try:
+                failure_summary = logs_ops.get_pipeline_failure_summary(
+                    project_id, pipeline_id, run_id, max_lines
+                )
+                logger.info(f"Retrieved failure summary for failed pipeline run {run_id}")
+            except Exception as e:
+                logger.warning(f"Could not retrieve failure summary: {e}")
+
+        # Step 5: Create and return the outcome
+        outcome = PipelineOutcome(
+            pipeline_run=final_run,
+            success=success,
+            failure_summary=failure_summary,
+            execution_time_seconds=execution_time,
+        )
+
+        logger.info(
+            f"Pipeline watch for run {run_id} completed in {execution_time:.2f}s with result: {final_run.result}"
+        )
+        return outcome
+
     def run_pipeline_and_get_outcome(
         self,
         project_id: str,

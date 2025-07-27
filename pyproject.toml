@@ -111,6 +111,7 @@ ignore = [
 "tests/work_items/test_connection_pooling.py" = ["B017"]  # Allow generic exception testing
 "tests/conftest.py" = ["E722"]  # Allow bare except in test configuration
 "ado/work_items/field_validators.py" = ["E722"]  # Allow bare except in field validation
+"tests/**/*.py" = ["F401", "F811"]  # Allow unused imports and fixture redefinitions in test files
 
 [tool.ruff.format]
 quote-style = "double"

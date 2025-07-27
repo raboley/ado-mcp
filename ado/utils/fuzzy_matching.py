@@ -7,8 +7,9 @@ and weighted scoring to help LLMs find resources even with typos or slight namin
 
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from Levenshtein import distance as levenshtein_distance
 

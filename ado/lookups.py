@@ -219,6 +219,39 @@ class AdoLookups:
             project_id, pipeline_id, request, timeout_seconds, max_lines
         )
 
+    def watch_pipeline_by_name(
+        self,
+        project_name: str,
+        pipeline_name: str,
+        run_id: int,
+        timeout_seconds: int = 300,
+        max_lines: int = 100,
+    ):
+        """
+        Watch a pipeline run by project and pipeline names.
+
+        Args:
+            project_name: Project name
+            pipeline_name: Pipeline name
+            run_id: The ID of the already running pipeline
+            timeout_seconds: Max wait time
+            max_lines: Maximum log lines to return
+
+        Returns:
+            PipelineOutcome if successful, None otherwise
+        """
+        ids = self.get_pipeline_ids(project_name, pipeline_name)
+        if not ids:
+            return None
+
+        project_id, pipeline_id = ids
+        logger.info(
+            f"Watching pipeline run {run_id} for '{pipeline_name}' in project '{project_name}'"
+        )
+        return self.client.watch_pipeline(
+            project_id, pipeline_id, run_id, timeout_seconds, max_lines
+        )
+
     # Utility functions
     def list_available_projects(self) -> list[str]:
         """Get list of available project names."""

@@ -10,6 +10,7 @@ from tests.test_helpers import get_pipeline_id_by_name
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -18,6 +19,7 @@ async def mcp_client():
         )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
+
 
 @requires_ado_creds
 async def test_get_pipeline_basic(mcp_client: Client):
@@ -47,6 +49,7 @@ async def test_get_pipeline_basic(mcp_client: Client):
             f"Pipeline missing required field '{field}'. Available fields: {list(pipeline.keys())}"
         )
 
+
 @requires_ado_creds
 async def test_get_pipeline_github_resources(mcp_client: Client):
     result = await mcp_client.call_tool(
@@ -65,6 +68,7 @@ async def test_get_pipeline_github_resources(mcp_client: Client):
         f"Expected pipeline name 'github-resources-test-stable' but got '{pipeline['name']}'"
     )
 
+
 @requires_ado_creds
 async def test_get_pipeline_parameterized(mcp_client: Client):
     result = await mcp_client.call_tool(
@@ -82,6 +86,7 @@ async def test_get_pipeline_parameterized(mcp_client: Client):
     assert "preview-test-parameterized" in pipeline["name"], (
         f"Expected pipeline name to contain 'preview-test-parameterized' but got '{pipeline['name']}'"
     )
+
 
 @requires_ado_creds
 async def test_get_pipeline_structure(mcp_client: Client):
@@ -122,6 +127,7 @@ async def test_get_pipeline_structure(mcp_client: Client):
         f"Pipeline '_links' missing 'web' field. Available links: {list(pipeline['_links'].keys())}"
     )
 
+
 @requires_ado_creds
 async def test_get_pipeline_url_format(mcp_client: Client):
     result = await mcp_client.call_tool(
@@ -149,6 +155,7 @@ async def test_get_pipeline_url_format(mcp_client: Client):
         f"Expected web link to contain pipeline ID {await get_pipeline_id_by_name(mcp_client, 'test_run_and_get_pipeline_run_details')} but got: {web_link}"
     )
 
+
 @requires_ado_creds
 async def test_get_pipeline_nonexistent_pipeline(mcp_client: Client):
     try:
@@ -169,6 +176,7 @@ async def test_get_pipeline_nonexistent_pipeline(mcp_client: Client):
             "Expected an exception for non-existent pipeline but handling failed unexpectedly"
         )
 
+
 @requires_ado_creds
 async def test_get_pipeline_invalid_project(mcp_client: Client):
     try:
@@ -188,6 +196,7 @@ async def test_get_pipeline_invalid_project(mcp_client: Client):
         assert isinstance(e, Exception), (
             "Expected an exception for invalid project but handling failed unexpectedly"
         )
+
 
 @requires_ado_creds
 async def test_get_pipeline_folder_information(mcp_client: Client):
@@ -210,6 +219,7 @@ async def test_get_pipeline_folder_information(mcp_client: Client):
         f"Expected folder to start with '\\' or '/' but got: {folder}"
     )
 
+
 @requires_ado_creds
 async def test_get_pipeline_project_reference(mcp_client: Client):
     result = await mcp_client.call_tool(
@@ -227,4 +237,3 @@ async def test_get_pipeline_project_reference(mcp_client: Client):
     ), (
         f"Expected pipeline ID {await get_pipeline_id_by_name(mcp_client, 'test_run_and_get_pipeline_run_details')} but got {pipeline['id']}"
     )
-

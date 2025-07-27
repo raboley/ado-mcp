@@ -82,11 +82,12 @@ def register_ado_tools(mcp_instance, client_container):
         ado_client_instance, error_return = get_client_or_error([])
         if ado_client_instance is None:
             return error_return
-        
+
         # Check cache first, fetch from API only if needed (with telemetry)
         from opentelemetry import trace
+
         from .cache import ado_cache
-        
+
         tracer = trace.get_tracer(__name__)
         with tracer.start_as_current_span("ensure_projects_cached") as span:
             projects = ado_cache.get_projects()
@@ -98,7 +99,7 @@ def register_ado_tools(mcp_instance, client_container):
             else:
                 span.set_attribute("cache.source", "cache")
                 logger.info("Projects loaded from cache")
-            
+
             span.set_attribute("projects.count", len(projects))
             return projects
 
@@ -751,6 +752,102 @@ def register_ado_tools(mcp_instance, client_container):
             project_name, pipeline_name, request, timeout_seconds, max_lines
         )
 
+    @mcp_instance.tool
+    def watch_pipeline(
+        project_id: str,
+        pipeline_id: int,
+        run_id: int,
+        timeout_seconds: int = 300,
+        max_lines: int = 100,
+    ) -> PipelineOutcome | None:
+        """
+        Watch an already running pipeline and return the outcome with failure details if applicable.
+
+        This tool monitors an existing pipeline run without starting a new one. It's perfect for
+        monitoring pipelines that are already in progress and getting comprehensive results
+        including failure analysis with logs if the pipeline fails.
+
+        Use this when you have a pipeline run ID and want to monitor its completion.
+
+        Args:
+            project_id (str): The ID of the project
+            pipeline_id (int): The ID of the pipeline
+            run_id (int): The ID of the already running pipeline
+            timeout_seconds (int): Maximum time to wait for completion (default: 300 seconds)
+            max_lines (int): Maximum log lines to return if pipeline fails (default: 100)
+
+        Returns:
+            PipelineOutcome: Complete execution results including:
+                - success: Boolean indicating if pipeline completed successfully
+                - pipeline_run: Details about the pipeline run
+                - execution_time: How long the monitoring took
+                - failure_summary: If failed, detailed analysis of what went wrong
+
+        Examples:
+            # Watch a running pipeline
+            watch_pipeline("project-id", 123, 456)
+
+            # Watch with custom timeout
+            watch_pipeline("project-id", 123, 456, timeout_seconds=600)
+        """
+        ado_client_instance, error_return = get_client_or_error()
+        if ado_client_instance is None:
+            return error_return
+
+        return ado_client_instance.watch_pipeline(
+            project_id, pipeline_id, run_id, timeout_seconds, max_lines
+        )
+
+    @mcp_instance.tool
+    def watch_pipeline_by_name(
+        project_name: str,
+        pipeline_name: str,
+        run_id: int,
+        timeout_seconds: int = 300,
+        max_lines: int = 100,
+    ) -> PipelineOutcome | None:
+        """
+        🔍 WATCH PIPELINE BY NAME: Monitor an already running pipeline using project and pipeline names.
+
+        ⚡ USE THIS WHEN: User wants to monitor a running pipeline using names instead of IDs
+
+        This tool provides easy monitoring of existing pipeline runs:
+        - Finds project and pipeline by name automatically
+        - Monitors the specified run ID
+        - Returns comprehensive results including failure analysis
+        - Much easier than managing IDs manually
+
+        Perfect for: "Watch run 123 of the CI pipeline in Learning project"
+
+        Args:
+            project_name (str): Project name (fuzzy matching enabled)
+            pipeline_name (str): Pipeline name (fuzzy matching enabled)
+            run_id (int): The ID of the already running pipeline
+            timeout_seconds (int): Maximum time to wait for completion (default: 300 seconds)
+            max_lines (int): Maximum log lines to return if pipeline fails (default: 100)
+
+        Returns:
+            PipelineOutcome: Complete execution results including:
+                - success: Boolean indicating if pipeline completed successfully
+                - pipeline_run: Details about the pipeline run
+                - execution_time: How long the monitoring took
+                - failure_summary: If failed, detailed analysis of what went wrong
+
+        Examples:
+            # Watch a running pipeline by name
+            watch_pipeline_by_name("MyProject", "CI Pipeline", 456)
+
+            # Watch with custom timeout
+            watch_pipeline_by_name("MyProject", "CI Pipeline", 456, timeout_seconds=600)
+        """
+        client, project_id, pipeline_id = get_pipeline_ids_with_client_check(
+            project_name, pipeline_name
+        )
+        if client is None:
+            return None
+
+        return client.watch_pipeline(project_id, pipeline_id, run_id, timeout_seconds, max_lines)
+
     # 🔍 ENHANCED PROJECT DISCOVERY TOOLS
 
     @mcp_instance.tool
@@ -875,7 +972,6 @@ def register_ado_tools(mcp_instance, client_container):
             }
 
     # 🚀 NAME-BASED TOOLS - USER-FRIENDLY INTERFACES
-
 
     @mcp_instance.tool
     def find_pipeline_by_name(project_name: str, pipeline_name: str) -> dict | None:
@@ -1089,7 +1185,6 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.run_pipeline_and_get_outcome_by_name(
             project_name, pipeline_name, request, timeout_seconds, max_lines
         )
-
 
     @mcp_instance.tool
     def list_available_pipelines(project_name: str) -> list[str]:

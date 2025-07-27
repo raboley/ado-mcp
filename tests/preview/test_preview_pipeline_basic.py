@@ -9,6 +9,7 @@ from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -17,6 +18,7 @@ async def mcp_client():
         )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
+
 
 @requires_ado_creds
 async def test_preview_pipeline_basic(mcp_client: Client):
@@ -38,6 +40,7 @@ async def test_preview_pipeline_basic(mcp_client: Client):
         f"Expected finalYaml to be string but got {type(preview_data['finalYaml'])}"
     )
     assert len(preview_data["finalYaml"]) > 0, "Expected non-empty finalYaml but got empty string"
+
 
 @requires_ado_creds
 async def test_preview_pipeline_with_variables(mcp_client: Client):
@@ -63,6 +66,7 @@ async def test_preview_pipeline_with_variables(mcp_client: Client):
     assert final_yaml is not None, "Expected non-None finalYaml but got None"
     assert len(final_yaml) > 0, "Expected non-empty finalYaml but got empty string"
 
+
 @requires_ado_creds
 async def test_preview_pipeline_with_empty_resources(mcp_client: Client):
     project_name = get_project_name()
@@ -84,6 +88,7 @@ async def test_preview_pipeline_with_empty_resources(mcp_client: Client):
         f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
     )
 
+
 @requires_ado_creds
 async def test_preview_pipeline_with_stages_to_skip(mcp_client: Client):
     project_name = get_project_name()
@@ -103,6 +108,7 @@ async def test_preview_pipeline_with_stages_to_skip(mcp_client: Client):
     assert "finalYaml" in preview_data, (
         f"Expected 'finalYaml' key in response. Got keys: {list(preview_data.keys())}"
     )
+
 
 @requires_ado_creds
 async def test_preview_pipeline_nonexistent_pipeline(mcp_client: Client):
@@ -124,4 +130,3 @@ async def test_preview_pipeline_nonexistent_pipeline(mcp_client: Client):
         assert isinstance(e, Exception), (
             f"Expected proper exception type for non-existent pipeline but got {type(e)}"
         )
-

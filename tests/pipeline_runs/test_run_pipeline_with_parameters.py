@@ -9,6 +9,7 @@ from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -17,6 +18,7 @@ async def mcp_client():
         )
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
+
 
 @requires_ado_creds
 async def test_run_pipeline_with_github_resources_stable_branch(mcp_client: Client):
@@ -47,6 +49,7 @@ async def test_run_pipeline_with_github_resources_stable_branch(mcp_client: Clie
         f"Expected pipeline state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
 
+
 @requires_ado_creds
 async def test_run_pipeline_with_github_resources_main_branch(mcp_client: Client):
     get_project_name()
@@ -72,6 +75,7 @@ async def test_run_pipeline_with_github_resources_main_branch(mcp_client: Client
     assert pipeline_run["id"] is not None, (
         f"Expected pipeline run ID but got None, pipeline run: {pipeline_run}"
     )
+
 
 @requires_ado_creds
 async def test_run_pipeline_with_github_resources_feature_branch(mcp_client: Client):
@@ -99,6 +103,7 @@ async def test_run_pipeline_with_github_resources_feature_branch(mcp_client: Cli
         f"Expected pipeline run ID but got None, pipeline run: {pipeline_run}"
     )
 
+
 @requires_ado_creds
 async def test_run_pipeline_with_multiple_template_parameters(mcp_client: Client):
     get_project_name()
@@ -121,6 +126,7 @@ async def test_run_pipeline_with_multiple_template_parameters(mcp_client: Client
     assert pipeline_run["id"] is not None, (
         f"Expected pipeline run ID but got None, pipeline run: {pipeline_run}"
     )
+
 
 @requires_ado_creds
 async def test_run_pipeline_with_template_parameters(mcp_client: Client):
@@ -145,6 +151,7 @@ async def test_run_pipeline_with_template_parameters(mcp_client: Client):
         f"Expected pipeline run ID but got None, pipeline run: {pipeline_run}"
     )
 
+
 @requires_ado_creds
 async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
     get_project_name()
@@ -167,6 +174,7 @@ async def test_run_pipeline_with_stages_to_skip(mcp_client: Client):
     assert pipeline_run["id"] is not None, (
         f"Expected pipeline run ID but got None, pipeline run: {pipeline_run}"
     )
+
 
 @requires_ado_creds
 async def test_run_pipeline_with_branch_override_unsupported_pipeline(mcp_client: Client):
@@ -191,6 +199,7 @@ async def test_run_pipeline_with_branch_override_unsupported_pipeline(mcp_client
     assert "'resources' section" in error_message, (
         f"Expected error message to mention 'resources' section, but got: {error_message}"
     )
+
 
 @requires_ado_creds
 async def test_run_pipeline_with_branch_resource_override_unsupported_pipeline(mcp_client: Client):
@@ -217,6 +226,7 @@ async def test_run_pipeline_with_branch_resource_override_unsupported_pipeline(m
     assert "'resources' section" in error_message, (
         f"Expected error message to mention 'resources' section, but got: {error_message}"
     )
+
 
 @requires_ado_creds
 async def test_run_pipeline_with_external_resources_works(mcp_client: Client):
@@ -247,6 +257,7 @@ async def test_run_pipeline_with_external_resources_works(mcp_client: Client):
     assert pipeline_run["state"] in ["unknown", "inProgress"], (
         f"Expected state to be 'unknown' or 'inProgress' but got '{pipeline_run['state']}'"
     )
+
 
 @requires_ado_creds
 async def test_run_pipeline_github_resources_complex_scenario(mcp_client: Client):

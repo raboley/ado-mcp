@@ -197,7 +197,7 @@ def validate_test_environment_setup(test_config):
     # Log about placeholder pipeline IDs but don't fail
     if validation.get("needs_manual_setup", False):
         import logging
-        
+
         logger = logging.getLogger(__name__)
         logger.info(
             f"Some pipelines need manual setup: {validation.get('errors', [])}. "

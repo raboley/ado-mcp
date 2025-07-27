@@ -30,6 +30,7 @@
 - **Dedicated test pipelines** are pre-created for pipeline run tests to avoid create/delete overhead.
 - **After updating any logic**, check whether existing unit tests need to be updated. If so, do it. use `task test` to ensure everything still works
 - **Tests should live in a `/tests` folder** mirroring the main app structure.
+- **Pytest fixture imports**: When using pytest fixtures like `telemetry_setup`, always import them even if they appear "unused" to linters. The pyproject.toml is configured to allow F401 (unused imports) and F811 (fixture redefinitions) in test files.
 - **NEVER use mocking in tests.** 
   - Include at least:
     - 1 test for expected use

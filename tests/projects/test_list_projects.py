@@ -77,5 +77,3 @@ async def test_list_projects_finds_expected_project(mcp_client: Client):
     assert ado_mcp_project["id"] == expected_project_id, (
         f"Expected project ID '{expected_project_id}', but got '{ado_mcp_project['id']}'"
     )
-
-

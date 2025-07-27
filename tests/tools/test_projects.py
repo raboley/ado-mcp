@@ -18,6 +18,7 @@ from tests.ado.test_client import requires_ado_creds
 # Test configuration
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 async def mcp_client():
     """Create MCP client with proper organization setup."""
@@ -29,15 +30,18 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @pytest.fixture
 def known_project_name():
     """Get a known project name from test configuration."""
     return get_project_name()
 
+
 @pytest.fixture
 def known_project_id():
     """Get a known project ID from test configuration."""
     return get_project_id()
+
 
 class TestProjectDiscoveryBasics:
     @requires_ado_creds
@@ -89,6 +93,7 @@ class TestProjectDiscoveryBasics:
         first_item = result.data[0]
         assert first_item is not None, "First project should not be None"
 
+
 class TestProjectFuzzyMatching:
     @requires_ado_creds
     async def test_get_project_suggestions_for_nonexistent_project(self, mcp_client):
@@ -131,6 +136,7 @@ class TestProjectFuzzyMatching:
                 f"Similarity should be between 0 and 1 but got {similarity}"
             )
 
+
 class TestProjectErrorHandling:
     @requires_ado_creds
     async def test_find_nonexistent_project_by_id_returns_none(self, mcp_client):
@@ -160,4 +166,3 @@ class TestProjectErrorHandling:
         assert "No similar projects available" in result.data["message"], (
             "Should indicate no similar projects available"
         )
-

@@ -11,20 +11,24 @@ from tests.ado.test_client import requires_ado_creds
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 async def client():
     """Create MCP client for testing."""
     async with Client(mcp) as client:
         yield client
 
+
 @pytest.fixture
 def project_id():
     """Get project ID from environment."""
     return get_project_id()
 
+
 def get_current_user_email():
     """Get current user email from environment."""
     return os.getenv("AZURE_DEVOPS_USER_EMAIL", "raboley@gmail.com")
+
 
 @requires_ado_creds
 async def test_delete_work_items_batch_basic_functionality(client, project_id):
@@ -91,6 +95,7 @@ async def test_delete_work_items_batch_basic_functionality(client, project_id):
                 f"Should get 404 error for deleted work item {work_item_id}, but got: {e}"
             )
 
+
 @requires_ado_creds
 async def test_delete_work_items_batch_destroy_mode(client, project_id):
     """Test batch deletion with destroy=True (permanent deletion)"""
@@ -130,6 +135,7 @@ async def test_delete_work_items_batch_destroy_mode(client, project_id):
     # Verify all work items were destroyed successfully
     for i, success in enumerate(deletion_results):
         assert success is True, f"Destruction should be successful for work item {work_item_ids[i]}"
+
 
 @requires_ado_creds
 async def test_delete_work_items_batch_error_handling_fail_policy(client, project_id):
@@ -183,6 +189,7 @@ async def test_delete_work_items_batch_error_handling_fail_policy(client, projec
         except Exception as e:
             print(f"Note: Work item {valid_id} may have been deleted already: {e}")
 
+
 @requires_ado_creds
 async def test_delete_work_items_batch_error_handling_omit_policy(client, project_id):
     """Test batch deletion with omit error policy for invalid IDs"""
@@ -226,6 +233,7 @@ async def test_delete_work_items_batch_error_handling_omit_policy(client, projec
     assert deletion_results[0] is True, "Valid work item should be deleted successfully"
     assert deletion_results[1] is False, "Invalid work item should fail to delete"
 
+
 async def test_delete_work_items_batch_empty_list(client, project_id):
     """Test batch deletion with empty work item IDs list"""
     result = await client.call_tool(
@@ -236,6 +244,7 @@ async def test_delete_work_items_batch_empty_list(client, project_id):
         f"Should handle empty list gracefully but got error: {result.content}"
     )
     assert result.data == [], f"Should return empty list but got: {result.data}"
+
 
 async def test_delete_work_items_batch_too_many_ids(client, project_id):
     """Test batch deletion with too many work item IDs (>200)"""
@@ -251,6 +260,7 @@ async def test_delete_work_items_batch_too_many_ids(client, project_id):
     # Verify the error message mentions the 200 limit
     assert "200" in str(exc_info.value), f"Error message should mention 200 limit: {exc_info.value}"
 
+
 async def test_delete_work_items_batch_invalid_project(client):
     """Test batch deletion with invalid project ID"""
     # Should raise an exception due to invalid project
@@ -264,6 +274,7 @@ async def test_delete_work_items_batch_invalid_project(client):
     assert "404" in str(exc_info.value) or "not found" in str(exc_info.value).lower(), (
         f"Should get not found error but got: {exc_info.value}"
     )
+
 
 @requires_ado_creds
 async def test_delete_work_items_batch_single_item(client, project_id):
@@ -298,6 +309,7 @@ async def test_delete_work_items_batch_single_item(client, project_id):
     deletion_results = result.data
     assert len(deletion_results) == 1, "Should return 1 deletion result"
     assert deletion_results[0] is True, "Deletion should be successful"
+
 
 @requires_ado_creds
 async def test_delete_work_items_batch_performance_with_many_items(client, project_id):

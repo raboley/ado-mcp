@@ -41,5 +41,3 @@ async def test_check_authentication_after_org_change(mcp_client: Client):
     assert result.data is True, (
         f"Expected authentication to still work after organization change but got: {result.data}"
     )
-
-

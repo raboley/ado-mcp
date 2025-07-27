@@ -664,6 +664,19 @@ class AdoClient:
             project_id, pipeline_id, run_id, timeout_seconds, poll_interval_seconds
         )
 
+    def watch_pipeline(
+        self,
+        project_id: str,
+        pipeline_id: int,
+        run_id: int,
+        timeout_seconds: int = 300,
+        max_lines: int = 100,
+    ):
+        """Watch an already running pipeline and get outcome."""
+        return self._builds.watch_pipeline(
+            project_id, pipeline_id, run_id, timeout_seconds, max_lines
+        )
+
     def run_pipeline_and_get_outcome(
         self,
         project_id: str,
@@ -738,6 +751,19 @@ class AdoClient:
         """Run pipeline by name and get outcome."""
         return self._lookups.run_pipeline_and_get_outcome_by_name(
             project_name, pipeline_name, request, timeout_seconds, max_lines
+        )
+
+    def watch_pipeline_by_name(
+        self,
+        project_name: str,
+        pipeline_name: str,
+        run_id: int,
+        timeout_seconds: int = 300,
+        max_lines: int = 100,
+    ):
+        """Watch pipeline run by name and get outcome."""
+        return self._lookups.watch_pipeline_by_name(
+            project_name, pipeline_name, run_id, timeout_seconds, max_lines
         )
 
     def list_available_projects(self):

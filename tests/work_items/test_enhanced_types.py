@@ -6,6 +6,7 @@ from src.test_config import get_project_id
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -13,9 +14,11 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": org_url})
         yield client
 
+
 @pytest.fixture
 def project_id():
     return get_project_id()
+
 
 class TestEnhancedWorkItemTypeIntrospection:
     async def test_get_work_item_type_returns_detailed_info(self, mcp_client, project_id):
@@ -73,6 +76,7 @@ class TestEnhancedWorkItemTypeIntrospection:
             )
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
+
 
 class TestEnhancedFieldIntrospection:
     async def test_get_work_item_type_field_system_title(self, mcp_client, project_id):
@@ -175,6 +179,7 @@ class TestEnhancedFieldIntrospection:
             )
 
         assert "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
+
 
 class TestEnhancedTypeIntegration:
     async def test_compare_list_vs_detailed_work_item_type(self, mcp_client, project_id):

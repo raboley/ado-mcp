@@ -10,6 +10,7 @@ from src.test_config import get_organization_url
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 async def mcp_client():
     """Get an MCP client for testing."""
@@ -41,6 +42,7 @@ async def test_find_project_by_id_or_name_tool_available(mcp_client: Client):
     )
     assert "unified project discovery" in find_tool.description
 
+
 async def test_list_all_projects_with_metadata_tool_available(mcp_client: Client):
     """Test that list_all_projects_with_metadata tool is available and has correct description."""
     tools = await mcp_client.list_tools()
@@ -54,6 +56,7 @@ async def test_list_all_projects_with_metadata_tool_available(mcp_client: Client
     # Check it has the expected description
     assert "List all projects with enhanced metadata" in list_tool.description
     assert "LLM understanding" in list_tool.description
+
 
 async def test_get_project_suggestions_tool_available(mcp_client: Client):
     """Test that get_project_suggestions tool is available and has correct description."""

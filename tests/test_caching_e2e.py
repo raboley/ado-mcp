@@ -3,10 +3,6 @@ import time
 from typing import Any
 
 import pytest
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from ado.cache import ado_cache
 from ado.client import AdoClient
@@ -57,7 +53,6 @@ class SpanAnalyzer:
             attrs = self.get_span_attributes(latest_span)
             return attrs.get("cache.source") == "api"
         return False
-
 
 
 @pytest.fixture

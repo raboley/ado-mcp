@@ -10,6 +10,7 @@ from src.test_config import get_project_id
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 async def mcp_client():
     async with Client(mcp) as client:
@@ -19,9 +20,11 @@ async def mcp_client():
         await client.call_tool("set_ado_organization", {"organization_url": initial_org_url})
         yield client
 
+
 @pytest.fixture
 def project_id():
     return get_project_id()  # ado-mcp project
+
 
 @pytest.fixture
 async def work_item_cleanup(mcp_client, project_id):
@@ -44,6 +47,7 @@ async def work_item_cleanup(mcp_client, project_id):
             )
         except Exception:
             pass
+
 
 @pytest.fixture
 async def test_work_items(mcp_client, project_id, work_item_cleanup):
@@ -103,10 +107,9 @@ async def test_work_items(mcp_client, project_id, work_item_cleanup):
 
     return work_items
 
+
 class TestWorkItemLinking:
     """Test work item linking functionality."""
-
-    
 
     async def test_link_work_items_hierarchy_forward(self, mcp_client, project_id, test_work_items):
         epic_id = test_work_items[0]["id"]
@@ -252,10 +255,9 @@ class TestWorkItemLinking:
             "failed" in str(exc_info.value).lower() or "not found" in str(exc_info.value).lower()
         ), f"Should fail for invalid target work item but got: {exc_info.value}"
 
+
 class TestWorkItemRelationRetrieval:
     """Test work item relationship retrieval functionality."""
-
-    
 
     async def test_get_work_item_relations_basic_functionality(
         self, mcp_client, project_id, test_work_items
@@ -386,6 +388,7 @@ class TestWorkItemRelationRetrieval:
         assert "System.LinkTypes.Related" in relation_types, (
             f"Should have related relationship but got types: {relation_types}"
         )
+
 
 class TestRelationshipIntegration:
     """Test integration scenarios with relationships."""
