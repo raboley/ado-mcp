@@ -1211,6 +1211,70 @@ def register_ado_tools(mcp_instance, client_container):
 
         return ado_client_instance.list_available_pipelines(project_name)
 
+    @mcp_instance.tool
+    def extract_pipeline_run_data(project_id: str, pipeline_id: int, run_id: int) -> dict | None:
+        """
+        🔧 EXTRACT PIPELINE DATA: Extract resources, variables, and parameters from a pipeline run.
+
+        ⚡ USE THIS WHEN: User wants to extract configuration data from a completed pipeline run
+
+        This tool provides detailed extraction of:
+        - Repository resources (name, type, version, connection details)
+        - Variables used in the run
+        - Template parameters (if available)
+        - Other configuration data
+
+        Perfect for: "What resources were used in pipeline run 12345?"
+
+        Args:
+            project_id (str): The project UUID (get from list_projects if needed)
+            pipeline_id (int): The pipeline ID
+            run_id (int): The pipeline run ID to extract data from
+
+        Returns:
+            dict: Extracted data including repositories, variables, and parameters
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+
+        return ado_client_instance.extract_pipeline_run_data(project_id, pipeline_id, run_id)
+
+    @mcp_instance.tool
+    def extract_pipeline_run_data_by_name(
+        project_name: str, pipeline_name: str, run_id: int
+    ) -> dict | None:
+        """
+        🔧 EXTRACT PIPELINE DATA BY NAME: Extract resources, variables, and parameters using natural names.
+
+        ⚡ USE THIS WHEN: User wants to extract data but only knows project and pipeline names
+
+        This combines the power of data extraction with name-based lookup:
+        - Finds project and pipeline by name automatically
+        - Extracts repository resources, variables, and parameters
+        - Handles fuzzy matching for typos
+        - Much easier than managing IDs
+
+        Perfect for: "Extract data from run 12345 of the CI pipeline in Learning project"
+
+        Args:
+            project_name (str): Project name (fuzzy matching enabled)
+            pipeline_name (str): Pipeline name (fuzzy matching enabled)
+            run_id (int): Pipeline run ID to extract data from
+
+        Returns:
+            dict: Extracted data including repositories, variables, and parameters
+        """
+        ado_client_instance = client_container.get("client")
+        if not ado_client_instance:
+            logger.error("ADO client is not available.")
+            return None
+
+        return ado_client_instance.extract_pipeline_run_data_by_name(
+            project_name, pipeline_name, run_id
+        )
+
     # Register work item tools
     register_work_item_tools(mcp_instance, client_container)
 

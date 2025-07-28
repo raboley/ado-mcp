@@ -57,6 +57,9 @@ class TestComprehensiveToolRegistration:
             "watch_pipeline",
             "watch_pipeline_by_name",
             "preview_pipeline",
+            # Pipeline Data Extraction
+            "extract_pipeline_run_data",
+            "extract_pipeline_run_data_by_name",
             # Build & Log Analysis
             "get_build_by_id",
             "get_pipeline_run",

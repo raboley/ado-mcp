@@ -6,6 +6,7 @@ from fastmcp.client import Client
 from server import mcp
 from src.test_config import get_project_name
 from tests.ado.test_client import requires_ado_creds
+from tests.utils.retry_helpers import retry_with_cache_invalidation
 
 pytestmark = pytest.mark.asyncio
 
@@ -122,9 +123,12 @@ async def test_name_based_capabilities(mcp_client: Client):
     # Use external repository override instead of self branch override
     resources = {"repositories": {"tooling": {"refName": "refs/heads/main"}}}
 
-    result = await mcp_client.call_tool(
+    result = await retry_with_cache_invalidation(
+        mcp_client,
         "run_pipeline_by_name",
         {"project_name": project_name, "pipeline_name": pipeline_name, "resources": resources},
+        max_retries=3,
+        retry_delay=1,
     )
 
     pipeline_run = result.data

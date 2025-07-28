@@ -431,3 +431,78 @@ class BuildOperations:
             else:
                 # Re-raise other errors as they might be network or permission issues
                 raise
+
+    def extract_pipeline_run_data(self, project_id: str, pipeline_id: int, run_id: int) -> dict:
+        """
+        Extract resources, variables, and parameters from a pipeline run.
+
+        Args:
+            project_id (str): The ID of the project.
+            pipeline_id (int): The ID of the pipeline.
+            run_id (int): The ID of the pipeline run.
+
+        Returns:
+            dict: Extracted data including repositories, variables, and parameters.
+
+        Raises:
+            requests.exceptions.RequestException: For network-related errors.
+        """
+        from ..models import PipelineRunExtractionData, RepositoryInfo, VariableInfo
+
+        logger.info(f"Extracting data from pipeline run {run_id}")
+
+        # Get the pipeline run details
+        pipeline_run = self.get_pipeline_run(project_id, pipeline_id, run_id)
+
+        # Extract repositories from resources
+        repositories = []
+        if pipeline_run.resources and "repositories" in pipeline_run.resources:
+            for repo_name, repo_data in pipeline_run.resources["repositories"].items():
+                repo_info = RepositoryInfo(
+                    name=repo_name,
+                    full_name=repo_data.get("repository", {}).get("fullName"),
+                    type=repo_data.get("repository", {}).get("type"),
+                    ref_name=repo_data.get("refName"),
+                    version=repo_data.get("version"),
+                    connection_id=repo_data.get("repository", {}).get("connection", {}).get("id"),
+                )
+                repositories.append(repo_info)
+
+        # Extract variables
+        variables = []
+        if pipeline_run.variables:
+            for var_name, var_data in pipeline_run.variables.items():
+                if isinstance(var_data, dict):
+                    # Azure DevOps format: {"value": "...", "isSecret": false}
+                    variable_info = VariableInfo(
+                        name=var_name,
+                        value=var_data.get("value"),
+                        is_secret=var_data.get("isSecret", False),
+                    )
+                else:
+                    # Simple string format
+                    variable_info = VariableInfo(
+                        name=var_name, value=str(var_data), is_secret=False
+                    )
+                variables.append(variable_info)
+
+        # Note: Template parameters are not visible in pipeline run details
+        # They would need to be extracted from the original run request or pipeline YAML
+        template_parameters = {}
+
+        # Note: Stages to skip are not preserved in run details
+        stages_to_skip = []
+
+        extraction_data = PipelineRunExtractionData(
+            run_id=run_id,
+            pipeline_name=pipeline_run.pipeline.name if pipeline_run.pipeline else None,
+            repositories=repositories,
+            variables=variables,
+            template_parameters=template_parameters,
+            stages_to_skip=stages_to_skip,
+        )
+
+        logger.info(
+            f"Extracted {len(repositories)} repositories and {len(variables)} variables from run {run_id}"
+        )
+        return extraction_data.model_dump()

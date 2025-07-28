@@ -385,3 +385,39 @@ class PipelineOutcome(BaseModel):
     success: bool
     failure_summary: FailureSummary | None = None
     execution_time_seconds: float
+
+
+class RepositoryInfo(BaseModel):
+    """
+    Represents repository resource information from a pipeline run.
+    """
+
+    name: str  # Repository alias (e.g., "self", "tooling")
+    full_name: str | None = None  # e.g., "owner/repo"
+    type: str | None = None  # e.g., "gitHub", "azureReposGit"
+    ref_name: str | None = None  # e.g., "refs/heads/main"
+    version: str | None = None  # Commit SHA or version
+    connection_id: str | None = None
+
+
+class VariableInfo(BaseModel):
+    """
+    Represents variable information from a pipeline run.
+    """
+
+    name: str
+    value: str | None = None
+    is_secret: bool = False
+
+
+class PipelineRunExtractionData(BaseModel):
+    """
+    Represents extracted resources, variables, and parameters from a pipeline run.
+    """
+
+    run_id: int
+    pipeline_name: str | None = None
+    repositories: list[RepositoryInfo] = Field(default_factory=list)
+    variables: list[VariableInfo] = Field(default_factory=list)
+    template_parameters: dict[str, Any] = Field(default_factory=dict)
+    stages_to_skip: list[str] = Field(default_factory=list)

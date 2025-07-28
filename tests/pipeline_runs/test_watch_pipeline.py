@@ -5,6 +5,7 @@ from fastmcp.client import Client
 
 from server import mcp
 from tests.ado.test_client import requires_ado_creds
+from tests.utils.retry_helpers import retry_with_cache_invalidation
 
 pytestmark = pytest.mark.asyncio
 
@@ -33,9 +34,12 @@ async def mcp_client_no_auth(monkeypatch):
 @pytest.fixture
 async def running_pipeline_run_id(mcp_client: Client):
     """Start a pipeline and return its run ID for watch tests."""
-    result = await mcp_client.call_tool(
+    result = await retry_with_cache_invalidation(
+        mcp_client,
         "run_pipeline_by_name",
         {"project_name": TEST_PROJECT_NAME, "pipeline_name": BASIC_PIPELINE_NAME},
+        max_retries=3,
+        retry_delay=1,
     )
     pipeline_run = result.data
     return pipeline_run["id"]

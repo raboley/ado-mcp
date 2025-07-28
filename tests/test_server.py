@@ -9,6 +9,11 @@ from ado.cache import ado_cache
 from server import mcp
 from src.test_config import get_organization_url, get_project_id, get_project_name
 from tests.ado.test_client import requires_ado_creds
+from tests.utils.retry_helpers import (
+    retry_with_cache_invalidation,
+    wait_for_pipeline_creation,
+    wait_for_pipeline_deletion,
+)
 from tests.utils.telemetry import analyze_spans, clear_spans, telemetry_setup
 
 pytestmark = pytest.mark.asyncio
@@ -124,7 +129,14 @@ async def test_create_pipeline_creates_valid_pipeline(mcp_client: Client):
     if not github_connection_id:
         pytest.skip("No GitHub service connection found.")
 
-    pipeline_name = f"test-pipeline-{int(__import__('time').time())}"
+    import time
+    import uuid
+
+    # Use more entropy for unique naming to avoid conflicts
+    test_uuid = str(uuid.uuid4())[:8]
+    pipeline_name = f"test-pipeline-{int(time.time())}-{test_uuid}"
+    unique_folder = f"/test-create-{test_uuid}"
+
     result = await mcp_client.call_tool(
         "create_pipeline",
         {
@@ -134,7 +146,7 @@ async def test_create_pipeline_creates_valid_pipeline(mcp_client: Client):
             "repository_name": "raboley/ado-mcp",
             "service_connection_id": github_connection_id,
             "configuration_type": "yaml",
-            "folder": "/test",
+            "folder": unique_folder,
         },
     )
 
@@ -171,24 +183,28 @@ async def test_create_pipeline_creates_valid_pipeline(mcp_client: Client):
             f"Expected pipeline id to be int, got {type(pipeline_id)}"
         )
 
-    pipelines_list = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
-    pipeline_ids = [p["id"] for p in pipelines_list.data]
-    assert pipeline_id in pipeline_ids, (
-        f"Created pipeline {pipeline_id} should appear in pipelines list but was not found"
-    )
+    # Wait for pipeline creation to be reflected with retry mechanism
+    await wait_for_pipeline_creation(mcp_client, project_id, pipeline_id)
 
-    delete_result = await mcp_client.call_tool(
-        "delete_pipeline", {"project_name": project_name, "pipeline_name": pipeline_name}
-    )
-    assert delete_result.data is True, (
-        f"Pipeline deletion should return True but got {delete_result.data}"
-    )
+    # Cleanup: Delete the pipeline (with proper error handling)
+    try:
+        delete_result = await mcp_client.call_tool(
+            "delete_pipeline", {"project_name": project_name, "pipeline_name": pipeline_name}
+        )
+        assert delete_result.data is True, (
+            f"Pipeline deletion should return True but got {delete_result.data}"
+        )
 
-    pipelines_list_after = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
-    pipeline_ids_after = [p["id"] for p in pipelines_list_after.data]
-    assert pipeline_id not in pipeline_ids_after, (
-        f"Pipeline {pipeline_id} should be deleted but still appears in list"
-    )
+        # Wait for deletion to be reflected with retry mechanism
+        await wait_for_pipeline_deletion(mcp_client, project_id, pipeline_id)
+    except Exception as e:
+        # If cleanup fails, log it but don't fail the test
+        import logging
+
+        logging.warning(f"Failed to cleanup test pipeline {pipeline_id}: {e}")
+        # Re-raise if it's an assertion error (test failure)
+        if isinstance(e, AssertionError):
+            raise
 
 
 @requires_ado_creds
@@ -249,7 +265,14 @@ async def test_delete_pipeline_removes_pipeline(mcp_client: Client):
     if not github_connection_id:
         pytest.skip("No GitHub service connection found.")
 
-    pipeline_name = f"delete-test-pipeline-{int(__import__('time').time())}"
+    import time
+    import uuid
+
+    # Use more entropy for unique naming to avoid conflicts
+    test_uuid = str(uuid.uuid4())[:8]
+    pipeline_name = f"delete-test-pipeline-{int(time.time())}-{test_uuid}"
+    unique_folder = f"/test-delete-{test_uuid}"
+
     create_result = await mcp_client.call_tool(
         "create_pipeline",
         {
@@ -259,7 +282,7 @@ async def test_delete_pipeline_removes_pipeline(mcp_client: Client):
             "repository_name": "raboley/ado-mcp",
             "service_connection_id": github_connection_id,
             "configuration_type": "yaml",
-            "folder": "/test",
+            "folder": unique_folder,
         },
     )
 
@@ -280,11 +303,8 @@ async def test_delete_pipeline_removes_pipeline(mcp_client: Client):
         f"Pipeline deletion should return True but got {delete_result.data}"
     )
 
-    pipelines_after = await mcp_client.call_tool("list_pipelines", {"project_id": project_id})
-    pipeline_ids_after = [p["id"] for p in pipelines_after.data]
-    assert pipeline_id not in pipeline_ids_after, (
-        f"Pipeline {pipeline_id} should be deleted but still appears in list"
-    )
+    # Wait for deletion to be reflected with retry mechanism
+    await wait_for_pipeline_deletion(mcp_client, project_id, pipeline_id)
 
 
 @requires_ado_creds
@@ -445,8 +465,12 @@ async def test_pipeline_lifecycle_fire_and_forget(mcp_client: Client):
     project_name = get_project_name()
     pipeline_name = "test_run_and_get_pipeline_run_details"
 
-    run_result = await mcp_client.call_tool(
-        "run_pipeline_by_name", {"project_name": project_name, "pipeline_name": pipeline_name}
+    run_result = await retry_with_cache_invalidation(
+        mcp_client,
+        "run_pipeline_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name},
+        max_retries=3,
+        retry_delay=1,
     )
 
     pipeline_run = run_result.data
@@ -477,8 +501,12 @@ async def test_pipeline_lifecycle_wait_for_completion(mcp_client: Client):
     project_name = get_project_name()
     pipeline_name = "test_run_and_get_pipeline_run_details"
 
-    run_result = await mcp_client.call_tool(
-        "run_pipeline_by_name", {"project_name": project_name, "pipeline_name": pipeline_name}
+    run_result = await retry_with_cache_invalidation(
+        mcp_client,
+        "run_pipeline_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name},
+        max_retries=3,
+        retry_delay=1,
     )
 
     pipeline_run = run_result.data
@@ -536,8 +564,12 @@ async def test_multiple_pipeline_runs(mcp_client: Client):
     run_ids = []
 
     for _i in range(3):
-        run_result = await mcp_client.call_tool(
-            "run_pipeline_by_name", {"project_name": project_name, "pipeline_name": pipeline_name}
+        run_result = await retry_with_cache_invalidation(
+            mcp_client,
+            "run_pipeline_by_name",
+            {"project_name": project_name, "pipeline_name": pipeline_name},
+            max_retries=3,
+            retry_delay=1,
         )
 
         pipeline_run = run_result.data
@@ -579,8 +611,12 @@ async def test_pipeline_run_status_progression(mcp_client: Client):
     project_name = get_project_name()
     pipeline_name = "test_run_and_get_pipeline_run_details"
 
-    run_result = await mcp_client.call_tool(
-        "run_pipeline_by_name", {"project_name": project_name, "pipeline_name": pipeline_name}
+    run_result = await retry_with_cache_invalidation(
+        mcp_client,
+        "run_pipeline_by_name",
+        {"project_name": project_name, "pipeline_name": pipeline_name},
+        max_retries=3,
+        retry_delay=1,
     )
 
     pipeline_run = run_result.data

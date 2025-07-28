@@ -6,6 +6,7 @@ from fastmcp.client import Client
 from server import mcp
 from src.test_config import get_project_id, get_project_name
 from tests.ado.test_client import requires_ado_creds
+from tests.utils.retry_helpers import retry_with_cache_invalidation
 
 # Mark all tests in this module as asyncio
 pytestmark = pytest.mark.asyncio
@@ -27,9 +28,12 @@ async def get_pipeline_id_by_name(mcp_client: Client, pipeline_name: str) -> int
     """
     get_project_id()
 
-    result = await mcp_client.call_tool(
+    result = await retry_with_cache_invalidation(
+        mcp_client,
         "find_pipeline_by_name",
         {"project_name": get_project_name(), "pipeline_name": pipeline_name},
+        max_retries=3,
+        retry_delay=1,
     )
 
     pipeline_info = result.data

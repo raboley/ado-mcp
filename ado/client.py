@@ -677,6 +677,10 @@ class AdoClient:
             project_id, pipeline_id, run_id, timeout_seconds, max_lines
         )
 
+    def extract_pipeline_run_data(self, project_id: str, pipeline_id: int, run_id: int):
+        """Extract resources, variables, and parameters from pipeline run."""
+        return self._builds.extract_pipeline_run_data(project_id, pipeline_id, run_id)
+
     def run_pipeline_and_get_outcome(
         self,
         project_id: str,
@@ -765,6 +769,10 @@ class AdoClient:
         return self._lookups.watch_pipeline_by_name(
             project_name, pipeline_name, run_id, timeout_seconds, max_lines
         )
+
+    def extract_pipeline_run_data_by_name(self, project_name: str, pipeline_name: str, run_id: int):
+        """Extract resources, variables, and parameters from pipeline run using names."""
+        return self._lookups.extract_pipeline_run_data_by_name(project_name, pipeline_name, run_id)
 
     def list_available_projects(self):
         """Get list of available project names."""

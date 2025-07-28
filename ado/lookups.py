@@ -288,3 +288,26 @@ class AdoLookups:
         pipelines = self.ensure_pipelines_cached(project.id)
         pipeline_names = [p.name for p in pipelines]
         return get_close_matches(pipeline_name, pipeline_names, n=limit, cutoff=0.4)
+
+    def extract_pipeline_run_data_by_name(
+        self, project_name: str, pipeline_name: str, run_id: int
+    ) -> dict:
+        """
+        Extract resources, variables, and parameters from a pipeline run using names.
+
+        Args:
+            project_name (str): Project name (supports fuzzy matching).
+            pipeline_name (str): Pipeline name (supports fuzzy matching).
+            run_id (int): Pipeline run ID.
+
+        Returns:
+            PipelineRunExtractionData: Extracted data including repositories, variables, and parameters.
+
+        Raises:
+            ValueError: If project or pipeline not found.
+        """
+        project_id, pipeline_id = self.get_pipeline_ids(project_name, pipeline_name)
+        logger.info(
+            f"Extracting data from run {run_id} for pipeline '{pipeline_name}' in project '{project_name}'"
+        )
+        return self.client.extract_pipeline_run_data(project_id, pipeline_id, run_id)
