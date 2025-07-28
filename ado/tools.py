@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from typing import Any
@@ -22,6 +23,7 @@ from ado.models import (
     TimelineResponse,
 )
 from ado.work_items.tools import register_work_item_tools
+from ado.graceful_cancellation import handle_tool_cancellation
 
 logger = logging.getLogger(__name__)
 
@@ -280,7 +282,8 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.get_build_by_id(project_id, build_id)
 
     @mcp_instance.tool
-    def run_pipeline(
+    @handle_tool_cancellation("run_pipeline")
+    async def run_pipeline(
         project_name: str,
         pipeline_name: str,
         variables: dict[str, Any] | None = None,
@@ -348,7 +351,13 @@ def register_ado_tools(mcp_instance, client_container):
                 resources=resources,
             )
 
-        return ado_client_instance.run_pipeline_by_name(project_name, pipeline_name, request)
+        # Execute the synchronous client call in a thread pool to make it cancellable  
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            ado_client_instance.run_pipeline_by_name,
+            project_name, pipeline_name, request
+        )
 
     @mcp_instance.tool
     def get_pipeline_run(project_name: str, pipeline_name: str, run_id: int) -> PipelineRun | None:
@@ -526,7 +535,8 @@ def register_ado_tools(mcp_instance, client_container):
         return ado_client_instance.preview_pipeline(project_id, pipeline_id, request)
 
     @mcp_instance.tool
-    def get_pipeline_failure_summary(
+    @handle_tool_cancellation("get_pipeline_failure_summary")
+    async def get_pipeline_failure_summary(
         project_name: str, pipeline_name: str, run_id: int, max_lines: int = 100
     ) -> FailureSummary | None:
         """
@@ -562,7 +572,11 @@ def register_ado_tools(mcp_instance, client_container):
             project_name, pipeline_name
         )
 
-        return ado_client_instance.get_pipeline_failure_summary(
+        # Execute the synchronous client call in a thread pool to make it cancellable
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            ado_client_instance.get_pipeline_failure_summary,
             project_id, pipeline_id, run_id, max_lines
         )
 
@@ -1113,7 +1127,8 @@ def register_ado_tools(mcp_instance, client_container):
         )
 
     @mcp_instance.tool
-    def run_pipeline_and_get_outcome_by_name(
+    @handle_tool_cancellation("run_pipeline_and_get_outcome_by_name")
+    async def run_pipeline_and_get_outcome_by_name(
         project_name: str,
         pipeline_name: str,
         timeout_seconds: int = 300,
@@ -1182,7 +1197,11 @@ def register_ado_tools(mcp_instance, client_container):
                 resources=resources,
             )
 
-        return ado_client_instance.run_pipeline_and_get_outcome_by_name(
+        # Execute the synchronous client call in a thread pool to make it cancellable
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            ado_client_instance.run_pipeline_and_get_outcome_by_name,
             project_name, pipeline_name, request, timeout_seconds, max_lines
         )
 
